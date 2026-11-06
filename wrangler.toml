@@ -5,4 +5,4 @@ compatibility_date = "2024-11-01"
 [[d1_databases]]
 binding = "DB"
 database_name = "statemint"
-database_id = "00000000-0000-0000-0000-000000000000"
+database_id = "081af72d-74f8-4f9b-9026-86d32a76f254"
