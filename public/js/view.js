@@ -116,7 +116,7 @@ export function renderStatement(root, data) {
 
   const foot = h("footer", "st-foot");
   foot.appendChild(h("span", "", `Figures from the Airbnb transaction report${data.createdAt ? " · generated " + new Date(data.createdAt).toLocaleDateString() : ""}.`));
-  const made = h("a", "", "Made with Statemint ✦"); made.href = "/"; foot.appendChild(made);
+  const made = h("a", "", "Made with Ownermint ✦"); made.href = "/"; foot.appendChild(made);
   card.appendChild(foot);
   root.appendChild(card);
 

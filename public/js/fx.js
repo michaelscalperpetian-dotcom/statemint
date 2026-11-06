@@ -49,6 +49,6 @@ export function toast(msg) {
 }
 export async function copy(text) { try { await navigator.clipboard.writeText(text); toast("Link copied ✦"); } catch { prompt("Copy this link:", text); } }
 export const store = {
-  get(k, d) { try { const v = localStorage.getItem("statemint:" + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
-  set(k, v) { try { localStorage.setItem("statemint:" + k, JSON.stringify(v)); return true; } catch { return false; } },
+  get(k, d) { try { const v = localStorage.getItem("ownermint:" + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem("ownermint:" + k, JSON.stringify(v)); return true; } catch { return false; } },
 };
