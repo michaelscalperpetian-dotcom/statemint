@@ -1,0 +1,34 @@
+{
+ "Sunny Bungalow|2026-10": {
+  "res": 3,
+  "nights": 9,
+  "gross": 2010.0,
+  "payout": 1705.43,
+  "fees": 304.57,
+  "clean": 285.0
+ },
+ "Sunny Bungalow|2026-11": {
+  "res": 2,
+  "nights": 7,
+  "gross": 1505.0,
+  "payout": 1271.73,
+  "fees": 233.27,
+  "clean": 190.0
+ },
+ "Ocean Studio|2026-10": {
+  "res": 1,
+  "nights": 4,
+  "gross": 640.0,
+  "payout": 533.05,
+  "fees": 106.95,
+  "clean": 70.0
+ },
+ "Ocean Studio|2026-11": {
+  "res": 1,
+  "nights": 2,
+  "gross": 370.0,
+  "payout": 312.65,
+  "fees": 57.35,
+  "clean": 70.0
+ }
+}

@@ -1,0 +1,10 @@
+Date,Type,Confirmation code,Start date,End date,Nights,Guest,Listing,Currency,Amount,Host service fee,Cleaning fee,Gross earnings,Occupancy taxes
+11/14/2026,Reservation,HMS7T8U9V0,11/14/2026,11/16/2026,2,Grace Kim,Sunny Bungalow,USD,409.83,75.17,95.00,485.00,58.20
+11/03/2026,Reservation,HMB5C6D7E8,11/03/2026,11/05/2026,2,Hannah Weber,Ocean Studio,USD,312.65,57.35,70.00,370.00,44.40
+11/01/2026,Reservation,HMN3P4Q5R6,11/01/2026,11/06/2026,5,Liam Nguyen,Sunny Bungalow,USD,861.90,158.10,95.00,"1,020.00",122.40
+10/27/2026,Cancellation Fee,HMZZ9Y8X7W,,,,Chris Doe,Ocean Studio,USD,-50.00,,,-50.00,
+10/23/2026,Resolution Adjustment,HMJ9K0L1M2,,,,Sofia Rossi,Sunny Bungalow,USD,45.00,,,45.00,
+10/20/2026,Reservation,HMJ9K0L1M2,10/20/2026,10/22/2026,2,Sofia Rossi,Sunny Bungalow,USD,401.38,73.62,95.00,475.00,57.00
+10/09/2026,Reservation,HME5F6G7H8,10/09/2026,10/13/2026,4,Daniel Okafor,Sunny Bungalow,USD,722.47,132.53,95.00,855.00,102.60
+10/06/2026,Reservation,HMW1X2Y3Z4,10/06/2026,10/10/2026,4,Mateo Silva,Ocean Studio,USD,583.05,106.95,70.00,690.00,82.80
+10/02/2026,Reservation,HMA1B2C3D4,10/02/2026,10/05/2026,3,Emily Carter,Sunny Bungalow,USD,536.58,98.42,95.00,635.00,76.20

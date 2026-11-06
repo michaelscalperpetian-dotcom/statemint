@@ -25,20 +25,20 @@ export function parseCSV(text) {
 
 const norm = s => String(s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
 export const FIELDS = {
-  date: ["date", "transactiondate", "payoutdate"],
+  date: ["date", "transactiondate", "payoutdate", "datepaid", "paidoutdate"],
   type: ["type", "transactiontype"],
-  code: ["confirmationcode", "confirmation", "reservationcode", "bookingcode"],
-  start: ["startdate", "checkin", "checkindate", "arrival"],
+  code: ["confirmationcode", "confirmation", "reservationcode", "bookingcode", "reservationid", "confirmationnumber"],
+  start: ["startdate", "checkin", "checkindate", "arrival", "arrivaldate", "staystart"],
   end: ["enddate", "checkout", "checkoutdate", "departure"],
   nights: ["nights", "numberofnights"],
   guest: ["guest", "guestname"],
-  listing: ["listing", "listingname", "property", "propertyname"],
+  listing: ["listing", "listingname", "property", "propertyname", "listingtitle"],
   currency: ["currency"],
-  amount: ["amount", "hostearnings", "netearnings", "payoutamount"],
+  amount: ["amount", "hostearnings", "netearnings", "payoutamount", "hostpayout", "netpayout", "earnings"],
   paidOut: ["paidout"],
   serviceFee: ["servicefee", "hostservicefee", "hostfee", "airbnbservicefee"],
   cleaningFee: ["cleaningfee", "cleaningfees"],
-  gross: ["grossearnings", "gross", "grossamount"],
+  gross: ["grossearnings", "gross", "grossamount", "grossbookingvalue", "grossrevenue"],
   taxes: ["occupancytaxes", "taxes", "taxeswithheld"],
 };
 

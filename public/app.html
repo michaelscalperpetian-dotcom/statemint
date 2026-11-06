@@ -18,6 +18,14 @@
       <div style="font-size:30px">📄</div><b id="dropTitle">Drop your Airbnb CSV here</b><small>Earnings → Transaction history → Export CSV.<br>Stays in your browser; nothing is uploaded.</small></div>
     <div style="margin-top:8px"><button class="btn btn-ghost btn-sm" id="sample" type="button"><span>Try with sample data</span></button></div>
     <div id="warns"></div>
+    <div id="mapPanel" class="panel-map" style="display:none">
+      <b>Match your columns</b>
+      <p class="help">We couldn't recognize every column in this file. Tell us which column is which; we'll remember it for next time.</p>
+      <label class="help" style="display:flex;gap:8px;align-items:center;margin:8px 0"><input type="checkbox" id="noHeader"> The first row is data (my file has no header row)</label>
+      <div id="mapFields"></div>
+      <button class="btn btn-sm" id="applyMap" type="button"><span>Use these columns</span></button>
+    </div>
+    <button class="btn btn-ghost btn-sm" id="fixCols" type="button" style="display:none;margin-top:8px"><span>Fix column matching</span></button>
 
     <div id="cfg" style="display:none">
       <div class="row2">
@@ -45,6 +53,7 @@
       <div class="field"><label for="company">Your business name</label><input class="input" id="company" maxlength="60" placeholder="e.g. Lakeside Co-Hosting"></div>
       <div class="field"><label for="owner">Owner's name</label><input class="input" id="owner" maxlength="60" placeholder="e.g. Pat Morgan"></div>
       <div class="field"><label for="logo">Logo (optional)</label><input class="input" id="logo" type="file" accept="image/*"></div>
+      <div class="field"><label for="note">Note to the owner (this month)</label><textarea class="input" id="note" rows="3" maxlength="600" placeholder="e.g. Busy month! Replaced the shower head; receipt attached."></textarea></div>
     </div>
   </aside>
 
@@ -64,7 +73,7 @@
   </main>
 </div>
 <script type="module">
-import { parseCSV, toTransactions, listings, months, buildStatement, monthLabel, DEFAULT_SETTINGS, SAMPLE_CSV, money } from "/js/engine.js";
+import { parseCSV, toTransactions, detectColumns, FIELDS, listings, months, buildStatement, monthLabel, DEFAULT_SETTINGS, SAMPLE_CSV, money } from "/js/engine.js";
 import { renderStatement } from "/js/view.js";
 import { cursor, magnetic, toast, copy, store } from "/js/fx.js";
 cursor(); magnetic();
@@ -73,17 +82,45 @@ let tx = [], current = null;
 const brand = store.get("brand", { company: "", ownerName: "", logo: "" });
 $("company").value = brand.company; $("owner").value = brand.ownerName;
 
-function loadCSV(text, name) {
-  const { transactions, warnings } = toTransactions(parseCSV(text));
+const MAP_FIELDS = [["date", "Date (payout/transaction)"], ["type", "Type"], ["start", "Check-in / start date"], ["nights", "Nights"], ["guest", "Guest"], ["listing", "Listing"],
+  ["amount", "Amount / payout (after Airbnb fee)"], ["gross", "Gross earnings"], ["serviceFee", "Host service fee"], ["cleaningFee", "Cleaning fee"], ["code", "Confirmation code"]];
+let rawRows = [], rawName = "";
+const sig = header => header.map(x => String(x).trim().toLowerCase()).join("|");
+function showMapper(rows) {
+  const noHeader = $("noHeader").checked;
+  const first = rows[0] || []; const n = Math.max(...rows.slice(0, 5).map(r => r.length));
+  const names = Array.from({ length: n }, (_, i) => noHeader ? `Column ${i + 1} (e.g. "${String(first[i] ?? "").slice(0, 18)}")` : `${first[i] ?? "Column " + (i + 1)}`);
+  const auto = noHeader ? {} : detectColumns(first);
+  $("mapFields").innerHTML = "";
+  MAP_FIELDS.forEach(([f, label]) => {
+    const wrap = document.createElement("div"); wrap.className = "field";
+    const l = document.createElement("label"); l.textContent = label; const sel = document.createElement("select"); sel.className = "input"; sel.dataset.field = f;
+    sel.appendChild(Object.assign(document.createElement("option"), { value: "", textContent: "(not in my file)" }));
+    names.forEach((nm, i) => sel.appendChild(Object.assign(document.createElement("option"), { value: String(i), textContent: nm })));
+    if (auto[f] != null) sel.value = String(auto[f]);
+    wrap.append(l, sel); $("mapFields").appendChild(wrap);
+  });
+  $("mapPanel").style.display = "";
+}
+function loadCSV(text, name, manualMap = null) {
+  rawRows = parseCSV(text); rawName = name;
+  let rows = rawRows, map = manualMap;
+  if (!map && rows.length) { const saved = store.get("colmap:" + sig(rows[0])); if (saved) map = saved; }
+  if (map && map.__noHeader) rows = [Array.from({ length: Math.max(...rawRows.slice(0, 5).map(r => r.length)) }, (_, i) => "Column " + (i + 1)), ...rawRows];
+  const clean = map ? Object.fromEntries(Object.entries(map).filter(([k]) => !k.startsWith("__"))) : null;
+  const { transactions, warnings } = toTransactions(rows, clean);
   $("warns").innerHTML = "";
   warnings.forEach(w => { const d = document.createElement("div"); d.className = "warn"; d.textContent = w; $("warns").appendChild(d); });
-  if (!transactions.length) return;
-  tx = transactions;
+  $("fixCols").style.display = rawRows.length ? "" : "none";
+  if (!transactions.length) { showMapper(rawRows); return; }
+  $("mapPanel").style.display = "none";
+  tx = transactions; firstRender = true;
+  try { if (text.length < 1500000) store.set("lastCSV", { name, text }); } catch {}
   $("dropTitle").textContent = `✓ ${name} · ${tx.length} lines`;
   fillSelect($("listing"), listings(tx).map(l => [l, l]), store.get("lastListing"));
   refreshMonths();
   $("cfg").style.display = ""; $("empty").style.display = "none"; $("out").style.display = "";
-  update();
+  loadSettingsUI(); renderExpenses(); loadNote(); update();
 }
 function fillSelect(sel, opts, keep) { sel.innerHTML = ""; opts.forEach(([v, t]) => { const o = document.createElement("option"); o.value = v; o.textContent = t; sel.appendChild(o); }); if (keep && opts.some(o => o[0] === keep)) sel.value = keep; }
 function settingsKey() { return "settings:" + $("listing").value; }
@@ -111,21 +148,32 @@ function renderExpenses() {
     row.append(d, a, x); $("expList").appendChild(row);
   });
 }
+let firstRender = true;
+function prevMonthKey(key) { const [y, m] = key.split("-").map(Number); const d = new Date(Date.UTC(y, m - 2, 1)); return d.toISOString().slice(0, 7); }
+function noteKey() { return `note:${$("listing").value}:${$("month").value}`; }
+function loadNote() { $("note").value = store.get(noteKey(), ""); }
 function update(full = true) {
   if (!tx.length) return;
   store.set("lastListing", $("listing").value);
-  current = buildStatement(tx, { listing: $("listing").value, month: $("month").value, settings: getSettings(), expenses: store.get(expKey(), []) });
+  const settings = getSettings(), listing = $("listing").value, month = $("month").value;
+  current = buildStatement(tx, { listing, month, settings, expenses: store.get(expKey(), []) });
+  const pk = prevMonthKey(month);
+  const prevExp = store.get(`exp:${listing}:${pk}`, []);
+  const prev = months(tx.filter(t => t.listing === listing), settings.monthBy).includes(pk) ? buildStatement(tx, { listing, month: pk, settings, expenses: prevExp }) : null;
+  currentPrev = prev ? { ownerNet: prev.totals.ownerNet, nights: prev.totals.nights, month: pk } : null;
   $("outTitle").textContent = `${current.listing} · ${monthLabel(current.month)}`;
   $("shareOut").style.display = "none";
-  renderStatement($("view"), { statement: current, brand: store.get("brand", brand) });
+  renderStatement($("view"), { statement: current, brand: store.get("brand", brand), note: $("note").value, previous: currentPrev }, { animate: firstRender });
+  firstRender = false;
 }
+let currentPrev = null;
 $("file").addEventListener("change", e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => loadCSV(String(r.result), f.name); r.readAsText(f); });
 const drop = $("drop");
 ["dragenter", "dragover"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add("over"); }));
 ["dragleave", "drop"].forEach(ev => drop.addEventListener(ev, () => drop.classList.remove("over")));
 $("sample").onclick = () => loadCSV(SAMPLE_CSV, "sample-airbnb.csv");
-$("listing").onchange = () => { loadSettingsUI(); refreshMonths(); renderExpenses(); update(); };
-$("month").onchange = () => { renderExpenses(); update(); };
+$("listing").onchange = () => { loadSettingsUI(); refreshMonths(); renderExpenses(); loadNote(); firstRender = true; update(); };
+$("month").onchange = () => { renderExpenses(); loadNote(); firstRender = true; update(); };
 $("pct").oninput = () => saveSettings({ commissionPct: Number($("pct").value) });
 $("base").onchange = () => saveSettings({ commissionBase: $("base").value });
 $("splitAmt").oninput = () => saveSettings({ splitPaidToCohost: Number($("splitAmt").value) });
@@ -145,7 +193,7 @@ $("print").onclick = () => print();
 $("share").onclick = async () => {
   if (!current) return; $("share").disabled = true;
   try {
-    const res = await fetch("/api/statements", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ statement: current, brand: store.get("brand", brand) }) });
+    const res = await fetch("/api/statements", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ statement: current, brand: store.get("brand", brand), note: $("note").value, previous: currentPrev }) });
     const d = await res.json(); if (!res.ok) throw new Error(d.error || "Couldn't create link");
     const links = store.get("links", []); links.push({ id: d.id, editKey: d.editKey, listing: current.listing, month: current.month, at: Date.now() }); store.set("links", links);
     $("shareLink").value = `${location.origin}/s/${d.id}`; $("shareOut").style.display = ""; copy($("shareLink").value);
@@ -153,7 +201,18 @@ $("share").onclick = async () => {
   $("share").disabled = false;
 };
 $("copyLink").onclick = () => copy($("shareLink").value);
+$("note").oninput = () => { store.set(noteKey(), $("note").value); update(false); };
+$("fixCols").onclick = () => showMapper(rawRows);
+$("noHeader").onchange = () => showMapper(rawRows);
+$("applyMap").onclick = () => {
+  const map = {}; document.querySelectorAll("#mapFields select").forEach(s => { if (s.value !== "") map[s.dataset.field] = Number(s.value); });
+  if (map.amount == null && map.gross == null) { toast("Pick at least the Amount or Gross earnings column"); return; }
+  if ($("noHeader").checked) map.__noHeader = true;
+  if (rawRows.length) store.set("colmap:" + sig(rawRows[0]), map);
+  loadCSV(rawRows.map(r => r.map(v => /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v).join(",")).join("\n"), rawName, map);
+};
 loadSettingsUI();
+const last = store.get("lastCSV"); if (last && last.text) loadCSV(last.text, last.name);
 </script>
 </body>
 </html>

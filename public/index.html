@@ -9,13 +9,14 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600..800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/css/app.css">
+<script type="importmap">{"imports":{"three":"/vendor/three.module.min.js","three/addons/":"/vendor/addons/"}}</script>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='44' fill='%232fd3a0'/></svg>">
 </head>
 <body>
 <nav class="nav dark" style="color:#fff"><div class="wrap">
   <a class="logo" href="/"><i></i>Ownermint</a>
   <div class="nav-links"><a class="txt" href="#how">How it works</a><a class="txt" href="#pricing">Pricing</a><a class="txt" href="#faq">FAQ</a>
-    <a class="btn btn-mint btn-sm" href="/app.html" data-magnetic=".25"><span>Make a statement</span></a></div>
+    <a class="btn btn-mint btn-sm" href="/app" data-magnetic=".25"><span>Make a statement</span></a></div>
 </div></nav>
 
 <header class="hero dark">
@@ -25,10 +26,10 @@
     <h1 class="h-hero" id="title">Owner statements, <span class="grad">minted</span> in 30&nbsp;seconds.</h1>
     <p class="hero-lede">Drop in your Airbnb transaction CSV. Ownermint does the commission math, cleaning fees, expenses and split payouts, then sends your owner a statement they'll actually enjoy opening.</p>
     <div class="hero-cta">
-      <a class="btn btn-mint btn-lg" href="/app.html" data-magnetic><span>Make my first statement →</span></a>
+      <a class="btn btn-mint btn-lg" href="/app" data-magnetic><span>Make my first statement →</span></a>
       <a class="btn btn-ghost btn-lg" href="#demo" data-magnetic style="color:#fff"><span>See an example</span></a>
     </div>
-    <p class="hero-meta">Free for your first property · No account · Your CSV never leaves your browser</p>
+    <div class="trust"><span>🔒 Your CSV never leaves your browser</span><span>⚡ No account needed</span><span>🧮 Every number traceable to Airbnb</span></div>
   </div></div>
   <div class="hero-hint">move your mouse · click to make it rain</div>
   <div class="scroll-cue"></div>
@@ -50,7 +51,7 @@
       <div class="feature reveal"><div class="ic">✦</div><div><b>Send a statement that impresses</b><p>A branded, animated web statement or a clean PDF, with what's owed and to whom, down to the cent.</p></div></div>
     </div>
   </div>
-  <div class="tilt-wrap reveal" id="demo"><div class="stack-demo" id="stack"><div id="demoView"></div></div></div>
+  <div class="reveal" id="demo"><div class="demo-controls"><div><label for="dPct">Your commission <b id="dPctV">20%</b></label><input type="range" id="dPct" min="5" max="40" step="1" value="20"></div><div class="seg" id="dClean"><button data-v="owner" type="button">Cleaning → owner</button><button data-v="cohost" type="button" class="on">Cleaning → you</button></div></div><div class="tilt-wrap"><div class="stack-demo" id="stack"><div id="demoView"></div></div></div><p class="demo-note">Live demo with sample data. Drag the slider and the statement recalculates.</p></div>
 </div></section>
 
 <section class="sec" style="padding-top:0"><div class="wrap">
@@ -71,12 +72,12 @@
   <div class="eyebrow reveal">Pricing</div>
   <h2 class="h-sec reveal">Start free. Grow when you do.</h2>
   <div class="price-grid">
-    <div class="pcard reveal"><b>Starter</b><div class="price">$0</div><p style="color:var(--ink-3)">For your first property.</p>
-      <ul><li>Unlimited statements for 1 property</li><li>PDF export</li><li>Live owner links</li><li>Split-payout reconciliation</li></ul>
-      <a class="btn btn-block" style="width:100%" href="/app.html"><span>Start free</span></a></div>
-    <div class="pcard pro reveal"><b>Pro</b><div class="price">$12<small>/month</small></div><p style="opacity:.6">For co-hosts managing more homes.</p>
-      <ul><li>Unlimited properties</li><li>Your logo & business name</li><li>Statement history & resend</li><li>Priority support</li></ul>
-      <a class="btn btn-mint" style="width:100%" href="/app.html"><span>Free during launch</span></a></div>
+    <div class="pcard reveal"><b>Launch plan</b><div class="price">$0</div><p style="color:var(--ink-3)">Everything is free while we're new.</p>
+      <ul><li>Unlimited statements &amp; properties</li><li>PDF export &amp; live owner links</li><li>Your logo &amp; business name</li><li>Split-payout reconciliation</li></ul>
+      <a class="btn btn-block" style="width:100%" href="/app"><span>Start free</span></a></div>
+    <div class="pcard pro reveal"><b>Pro, coming soon</b><div class="price">$12<small>/month</small></div><p style="opacity:.6">Planned for co-hosts managing several homes. Launch-plan users will get notice before anything changes.</p>
+      <ul><li>Statement history across months</li><li>Automatic month-over-month comparisons</li><li>Saved deals synced across devices</li></ul>
+      <a class="btn btn-mint" style="width:100%" href="/app"><span>Start free now</span></a></div>
   </div>
 </div></section>
 
@@ -91,7 +92,7 @@
   </div>
 </div></section>
 
-<footer><div class="wrap"><span>© <span id="yr"></span> Ownermint · Not affiliated with Airbnb</span><span><a href="/app.html">Make a statement</a></span></div></footer>
+<footer><div class="wrap"><span>© <span id="yr"></span> Ownermint · Not affiliated with Airbnb</span><span><a href="/app">Make a statement</a></span></div></footer>
 
 <script type="module">
 import { cursor, magnetic, reveals, splitWords, tilt } from "/js/fx.js";
@@ -101,10 +102,17 @@ document.getElementById("yr").textContent = new Date().getFullYear();
 cursor(); magnetic(); splitWords(document.getElementById("title")); reveals();
 const nav = document.querySelector(".nav"); const onScroll = () => nav.classList.toggle("solid", scrollY > innerHeight - 90); onScroll(); addEventListener("scroll", onScroll, { passive: true });
 const { transactions } = toTransactions(parseCSV(SAMPLE_CSV));
-const st = buildStatement(transactions, { listing: "Lakeview Cabin", month: "2026-10", settings: { commissionPct: 20, cleaningTo: "cohost" }, expenses: [{ description: "Restocked coffee & toiletries", amount: 48.5 }] });
 const demo = document.getElementById("demoView");
+const dState = { pct: 20, clean: "cohost" };
+const prevStatement = () => buildStatement(transactions, { listing: "Lakeview Cabin", month: "2026-09", settings: { commissionPct: dState.pct, cleaningTo: dState.clean }, expenses: [] });
+function drawDemo(animate) {
+  const st = buildStatement(transactions, { listing: "Lakeview Cabin", month: "2026-10", settings: { commissionPct: dState.pct, cleaningTo: dState.clean }, expenses: [{ description: "Restocked coffee & toiletries", amount: 48.5 }] });
+  renderStatement(demo, { statement: st, brand: { company: "Lakeside Co-Hosting", ownerName: "Pat Morgan" }, note: "Great month: the cabin was booked 17 of 31 nights. Coffee & toiletries restocked; receipts on file." }, { animate });
+}
 let rendered = false;
-new IntersectionObserver((es, o) => es.forEach(e => { if (e.isIntersecting && !rendered) { rendered = true; renderStatement(demo, { statement: st, brand: { company: "Lakeside Co-Hosting", ownerName: "Pat Morgan" } }); o.disconnect(); } }), { threshold: .2 }).observe(demo);
+new IntersectionObserver((es, o) => es.forEach(e => { if (e.isIntersecting && !rendered) { rendered = true; drawDemo(true); o.disconnect(); } }), { threshold: .2 }).observe(demo);
+document.getElementById("dPct").addEventListener("input", e => { dState.pct = Number(e.target.value); document.getElementById("dPctV").textContent = dState.pct + "%"; drawDemo(false); });
+document.querySelectorAll("#dClean button").forEach(b => b.addEventListener("click", () => { dState.clean = b.dataset.v; document.querySelectorAll("#dClean button").forEach(x => x.classList.toggle("on", x === b)); drawDemo(false); }));
 tilt(document.getElementById("stack"), document.getElementById("demo"), 6);
 try { const { startHero } = await import("/js/hero3d.js"); startHero(document.getElementById("scene")); } catch (e) { console.warn("3D scene unavailable", e); }
 </script>

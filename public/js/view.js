@@ -11,8 +11,15 @@ function countUp(el, to, currency, dur = 1400) {
   requestAnimationFrame(step);
 }
 
-export function renderStatement(root, data) {
-  const { statement: st, brand = {} } = data;
+const pctDelta = (now, before) => (before ? (now - before) / Math.abs(before) : null);
+function deltaChip(now, before, fmt) {
+  if (before == null) return null;
+  const d = now - before; if (Math.abs(d) < 0.005) return h("span", "delta flat", "same as last month");
+  const el = h("span", "delta " + (d > 0 ? "up" : "down"), `${d > 0 ? "▲" : "▼"} ${fmt(Math.abs(d))} vs last month`); return el;
+}
+export function renderStatement(root, data, opts = {}) {
+  const animate = opts.animate !== false && !reduce;
+  const { statement: st, brand = {}, note = "", previous = null } = data;
   const T = st.totals, cur = st.currency, s = st.settings;
   root.innerHTML = "";
   const card = h("article", "st");
@@ -27,19 +34,21 @@ export function renderStatement(root, data) {
   head.appendChild(h("h2", "", st.listing || "Your property"));
   head.appendChild(h("div", "sub", `${monthLabel(st.month)} · Prepared for ${brand.ownerName || "the owner"}${brand.company ? " by " + brand.company : ""}`));
   card.appendChild(head);
+  if (note && note.trim()) { const n = h("section", "st-note"); n.append(h("div", "k", "Note from your co-host"), h("p", "", note.trim())); card.appendChild(n); }
 
   // hero numbers
   const hero = h("section", "st-hero");
   const big = h("div", "st-big");
   const isOwnerGets = st.settlement.direction === "cohost_pays_owner";
   big.appendChild(h("div", "label", "Owner net for the month"));
-  const amt = h("div", "amt num", money(0, cur)); big.appendChild(amt);
+  const amt = h("div", "amt num", money(animate ? 0 : T.ownerNet, cur)); big.appendChild(amt);
+  if (previous) { const c = deltaChip(T.ownerNet, previous.ownerNet, v => money(v, cur)); if (c) big.appendChild(c); }
   big.appendChild(h("div", "who", `${st.settlement.label}: ${money(st.settlement.amount, cur)}`));
   hero.appendChild(big);
   const kpis = h("div", "st-kpis");
-  const kpi = (k, v) => { const d = h("div", "kpi"); d.append(h("div", "k", k), h("div", "v num", v)); kpis.appendChild(d); };
+  const kpi = (k, v, chip) => { const d = h("div", "kpi"); d.append(h("div", "k", k), h("div", "v num", v)); if (chip) d.appendChild(chip); kpis.appendChild(d); };
   kpi("Reservations", String(T.reservations));
-  kpi("Nights booked", String(T.nights));
+  kpi("Nights booked", String(T.nights), previous ? deltaChip(T.nights, previous.nights, v => v + (v === 1 ? " night" : " nights")) : null);
   kpi("Occupancy", T.occupancy == null ? "n/a" : Math.round(T.occupancy * 100) + "%");
   kpi("Avg nightly rate", money(T.adr, cur));
   hero.appendChild(kpis);
@@ -78,7 +87,7 @@ export function renderStatement(root, data) {
       cal.appendChild(bar);
     });
     calSec.appendChild(cal); card.appendChild(calSec);
-    if (reduce) cal.classList.add("in"); else new IntersectionObserver((es, o) => es.forEach(e => { if (e.isIntersecting) { cal.classList.add("in"); o.disconnect(); } }), { threshold: .3 }).observe(cal);
+    if (reduce || !animate) { cal.classList.add("in"); cal.querySelectorAll(".stay").forEach(b => (b.style.transition = "none")); } else new IntersectionObserver((es, o) => es.forEach(e => { if (e.isIntersecting) { cal.classList.add("in"); o.disconnect(); } }), { threshold: .3 }).observe(cal);
   }
 
   // reservations table
@@ -121,6 +130,7 @@ export function renderStatement(root, data) {
   root.appendChild(card);
 
   // animate
-  countUp(amt, T.ownerNet, cur);
-  requestAnimationFrame(() => setTimeout(() => flow.querySelectorAll("div").forEach(d => d.style.width = d.dataset.w + "%"), reduce ? 0 : 150));
+  if (animate) countUp(amt, T.ownerNet, cur);
+  if (!animate) flow.querySelectorAll("div").forEach(d => { d.style.transition = "none"; d.style.width = d.dataset.w + "%"; });
+  else requestAnimationFrame(() => setTimeout(() => flow.querySelectorAll("div").forEach(d => d.style.width = d.dataset.w + "%"), 150));
 }
