@@ -110,6 +110,7 @@ function drawDemo(animate) {
   renderStatement(demo, { statement: st, brand: { company: "Lakeside Co-Hosting", ownerName: "Pat Morgan" }, note: "Great month: the cabin was booked 17 of 31 nights. Coffee & toiletries restocked; receipts on file." }, { animate });
 }
 let rendered = false;
+drawDemo(false);
 new IntersectionObserver((es, o) => es.forEach(e => { if (e.isIntersecting && !rendered) { rendered = true; drawDemo(true); o.disconnect(); } }), { threshold: .2 }).observe(demo);
 document.getElementById("dPct").addEventListener("input", e => { dState.pct = Number(e.target.value); document.getElementById("dPctV").textContent = dState.pct + "%"; drawDemo(false); });
 document.querySelectorAll("#dClean button").forEach(b => b.addEventListener("click", () => { dState.clean = b.dataset.v; document.querySelectorAll("#dClean button").forEach(x => x.classList.toggle("on", x === b)); drawDemo(false); }));

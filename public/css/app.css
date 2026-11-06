@@ -210,3 +210,7 @@ footer .wrap { display: flex; justify-content: space-between; gap: 16px; flex-wr
   .compare th:first-child, .compare td:first-child { min-width: 120px; }
 }
 @media (max-width: 720px), (hover: none) { .hero-hint { display: none; } }
+
+#how.sec .split { align-items: start; }
+#how .split > div:first-child { position: sticky; top: 100px; }
+@media (max-width: 900px) { #how .split > div:first-child { position: static; } }
