@@ -1,0 +1,7 @@
+CREATE TABLE IF NOT EXISTS statements (
+  id TEXT PRIMARY KEY,
+  edit_key TEXT NOT NULL,
+  data TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  views INTEGER NOT NULL DEFAULT 0
+);

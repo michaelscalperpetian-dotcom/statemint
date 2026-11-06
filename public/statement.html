@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Owner statement · Statemint</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600..800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/app.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='44' fill='%232fd3a0'/></svg>">
+<style>.page { min-height: 100vh; padding: 40px 0 80px; background: radial-gradient(900px 500px at 50% -10%, #cdf5e6, transparent), var(--bg); } .page .wrap { max-width: 920px; perspective: 1600px; } #view { transform-style: preserve-3d; }</style>
+</head>
+<body>
+<div class="page"><div class="wrap">
+  <div class="no-print" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;gap:10px">
+    <a class="logo" href="/" style="font-size:19px"><i style="width:24px;height:24px"></i>Statemint</a>
+    <button class="btn btn-ghost btn-sm" onclick="print()"><span>⤓ Save as PDF</span></button>
+  </div>
+  <div id="view"><p style="text-align:center;color:var(--ink-3)">Loading statement…</p></div>
+</div></div>
+<script type="module">
+import { renderStatement } from "/js/view.js";
+import { cursor, tilt } from "/js/fx.js";
+cursor();
+const id = location.pathname.split("/").filter(Boolean)[1] || "";
+const res = await fetch(`/api/statements/${encodeURIComponent(id)}`);
+const view = document.getElementById("view");
+if (!res.ok) view.innerHTML = '<div class="st" style="padding:40px;text-align:center"><h2>Statement not found</h2><p style="color:var(--ink-3)">Check the link you were sent.</p></div>';
+else { const data = await res.json(); renderStatement(view, data); document.title = `${data.statement.listing} · Owner statement`; tilt(view, document.body, 2.5); }
+</script>
+</body>
+</html>

@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Make an owner statement · Statemint</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600..800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/app.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='44' fill='%232fd3a0'/></svg>">
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <a class="logo" href="/"><i></i>Statemint</a>
+
+    <div class="step-h"><em>1</em>Your Airbnb report</div>
+    <div class="drop" id="drop"><input type="file" id="file" accept=".csv,text/csv" aria-label="Upload Airbnb CSV">
+      <div style="font-size:30px">📄</div><b id="dropTitle">Drop your Airbnb CSV here</b><small>Earnings → Transaction history → Export CSV.<br>Stays in your browser; nothing is uploaded.</small></div>
+    <div style="margin-top:8px"><button class="btn btn-ghost btn-sm" id="sample" type="button"><span>Try with sample data</span></button></div>
+    <div id="warns"></div>
+
+    <div id="cfg" style="display:none">
+      <div class="row2">
+        <div class="field"><label for="listing">Property</label><select class="input" id="listing"></select></div>
+        <div class="field"><label for="month">Month</label><select class="input" id="month"></select></div>
+      </div>
+
+      <div class="step-h"><em>2</em>Your deal</div>
+      <div class="row2">
+        <div class="field"><label for="pct">Commission %</label><input class="input" id="pct" type="number" min="0" max="100" step="0.5"></div>
+        <div class="field"><label for="base">Commission on</label><select class="input" id="base"><option value="payout">Payout (after Airbnb fee)</option><option value="payout_ex_cleaning">Payout minus cleaning</option><option value="gross">Gross booking</option></select></div>
+      </div>
+      <div class="field"><label>Cleaning fees go to</label><div class="seg" id="cleanSeg"><button data-v="owner" type="button">Owner</button><button data-v="cohost" type="button">Co-host</button></div></div>
+      <div class="field"><label>Who received the Airbnb payouts?</label><div class="seg" id="recvSeg"><button data-v="owner" type="button">Owner</button><button data-v="cohost" type="button">Co-host</button><button data-v="split" type="button">Airbnb split</button></div>
+        <div class="help" id="recvHelp"></div></div>
+      <div class="field" id="splitField" style="display:none"><label for="splitAmt">Amount Airbnb already paid the co-host this month</label><input class="input" id="splitAmt" type="number" min="0" step="0.01"></div>
+      <div class="field"><label>Group stays by</label><div class="seg" id="bySeg"><button data-v="checkin" type="button">Check-in date</button><button data-v="payout" type="button">Payout date</button></div></div>
+
+      <div class="step-h"><em>3</em>Expenses this month</div>
+      <div id="expList"></div>
+      <button class="btn btn-ghost btn-sm" id="addExp" type="button"><span>+ Add expense</span></button>
+      <p class="help">Supplies, repairs, restocking: anything the owner should cover.</p>
+
+      <div class="step-h"><em>4</em>Branding</div>
+      <div class="field"><label for="company">Your business name</label><input class="input" id="company" maxlength="60" placeholder="e.g. Lakeside Co-Hosting"></div>
+      <div class="field"><label for="owner">Owner's name</label><input class="input" id="owner" maxlength="60" placeholder="e.g. Pat Morgan"></div>
+      <div class="field"><label for="logo">Logo (optional)</label><input class="input" id="logo" type="file" accept="image/*"></div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="empty" id="empty"><div><h2>Owner statements in 30 seconds.</h2><p>Upload your Airbnb transaction CSV, set your commission,<br>and get a statement your owner will actually enjoy reading.</p></div></div>
+    <div id="out" style="display:none">
+      <div class="toolbar">
+        <div><b id="outTitle" style="font-family:var(--display);font-size:22px;letter-spacing:-.02em"></b></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-ghost btn-sm" id="print" type="button"><span>⤓ PDF / Print</span></button>
+          <button class="btn btn-mint btn-sm" id="share" type="button" data-magnetic=".2"><span>✦ Get owner link</span></button>
+        </div>
+      </div>
+      <div id="shareOut" class="no-print" style="display:none;margin:-6px 0 18px"><div class="sharebox"><input class="input" id="shareLink" readonly><button class="btn btn-sm" id="copyLink" type="button"><span>Copy</span></button></div><p class="help">Send this to the owner. It opens as a live, animated statement. Anyone with the link can view it.</p></div>
+      <div id="view"></div>
+    </div>
+  </main>
+</div>
+<script type="module">
+import { parseCSV, toTransactions, listings, months, buildStatement, monthLabel, DEFAULT_SETTINGS, SAMPLE_CSV, money } from "/js/engine.js";
+import { renderStatement } from "/js/view.js";
+import { cursor, magnetic, toast, copy, store } from "/js/fx.js";
+cursor(); magnetic();
+const $ = s => document.getElementById(s);
+let tx = [], current = null;
+const brand = store.get("brand", { company: "", ownerName: "", logo: "" });
+$("company").value = brand.company; $("owner").value = brand.ownerName;
+
+function loadCSV(text, name) {
+  const { transactions, warnings } = toTransactions(parseCSV(text));
+  $("warns").innerHTML = "";
+  warnings.forEach(w => { const d = document.createElement("div"); d.className = "warn"; d.textContent = w; $("warns").appendChild(d); });
+  if (!transactions.length) return;
+  tx = transactions;
+  $("dropTitle").textContent = `✓ ${name} · ${tx.length} lines`;
+  fillSelect($("listing"), listings(tx).map(l => [l, l]), store.get("lastListing"));
+  refreshMonths();
+  $("cfg").style.display = ""; $("empty").style.display = "none"; $("out").style.display = "";
+  update();
+}
+function fillSelect(sel, opts, keep) { sel.innerHTML = ""; opts.forEach(([v, t]) => { const o = document.createElement("option"); o.value = v; o.textContent = t; sel.appendChild(o); }); if (keep && opts.some(o => o[0] === keep)) sel.value = keep; }
+function settingsKey() { return "settings:" + $("listing").value; }
+function getSettings() { return { ...DEFAULT_SETTINGS, ...store.get(settingsKey(), {}) }; }
+function refreshMonths() { const s = getSettings(); fillSelect($("month"), months(tx.filter(t => t.listing === $("listing").value), s.monthBy).map(m => [m, monthLabel(m)]), $("month").value); }
+function setSeg(id, v) { document.querySelectorAll(`#${id} button`).forEach(b => b.classList.toggle("on", b.dataset.v === v)); }
+function loadSettingsUI() {
+  const s = getSettings();
+  $("pct").value = s.commissionPct; $("base").value = s.commissionBase; setSeg("cleanSeg", s.cleaningTo); setSeg("recvSeg", s.payoutReceiver); setSeg("bySeg", s.monthBy);
+  $("splitAmt").value = s.splitPaidToCohost || ""; $("splitField").style.display = s.payoutReceiver === "split" ? "" : "none";
+  $("recvHelp").textContent = { owner: "The statement shows what the owner owes you.", cohost: "The statement shows what you owe the owner.", split: "Airbnb paid you part directly. The statement reconciles it against your deal." }[s.payoutReceiver];
+}
+function saveSettings(patch) { store.set(settingsKey(), { ...getSettings(), ...patch }); loadSettingsUI(); update(); }
+function expKey() { return `exp:${$("listing").value}:${$("month").value}`; }
+function renderExpenses() {
+  const list = store.get(expKey(), []); $("expList").innerHTML = "";
+  list.forEach((e, i) => {
+    const row = document.createElement("div"); row.className = "exp-row";
+    const d = Object.assign(document.createElement("input"), { className: "input", placeholder: "Description", value: e.description || "", maxLength: 60 });
+    const a = Object.assign(document.createElement("input"), { className: "input", type: "number", step: "0.01", min: "0", placeholder: "0.00", value: e.amount || "" });
+    const x = Object.assign(document.createElement("button"), { className: "icon-btn", type: "button", textContent: "✕", title: "Remove" });
+    d.oninput = () => { list[i].description = d.value; store.set(expKey(), list); update(false); };
+    a.oninput = () => { list[i].amount = a.value; store.set(expKey(), list); update(false); };
+    x.onclick = () => { list.splice(i, 1); store.set(expKey(), list); renderExpenses(); update(); };
+    row.append(d, a, x); $("expList").appendChild(row);
+  });
+}
+function update(full = true) {
+  if (!tx.length) return;
+  store.set("lastListing", $("listing").value);
+  current = buildStatement(tx, { listing: $("listing").value, month: $("month").value, settings: getSettings(), expenses: store.get(expKey(), []) });
+  $("outTitle").textContent = `${current.listing} · ${monthLabel(current.month)}`;
+  $("shareOut").style.display = "none";
+  renderStatement($("view"), { statement: current, brand: store.get("brand", brand) });
+}
+$("file").addEventListener("change", e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => loadCSV(String(r.result), f.name); r.readAsText(f); });
+const drop = $("drop");
+["dragenter", "dragover"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add("over"); }));
+["dragleave", "drop"].forEach(ev => drop.addEventListener(ev, () => drop.classList.remove("over")));
+$("sample").onclick = () => loadCSV(SAMPLE_CSV, "sample-airbnb.csv");
+$("listing").onchange = () => { loadSettingsUI(); refreshMonths(); renderExpenses(); update(); };
+$("month").onchange = () => { renderExpenses(); update(); };
+$("pct").oninput = () => saveSettings({ commissionPct: Number($("pct").value) });
+$("base").onchange = () => saveSettings({ commissionBase: $("base").value });
+$("splitAmt").oninput = () => saveSettings({ splitPaidToCohost: Number($("splitAmt").value) });
+[["cleanSeg", "cleaningTo"], ["recvSeg", "payoutReceiver"], ["bySeg", "monthBy"]].forEach(([id, key]) =>
+  document.querySelectorAll(`#${id} button`).forEach(b => b.onclick = () => { saveSettings({ [key]: b.dataset.v }); if (key === "monthBy") { refreshMonths(); renderExpenses(); update(); } }));
+$("addExp").onclick = () => { const l = store.get(expKey(), []); l.push({ description: "", amount: "" }); store.set(expKey(), l); renderExpenses(); };
+const saveBrand = () => { const b = store.get("brand", brand); b.company = $("company").value.trim(); b.ownerName = $("owner").value.trim(); store.set("brand", b); update(false); };
+$("company").oninput = saveBrand; $("owner").oninput = saveBrand;
+$("logo").onchange = e => {
+  const f = e.target.files[0]; if (!f) return;
+  const img = new Image(); img.onload = () => { const c = document.createElement("canvas"); const s = 96; c.width = c.height = s; const ctx = c.getContext("2d");
+    const m = Math.min(img.width, img.height); ctx.drawImage(img, (img.width - m) / 2, (img.height - m) / 2, m, m, 0, 0, s, s);
+    const b = store.get("brand", brand); b.logo = c.toDataURL("image/png"); store.set("brand", b); update(false); };
+  img.src = URL.createObjectURL(f);
+};
+$("print").onclick = () => print();
+$("share").onclick = async () => {
+  if (!current) return; $("share").disabled = true;
+  try {
+    const res = await fetch("/api/statements", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ statement: current, brand: store.get("brand", brand) }) });
+    const d = await res.json(); if (!res.ok) throw new Error(d.error || "Couldn't create link");
+    const links = store.get("links", []); links.push({ id: d.id, editKey: d.editKey, listing: current.listing, month: current.month, at: Date.now() }); store.set("links", links);
+    $("shareLink").value = `${location.origin}/s/${d.id}`; $("shareOut").style.display = ""; copy($("shareLink").value);
+  } catch (e) { toast(e.message); }
+  $("share").disabled = false;
+};
+$("copyLink").onclick = () => copy($("shareLink").value);
+loadSettingsUI();
+</script>
+</body>
+</html>
