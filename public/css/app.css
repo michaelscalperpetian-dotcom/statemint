@@ -330,3 +330,19 @@ footer .wrap { display: flex; justify-content: space-between; gap: 16px; flex-wr
 .saved-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; margin: 0 0 14px; }
 .saved-viewer:empty { display: none; } .saved-viewer { margin-bottom: 18px; }
 @media (max-width: 640px) { .tabs { display: flex; overflow-x: auto; max-width: 100%; } .tabs button { white-space: nowrap; } }
+/* expense rows in the reservations table */
+.tbl tr.exp td { color: var(--ink-2); background: #fffaf0; }
+.tbl tr.exp td:last-child { color: #b5452c; font-weight: 600; }
+.tbl td .exp-meta { display: block; font-size: 11px; color: var(--ink-3); font-weight: 500; margin-top: 2px; white-space: normal; }
+/* the table must fit the card (screen) and the page (PDF) now that it can have 9 columns */
+.tbl { min-width: 0; font-size: 13px; }
+.tbl th { padding: 0 7px 10px; font-size: 11px; letter-spacing: .04em; vertical-align: bottom; }
+.tbl td { padding: 10px 7px; }
+.tbl td:first-child, .tbl th:first-child { white-space: normal; min-width: 110px; padding-left: 0; }
+.tbl td:last-child, .tbl th:last-child { padding-right: 0; }
+@media (max-width: 760px) { .tbl { min-width: 640px; } }
+@media print {
+  .tbl { font-size: 9.5px; min-width: 0 !important; width: 100%; }
+  .tbl th { font-size: 8px; padding: 0 3px 6px; } .tbl td { padding: 5px 3px; }
+  .tbl td .exp-meta { font-size: 8px; }
+}

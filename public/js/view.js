@@ -118,25 +118,43 @@ export function renderStatement(root, data, opts = {}) {
     if (reduce || !animate) { cal.classList.add("in"); cal.querySelectorAll(".stay").forEach(b => (b.style.transition = "none")); } else new IntersectionObserver((es, o) => es.forEach(e => { if (e.isIntersecting) { cal.classList.add("in"); o.disconnect(); } }), { threshold: .3 }).observe(cal);
   }
 
-  // reservations table
-  const tSec = h("section", "st-sec"); tSec.appendChild(h("h3", "", "Reservations & adjustments"));
+  // reservations table. Expenses entered in the builder are listed here too, with their own Expenses column.
+  const tSec = h("section", "st-sec"); tSec.appendChild(h("h3", "", st.expenses.length ? "Reservations, adjustments & expenses" : "Reservations & adjustments"));
   const wrap = h("div", "tbl-wrap"); const tbl = h("table", "tbl");
   const thead = h("thead"); const hr = h("tr");
-  const cols = own ? 7 : 8; // own home: no commission column
-  ["Guest", "Check-in", "Nights", "Gross", "Airbnb fee", "Cleaning", "Payout", "Commission"].slice(0, cols).forEach((c, i) => hr.appendChild(h("th", i > 2 ? "r" : "", c)));
+  const showExp = st.expenses.length > 0;
+  const heads = ["Guest", "Check-in", "Nights", "Gross", "Airbnb fee", "Cleaning", "Payout"];
+  if (!own) heads.push("Commission"); // own home: no commission column
+  if (showExp) heads.push("Expenses");
+  heads.forEach((c, i) => hr.appendChild(h("th", i > 2 ? "r" : "", c)));
   thead.appendChild(hr); tbl.appendChild(thead);
   const tb = h("tbody");
-  st.lines.forEach(l => {
-    const tr = h("tr", l.kind === "adjustment" ? "adj" : "");
-    [l.kind === "adjustment" ? `${l.type}${l.guest ? " · " + l.guest : ""}` : (l.guest || l.code) + (l.discountType ? ` · ${l.discountType === "monthly" ? "Monthly" : "Weekly"} −${l.discountPct}%` : ""), short(l.start || l.date), l.nights || "",
-      money(l.gross, cur), l.serviceFee ? "−" + money(l.serviceFee, cur) : "", l.cleaningFee ? money(l.cleaningFee, cur) : "", money(l.payout, cur), money(l.commission, cur)].slice(0, cols)
-      .forEach((v, i) => tr.appendChild(h("td", (i > 2 ? "r " : "") + "num", String(v))));
+  const addRow = (cells, cls, meta) => {
+    const tr = h("tr", cls);
+    cells.forEach((v, i) => { const td = h("td", (i > 2 ? "r " : "") + "num", String(v)); if (i === 0 && meta) td.appendChild(h("small", "exp-meta", meta)); tr.appendChild(td); });
     tb.appendChild(tr);
+  };
+  st.lines.forEach(l => {
+    const cells = [l.kind === "adjustment" ? `${l.type}${l.guest ? " · " + l.guest : ""}` : (l.guest || l.code) + (l.discountType ? ` · ${l.discountType === "monthly" ? "Monthly" : "Weekly"} −${l.discountPct}%` : ""), short(l.start || l.date), l.nights || "",
+      money(l.gross, cur), l.serviceFee ? "−" + money(l.serviceFee, cur) : "", l.cleaningFee ? money(l.cleaningFee, cur) : "", money(l.payout, cur)];
+    if (!own) cells.push(money(l.commission, cur));
+    if (showExp) cells.push("");
+    addRow(cells, l.kind === "adjustment" ? "adj" : "");
+  });
+  // an expense is a cost (shown −); a negative expense is a credit back (shown +)
+  const expCell = v => (v < 0 ? "+" : "−") + money(Math.abs(v), cur);
+  st.expenses.forEach(e => {
+    const cells = [`${e.amount < 0 ? "Credit" : "Expense"}: ${e.description}`, short(e.date), "", "", "", "", ""];
+    if (!own) cells.push("");
+    cells.push(expCell(e.amount));
+    addRow(cells, "exp", [e.category, e.note].filter(Boolean).join(" · "));
   });
   tbl.appendChild(tb);
   const tf = h("tfoot"); const fr = h("tr");
-  ["Total", "", String(T.nights), money(T.grossRevenue, cur), "−" + money(T.airbnbFees, cur), money(T.cleaning, cur), money(T.payout, cur), money(T.commission, cur)].slice(0, cols)
-    .forEach((v, i) => fr.appendChild(h("td", (i > 2 ? "r " : "") + "num", v)));
+  const totals = ["Total", "", String(T.nights), money(T.grossRevenue, cur), "−" + money(T.airbnbFees, cur), money(T.cleaning, cur), money(T.payout, cur)];
+  if (!own) totals.push(money(T.commission, cur));
+  if (showExp) totals.push(expCell(T.expensesTotal));
+  totals.forEach((v, i) => fr.appendChild(h("td", (i > 2 ? "r " : "") + "num", v)));
   tf.appendChild(fr); tbl.appendChild(tf); wrap.appendChild(tbl); tSec.appendChild(wrap); card.appendChild(tSec);
 
   // settlement summary

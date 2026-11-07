@@ -43,6 +43,10 @@ try {
   await page.selectOption(`${last} .exp-row2 select:nth-child(2)`, "monthly"); await page.waitForTimeout(200);
   assert.equal(await final(page), "$1,406.00"); // 1,526 - 120
   assert.ok((await page.textContent("#view .summary-rows")).includes("Utilities: Electricity · Every month"));
+  const expRow = await page.$$eval("#view .tbl tr.exp", r => r.map(x => [...x.cells].map(c => c.textContent)));
+  assert.equal(expRow.length, 1); assert.ok(expRow[0][0].startsWith("Expense: Electricity")); assert.equal(expRow[0].at(-1), "−$120.00");
+  assert.equal(await page.$eval("#view .tbl thead tr", r => r.lastElementChild.textContent), "Expenses");
+  ok("the expense appears in the reservations table as its own row, in a new Expenses column (−$120.00)");
   await page.selectOption("#month", "2026-12"); await page.waitForTimeout(200);
   // Dec: payout 253.50, 20% = 50.70, owner net 202.80 - 120 = 82.80
   assert.equal(await final(page), "$82.80");
@@ -66,6 +70,8 @@ try {
   await page.selectOption(`${last} .exp-share .exp-row2 select:first-child`, "equal"); await page.waitForTimeout(300);
   assert.ok((await page.textContent(`${last} .exp-info`)).includes("$45.00")); assert.equal(await final(page), "$1,361.00"); // 1,406 - 45
   ok("shared $90 internet: $75.00 by nights booked (15 of 18), $45.00 split equally");
+  assert.equal(await page.$eval("#view .tbl tfoot tr", r => r.lastElementChild.textContent), "−$165.00"); // 120 + 45
+  assert.equal(await page.$$eval("#view .tbl tr.exp", r => r.length), 2); ok("table Total row includes expenses: −$165.00 (120 + 45)");
   await page.screenshot({ path: OUT + "/expenses.png", fullPage: false });
 
   // 6. guests tab: Jamie = 845 + 422.50 + 40 = 1,307.50 payout, 2 stays, 6 nights
