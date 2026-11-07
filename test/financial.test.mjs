@@ -66,4 +66,11 @@ ok("S15 bank-transfer rows (incl. 'Payout (Fast Pay)') are skipped and listed in
 ok("S16 no cleaning column + payout-minus-cleaning basis is flagged", () => {
   const t = toTransactions(parseCSV("Date,Type,Start date,Nights,Listing,Amount\n10/02/2026,Reservation,10/01/2026,2,L,100.00\n")).transactions;
   assert.ok(buildStatement(t, { listing: "L", month: "2026-10", settings: { commissionBase: "payout_ex_cleaning" } }).warnings.length); });
+ok("S17 own property: no commission or cleaning split; net = 2575 - 165.50 = 2409.50, nothing to settle", () => {
+  const s = st({ reportType: "own", commissionPct: 20, cleaningTo: "cohost", payoutReceiver: "split", splitPaidToCohost: 500 }, EXP);
+  assert.deepEqual([s.totals.commission, s.totals.cleaningToCohost, s.totals.cohostEarned, s.totals.expensesTotal, s.totals.ownerNet], [0, 0, 0, 165.5, 2409.5]);
+  assert.deepEqual([s.settlement.direction, s.settlement.amount], ["none", 0]); assert.ok(s.lines.every(l => l.commission === 0)); });
+ok("S18 own property with expenses above payout is flagged: 2575 - 3000 = -425", () => {
+  const s = st({ reportType: "own" }, [{ description: "Roof", amount: "3000" }]); assert.equal(s.totals.ownerNet, -425); assert.ok(s.warnings.some(w => w.includes("Net earnings are negative"))); });
+ok("S19 settlement labels use 'host'", () => { assert.equal(st({}).settlement.label, "Owner pays host"); assert.equal(st({ payoutReceiver: "cohost" }).settlement.label, "Host pays owner"); });
 console.log(`\n${n} financial checks passed`);

@@ -35,13 +35,13 @@ export function cleanSubmission(body) {
     listing: str(s.listing, 200), month: /^\d{4}-\d{2}$/.test(s.month || "") ? s.month : "", currency: /^[A-Z]{3}$/.test(s.currency || "") ? s.currency : "USD",
     settings: { commissionPct: Math.max(0, Math.min(100, num(set.commissionPct))), commissionBase: oneOf(set.commissionBase, ["payout", "payout_ex_cleaning", "gross"], "payout"),
       cleaningTo: oneOf(set.cleaningTo, ["owner", "cohost"], "owner"), payoutReceiver: oneOf(set.payoutReceiver, ["owner", "cohost", "split"], "owner"), monthBy: oneOf(set.monthBy, ["checkin", "payout"], "checkin"),
-      commissionOnAdjustments: set.commissionOnAdjustments !== false },
+      commissionOnAdjustments: set.commissionOnAdjustments !== false, reportType: oneOf(set.reportType, ["managed", "own"], "managed") },
     lines: s.lines.map(l => ({ kind: oneOf(l && l.kind, ["reservation", "adjustment"], "adjustment"), type: str(l.type, 80), code: str(l.code, 40), guest: str(l.guest, 120),
       start: str(l.start, 10), end: str(l.end, 10), date: str(l.date, 10), nights: Math.max(0, Math.min(400, Math.round(num(l.nights)))),
       gross: num(l.gross), serviceFee: num(l.serviceFee), cleaningFee: num(l.cleaningFee), payout: num(l.payout), commission: num(l.commission), row: Math.round(num(l.row)) || null })),
     expenses: (s.expenses || []).map(e => ({ date: str(e && e.date, 10), description: str(e && e.description, 120), amount: num(e && e.amount) })),
     totals,
-    settlement: { direction: oneOf(s.settlement.direction, ["owner_pays_cohost", "cohost_pays_owner"], "owner_pays_cohost"), amount: Math.abs(num(s.settlement.amount)), label: str(s.settlement.label, 80) },
+    settlement: { direction: oneOf(s.settlement.direction, ["owner_pays_cohost", "cohost_pays_owner", "none"], "owner_pays_cohost"), amount: Math.abs(num(s.settlement.amount)), label: str(s.settlement.label, 80) },
   };
   if (s.settlement.alreadyPaid != null) statement.settlement.alreadyPaid = num(s.settlement.alreadyPaid);
   const b = body.brand || {};

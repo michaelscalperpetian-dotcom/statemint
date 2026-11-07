@@ -163,10 +163,13 @@ export const DEFAULT_SETTINGS = {
   commissionBase: "payout",      // "payout" | "payout_ex_cleaning" | "gross"
   cleaningTo: "owner",           // "owner" | "cohost"  (who keeps the cleaning fees)
   payoutReceiver: "owner",       // "owner" | "cohost" | "split"
-  splitPaidToCohost: 0,          // when Airbnb already paid the co-host directly (per month)
+  splitPaidToCohost: 0,          // when Airbnb already paid the host directly (per month)
   monthBy: "checkin",            // "checkin" | "payout"
   commissionOnAdjustments: true, // charge commission on refunds/reimbursements/penalties too
+  reportType: "managed",         // "managed" = a home the host manages for an owner | "own" = the host's own home
 };
+// Internal names (cohost, cohostEarned, ...) are kept for compatibility with saved settings and existing owner links.
+// In the product, the person running the listing is called the "host".
 const r2 = n => Math.round((n + Number.EPSILON) * 100) / 100;
 const daysInMonth = key => { const [y, m] = key.split("-").map(Number); return new Date(Date.UTC(y, m, 0)).getUTCDate(); };
 const DAY = 86400000;
@@ -180,7 +183,9 @@ export function nightsInMonth(start, nights, month) {
 
 export function buildStatement(tx, { listing, month, settings = {}, expenses = [] }) {
   const s = { ...DEFAULT_SETTINGS, ...settings };
-  const pct = Math.max(0, Math.min(100, Number(s.commissionPct) || 0)) / 100;
+  const own = s.reportType === "own";
+  // A host's own home has no owner to settle with: no commission, no cleaning split, no settlement.
+  const pct = own ? 0 : Math.max(0, Math.min(100, Number(s.commissionPct) || 0)) / 100;
   const inMonth = t => monthKey(s.monthBy === "checkin" ? (t.start || t.date) : (t.date || t.start)) === month;
   const lines = tx.filter(t => (!listing || t.listing === listing) && inMonth(t))
     .sort((a, b) => (a.start || a.date) - (b.start || b.date));
@@ -193,7 +198,7 @@ export function buildStatement(tx, { listing, month, settings = {}, expenses = [
   });
   const currencies = [...new Set(rows.map(t => t.currency))];
   if (currencies.length > 1) warnings.push(`This month mixes currencies (${currencies.join(", ")}). Amounts are not converted, so totals that add them together are not meaningful.`);
-  if (s.commissionBase === "payout_ex_cleaning" && rows.some(t => t.kind === "reservation") && !rows.some(t => t.cleaningFee)) warnings.push("Commission is set to \"payout minus cleaning\", but no cleaning fees were found for these stays, so commission was calculated on the full payout.");
+  if (!own && s.commissionBase === "payout_ex_cleaning" && rows.some(t => t.kind === "reservation") && !rows.some(t => t.cleaningFee)) warnings.push("Commission is set to \"payout minus cleaning\", but no cleaning fees were found for these stays, so commission was calculated on the full payout.");
   const fellBack = rows.filter(t => t.kind === "reservation" && !t.start).length;
   if (s.monthBy === "checkin" && fellBack) warnings.push(`${fellBack} reservation${fellBack === 1 ? " has" : "s have"} no check-in date and ${fellBack === 1 ? "was" : "were"} placed by payout date instead.`);
   if (rows.some(t => t.duplicate)) warnings.push("This statement includes rows that are exact duplicates of other rows in your file.");
@@ -202,7 +207,7 @@ export function buildStatement(tx, { listing, month, settings = {}, expenses = [
   const nights = res.reduce((a, t) => a + t.nights, 0);
   const grossRevenue = sum("gross"), airbnbFees = sum("serviceFee"), cleaning = sum("cleaningFee"), payout = sum("payout");
   const commission = sum("commission");
-  const cleaningToCohost = s.cleaningTo === "cohost" ? cleaning : 0;
+  const cleaningToCohost = !own && s.cleaningTo === "cohost" ? cleaning : 0;
   const exp = [];
   for (const e of expenses || []) {
     if (!e || String(e.amount ?? "").trim() === "") continue;
@@ -213,20 +218,23 @@ export function buildStatement(tx, { listing, month, settings = {}, expenses = [
     exp.push({ date: e.date || "", description: String(e.description || (amt < 0 ? "Credit" : "Expense")), amount: r2(amt) });
   }
   const expensesTotal = r2(exp.reduce((a, e) => a + e.amount, 0));
-  const cohostEarned = r2(commission + cleaningToCohost + expensesTotal);
-  const ownerNet = r2(payout - cohostEarned);
+  // Managed: expenses are paid by the host and recharged to the owner. Own home: expenses simply reduce earnings.
+  const cohostEarned = own ? 0 : r2(commission + cleaningToCohost + expensesTotal);
+  const ownerNet = own ? r2(payout - expensesTotal) : r2(payout - cohostEarned);
   const roomRevenue = r2(grossRevenue - cleaning);
-  // Signed amount the owner owes the co-host (negative = the co-host owes the owner).
+  // Signed amount the owner owes the host (negative = the host owes the owner).
   let owed, alreadyPaid;
-  if (s.payoutReceiver === "owner") owed = cohostEarned;
+  if (own) owed = 0;
+  else if (s.payoutReceiver === "owner") owed = cohostEarned;
   else if (s.payoutReceiver === "cohost") owed = -ownerNet;
   else { alreadyPaid = r2(Number(s.splitPaidToCohost) || 0); owed = r2(cohostEarned - alreadyPaid); }
   const suffix = s.payoutReceiver === "split" ? " (after Airbnb split)" : "";
-  const settlement = owed >= 0
-    ? { direction: "owner_pays_cohost", amount: r2(owed), label: "Owner pays co-host" + suffix }
-    : { direction: "cohost_pays_owner", amount: r2(-owed), label: "Co-host pays owner" + suffix };
+  const settlement = own ? { direction: "none", amount: 0, label: "Your own property: nothing to settle" }
+    : owed >= 0
+    ? { direction: "owner_pays_cohost", amount: r2(owed), label: "Owner pays host" + suffix }
+    : { direction: "cohost_pays_owner", amount: r2(-owed), label: "Host pays owner" + suffix };
   if (alreadyPaid != null) settlement.alreadyPaid = alreadyPaid;
-  if (ownerNet < 0) warnings.push("Owner net is negative this month: costs and commission are larger than the payout.");
+  if (ownerNet < 0) warnings.push(own ? "Net earnings are negative this month: expenses are larger than the payout." : "Owner net is negative this month: costs and commission are larger than the payout.");
   // occupancy counts every night of the month that is booked, whichever month the stay is attributed to
   let occupancy = null;
   if (month) { const days = daysInMonth(month); const occ = tx.filter(t => (!listing || t.listing === listing) && t.kind === "reservation").reduce((a, t) => a + nightsInMonth(t.start, t.nights, month), 0); occupancy = Math.min(1, occ / days); }

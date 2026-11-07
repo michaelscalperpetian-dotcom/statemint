@@ -131,3 +131,41 @@ All three suites were also run against the live site (https://statemint-994.page
 2. Set the `IP_SALT` secret in Cloudflare.
 3. Move the inline scripts into files and tighten the CSP.
 4. If a paid plan launches: accounts, server-side statement history, and automatic emails through a provider such as Cloudflare Email or Resend.
+
+## 8. Update: built for all Airbnb hosts, plus paid plans
+
+**Positioning.** The product now addresses every Airbnb host, not only co-hosts. Each property is marked as one of two kinds:
+- **"Managed for an owner":** an owner statement with commission, cleaning split and settlement.
+- **"My own home":** an earnings report with payout, fees, cleaning, expenses and net earnings. There is no commission and no settlement.
+
+All user-facing text says "host". Internal field names (`cohostEarned`, `payoutReceiver: "cohost"`) were kept, so existing saved settings and owner links still work.
+
+**Plans.**
+
+| Plan | Properties | Monthly | Yearly |
+|---|---|---|---|
+| Free | 1 | $0 | $0 |
+| Host | 5 | $9 | $90 |
+| Pro | Unlimited | $29 | $290 |
+
+Prices are in USD. Stripe Managed Payments adds tax and acts as merchant of record. Customers manage or cancel at link.com.
+
+**How the limit works.** If a file has more properties than the plan allows, the extra ones are locked: they show no figures, and sharing, export and print are disabled for them. Empty slots fill with the properties the user opens. The first swap is free; after that, a property can be swapped out once every 30 days. The built-in sample data is never limited.
+
+**How payment unlocks the app.**
+1. A Stripe payment link redirects the buyer to `/app?checkout={CHECKOUT_SESSION_ID}`.
+2. `POST /api/billing/claim` retrieves that session from Stripe, checks that it is complete and that the price is an Ownermint price, and stores a license in D1.
+3. The buyer gets a key (`om_…`). The key is saved in their browser and can be entered in another browser.
+4. `POST /api/billing/license` re-checks the subscription with Stripe at most every 6 hours. `active`, `trialing` and `past_due` keep access.
+
+**Switching it on.** Checkout appears only once `STRIPE_SECRET_KEY` is set in Cloudflare Pages. Until then, upgrade buttons say "Opening soon" and the Free limit still applies. The key should be a restricted key with read access to Checkout Sessions and Subscriptions.
+
+**Limitations.**
+- The property limit is enforced in the browser, because the CSV is never sent to the server. Someone determined could get around it with developer tools.
+- A license key works in any browser it is entered in.
+- There are no accounts and no license recovery by email yet. A buyer who loses the key needs support to look it up by Stripe subscription.
+
+**Tests added.**
+- `test/billing.test.mjs`: 10 checks against a local fake Stripe (`test/fake-stripe.mjs`, enabled only by `.dev.vars`). Covers an invalid, unknown or unpaid checkout; a paid checkout; repeat claims; wrong keys; cancellation; and past-due.
+- `test/plans.e2e.mjs`: 10 browser checks. Covers locking, the swap rule, checkout return, own-home reports, unlimited sample data and landing-page pricing.
+- `financial.test.mjs` now has 24 checks, including own-home net earnings and the new labels.

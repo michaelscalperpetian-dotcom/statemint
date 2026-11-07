@@ -29,6 +29,7 @@ export function renderStatement(root, data, opts = {}) {
   const animate = opts.animate !== false && !reduce;
   const { statement: st, brand = {}, note = "", previous = null } = data;
   const T = st.totals, cur = st.currency, s = st.settings;
+  const own = st.settlement.direction === "none" || s.reportType === "own";
   root.innerHTML = "";
   const card = h("article", "st");
 
@@ -37,21 +38,23 @@ export function renderStatement(root, data, opts = {}) {
   head.appendChild(h("div", "st-coin"));
   const brandRow = h("div", "brand");
   if (brand.logo) { const img = h("img"); img.src = brand.logo; img.alt = brand.company ? brand.company + " logo" : ""; brandRow.appendChild(img); }
-  brandRow.appendChild(h("span", "", brand.company || "Owner statement"));
+  brandRow.appendChild(h("span", "", brand.company || (own ? "Earnings report" : "Owner statement")));
   head.appendChild(brandRow);
   head.appendChild(h("h2", "", st.listing || "Your property"));
-  head.appendChild(h("div", "sub", `${monthLabel(st.month)} · Prepared for ${brand.ownerName || "the owner"}${brand.company ? " by " + brand.company : ""}`));
+  head.appendChild(h("div", "sub", own ? `${monthLabel(st.month)} · Earnings report${brand.ownerName ? " for " + brand.ownerName : ""}${brand.company ? " · " + brand.company : ""}`
+    : `${monthLabel(st.month)} · Prepared for ${brand.ownerName || "the owner"}${brand.company ? " by " + brand.company : ""}`));
   card.appendChild(head);
-  if (note && note.trim()) { const n = h("section", "st-note"); n.append(h("div", "k", "Note from your co-host"), h("p", "", note.trim())); card.appendChild(n); }
+  if (note && note.trim()) { const n = h("section", "st-note"); n.append(h("div", "k", own ? "Notes" : "Note from your host"), h("p", "", note.trim())); card.appendChild(n); }
 
   // hero numbers
   const hero = h("section", "st-hero");
   const big = h("div", "st-big");
   const isOwnerGets = st.settlement.direction === "cohost_pays_owner";
-  big.appendChild(h("div", "label", "Owner net for the month"));
+  big.appendChild(h("div", "label", own ? "Net earnings for the month" : "Owner net for the month"));
   const amt = h("div", "amt num", money(animate ? 0 : T.ownerNet, cur)); big.appendChild(amt);
   if (previous) { const c = deltaChip(T.ownerNet, previous.ownerNet, v => money(v, cur)); if (c) big.appendChild(c); }
-  big.appendChild(h("div", "who", st.settlement.amount === 0 ? "Nothing to settle this month" : `${st.settlement.label}: ${money(st.settlement.amount, cur)}`));
+  if (own) big.appendChild(h("div", "who", `Airbnb paid out ${money(T.payout, cur)}${T.expensesTotal ? `, less ${money(T.expensesTotal, cur)} of expenses` : ""}`));
+  else big.appendChild(h("div", "who", st.settlement.amount === 0 ? "Nothing to settle this month" : `${st.settlement.label}: ${money(st.settlement.amount, cur)}`));
   hero.appendChild(big);
   const kpis = h("div", "st-kpis");
   const kpi = (k, v, chip) => { const d = h("div", "kpi"); d.append(h("div", "k", k), h("div", "v num", v)); if (chip) d.appendChild(chip); kpis.appendChild(d); };
@@ -67,8 +70,8 @@ export function renderStatement(root, data, opts = {}) {
   // The bar shows how the payout was divided. If costs exceed the payout the owner's share is negative,
   // which a bar can't show, so it is left out of the bar and stated in words instead.
   const parts = [
-    ["Owner net", Math.max(0, T.ownerNet), "#2fd3a0"],
-    ["Co-host commission", T.commission, "#8f7bff"],
+    [own ? "Net earnings" : "Owner net", Math.max(0, T.ownerNet), "#2fd3a0"],
+    ["Host commission", T.commission, "#8f7bff"],
     ["Cleaning", T.cleaningToCohost, "#58b4ff"],
     ["Expenses", Math.max(0, T.expensesTotal), "#f5c451"],
     ["Airbnb fees", T.airbnbFees, "#ff7a59"],
@@ -80,7 +83,7 @@ export function renderStatement(root, data, opts = {}) {
     const l = h("span"); const i = h("i"); i.style.background = c; l.append(i, document.createTextNode(name + " "), h("b", "num", money(v, cur))); legend.appendChild(l);
   });
   flowSec.append(flow, legend);
-  if (T.ownerNet < 0) flowSec.appendChild(h("p", "flow-neg", `Owner net is ${money(T.ownerNet, cur)} this month: commission, cleaning and expenses add up to more than the Airbnb payout.`));
+  if (T.ownerNet < 0) flowSec.appendChild(h("p", "flow-neg", own ? `Net earnings are ${money(T.ownerNet, cur)} this month: expenses add up to more than the Airbnb payout.` : `Owner net is ${money(T.ownerNet, cur)} this month: commission, cleaning and expenses add up to more than the Airbnb payout.`));
   card.appendChild(flowSec);
 
   // calendar of stays
@@ -106,19 +109,20 @@ export function renderStatement(root, data, opts = {}) {
   const tSec = h("section", "st-sec"); tSec.appendChild(h("h3", "", "Reservations & adjustments"));
   const wrap = h("div", "tbl-wrap"); const tbl = h("table", "tbl");
   const thead = h("thead"); const hr = h("tr");
-  ["Guest", "Check-in", "Nights", "Gross", "Airbnb fee", "Cleaning", "Payout", "Commission"].forEach((c, i) => hr.appendChild(h("th", i > 2 ? "r" : "", c)));
+  const cols = own ? 7 : 8; // own home: no commission column
+  ["Guest", "Check-in", "Nights", "Gross", "Airbnb fee", "Cleaning", "Payout", "Commission"].slice(0, cols).forEach((c, i) => hr.appendChild(h("th", i > 2 ? "r" : "", c)));
   thead.appendChild(hr); tbl.appendChild(thead);
   const tb = h("tbody");
   st.lines.forEach(l => {
     const tr = h("tr", l.kind === "adjustment" ? "adj" : "");
     [l.kind === "adjustment" ? `${l.type}${l.guest ? " · " + l.guest : ""}` : (l.guest || l.code), short(l.start || l.date), l.nights || "",
-      money(l.gross, cur), l.serviceFee ? "−" + money(l.serviceFee, cur) : "", l.cleaningFee ? money(l.cleaningFee, cur) : "", money(l.payout, cur), money(l.commission, cur)]
+      money(l.gross, cur), l.serviceFee ? "−" + money(l.serviceFee, cur) : "", l.cleaningFee ? money(l.cleaningFee, cur) : "", money(l.payout, cur), money(l.commission, cur)].slice(0, cols)
       .forEach((v, i) => tr.appendChild(h("td", (i > 2 ? "r " : "") + "num", String(v))));
     tb.appendChild(tr);
   });
   tbl.appendChild(tb);
   const tf = h("tfoot"); const fr = h("tr");
-  ["Total", "", String(T.nights), money(T.grossRevenue, cur), "−" + money(T.airbnbFees, cur), money(T.cleaning, cur), money(T.payout, cur), money(T.commission, cur)]
+  ["Total", "", String(T.nights), money(T.grossRevenue, cur), "−" + money(T.airbnbFees, cur), money(T.cleaning, cur), money(T.payout, cur), money(T.commission, cur)].slice(0, cols)
     .forEach((v, i) => fr.appendChild(h("td", (i > 2 ? "r " : "") + "num", v)));
   tf.appendChild(fr); tbl.appendChild(tf); wrap.appendChild(tbl); tSec.appendChild(wrap); card.appendChild(tSec);
 
@@ -127,12 +131,12 @@ export function renderStatement(root, data, opts = {}) {
   const rows = h("div", "summary-rows");
   const row = (k, v, minus, cls = "") => { const r = h("div", "row " + cls); r.append(h("span", "", k), h("span", "num" + (minus ? " minus" : ""), (minus ? "−" : "") + money(v, cur))); rows.appendChild(r); };
   row("Airbnb payout for these stays", T.payout);
-  row(`Co-host commission (${s.commissionPct}% of ${s.commissionBase === "gross" ? "gross" : s.commissionBase === "payout_ex_cleaning" ? "payout excl. cleaning" : "payout"})`, T.commission, true);
-  if (T.cleaningToCohost) row("Cleaning fees kept by co-host", T.cleaningToCohost, true);
+  if (!own) row(`Host commission (${s.commissionPct}% of ${s.commissionBase === "gross" ? "gross" : s.commissionBase === "payout_ex_cleaning" ? "payout excl. cleaning" : "payout"})`, T.commission, true);
+  if (T.cleaningToCohost) row("Cleaning fees kept by host", T.cleaningToCohost, true);
   st.expenses.forEach(e => e.amount < 0 ? row(`Credit: ${e.description}`, -e.amount, false) : row(`Expense: ${e.description}`, e.amount, true));
-  row("Owner net", T.ownerNet, false, "total");
-  if (st.settlement.alreadyPaid != null) row("Already paid to co-host by Airbnb split", st.settlement.alreadyPaid);
-  const settle = h("div", "row total"); settle.append(h("span", "", st.settlement.amount === 0 ? "Nothing to settle" : st.settlement.label), h("span", "num", money(st.settlement.amount, cur))); rows.appendChild(settle);
+  row(own ? "Net earnings" : "Owner net", T.ownerNet, false, "total");
+  if (st.settlement.alreadyPaid != null) row("Already paid to host by Airbnb split", st.settlement.alreadyPaid);
+  const settle = h("div", "row total"); if (own) settle.style.display = "none"; settle.append(h("span", "", st.settlement.amount === 0 ? "Nothing to settle" : st.settlement.label), h("span", "num", money(st.settlement.amount, cur))); rows.appendChild(settle);
   sSec.appendChild(rows); card.appendChild(sSec);
 
   const foot = h("footer", "st-foot");

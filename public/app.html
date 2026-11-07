@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Make an owner statement · Ownermint</title>
+<title>Make a statement · Ownermint</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600..800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/css/app.css">
@@ -38,17 +38,20 @@
         <div class="field"><label for="month">Month</label><select class="input" id="month"></select></div>
       </div>
 
-      <div class="step-h"><em>2</em>Your deal</div>
+      <div class="step-h"><em>2</em>This property</div>
+      <div class="field"><label id="typeL">This property is</label><div class="seg" id="typeSeg" role="group" aria-labelledby="typeL"><button data-v="managed" type="button">Managed for an owner</button><button data-v="own" type="button">My own home</button></div><div class="help" id="typeHelp"></div></div>
+      <div id="dealFields">
       <div class="row2">
         <div class="field"><label for="pct">Commission %</label><input class="input" id="pct" type="number" min="0" max="100" step="0.5" inputmode="decimal" aria-describedby="pctErr"></div>
         <div class="field"><label for="base">Commission on</label><select class="input" id="base"><option value="payout">Payout (after Airbnb fee)</option><option value="payout_ex_cleaning">Payout minus cleaning</option><option value="gross">Gross booking</option></select></div>
       </div>
       <div class="field-err" id="pctErr" aria-live="polite"></div>
       <label class="check"><input type="checkbox" id="commAdj"> <span>Also charge commission on adjustments (damage reimbursements, refunds, cancellation fees)</span></label>
-      <div class="field"><label id="cleanL">Cleaning fees go to</label><div class="seg" id="cleanSeg" role="group" aria-labelledby="cleanL"><button data-v="owner" type="button">Owner</button><button data-v="cohost" type="button">Co-host</button></div></div>
-      <div class="field"><label id="recvL">Who received the Airbnb payouts?</label><div class="seg" id="recvSeg" role="group" aria-labelledby="recvL"><button data-v="owner" type="button">Owner</button><button data-v="cohost" type="button">Co-host</button><button data-v="split" type="button">Airbnb split</button></div>
+      <div class="field"><label id="cleanL">Cleaning fees go to</label><div class="seg" id="cleanSeg" role="group" aria-labelledby="cleanL"><button data-v="owner" type="button">Owner</button><button data-v="cohost" type="button">Host (you)</button></div></div>
+      <div class="field"><label id="recvL">Who received the Airbnb payouts?</label><div class="seg" id="recvSeg" role="group" aria-labelledby="recvL"><button data-v="owner" type="button">Owner</button><button data-v="cohost" type="button">Host (you)</button><button data-v="split" type="button">Airbnb split</button></div>
         <div class="help" id="recvHelp"></div></div>
-      <div class="field" id="splitField" style="display:none"><label for="splitAmt" id="splitL">Amount Airbnb paid the co-host directly this month</label><input class="input" id="splitAmt" type="text" inputmode="decimal" placeholder="0.00" aria-describedby="splitErr"><div class="field-err" id="splitErr" aria-live="polite"></div><div class="help">Saved for this month only.</div></div>
+      <div class="field" id="splitField" style="display:none"><label for="splitAmt" id="splitL">Amount Airbnb paid the host directly this month</label><input class="input" id="splitAmt" type="text" inputmode="decimal" placeholder="0.00" aria-describedby="splitErr"><div class="field-err" id="splitErr" aria-live="polite"></div><div class="help">Saved for this month only.</div></div>
+      </div>
       <div class="field"><label id="byL">Group stays by</label><div class="seg" id="bySeg" role="group" aria-labelledby="byL"><button data-v="checkin" type="button">Check-in date</button><button data-v="payout" type="button">Payout date</button></div></div>
 
       <div class="step-h"><em>3</em>Expenses this month</div>
@@ -57,13 +60,16 @@
       <p class="help">Supplies, repairs, restocking: anything the owner should cover. Enter a negative amount (e.g. -20) for a credit back to the owner.</p>
 
       <div class="step-h"><em>4</em>Branding</div>
-      <div class="field"><label for="company">Your business name</label><input class="input" id="company" maxlength="60" placeholder="e.g. Lakeside Co-Hosting"></div>
-      <div class="field"><label for="owner">Owner's name</label><input class="input" id="owner" maxlength="60" placeholder="e.g. Pat Morgan"></div>
+      <div class="field"><label for="company">Your business name</label><input class="input" id="company" maxlength="60" placeholder="e.g. Lakeside Hosting"></div>
+      <div class="field"><label for="owner" id="ownerL">Owner's name</label><input class="input" id="owner" maxlength="60" placeholder="e.g. Pat Morgan"></div>
       <div class="field"><label for="logo">Logo (optional)</label><input class="input" id="logo" type="file" accept="image/png,image/jpeg,image/webp,image/gif"><button class="btn btn-ghost btn-sm" id="logoClear" type="button" style="display:none;justify-self:start"><span>Remove logo</span></button></div>
       <div class="field"><label for="guestNames">Guest names on the statement</label><select class="input" id="guestNames"><option value="full">Full names</option><option value="first">First names only</option><option value="none">Hide names (show booking code)</option></select></div>
       <div class="field"><label for="note">Note to the owner (this month)</label><textarea class="input" id="note" rows="3" maxlength="600" placeholder="e.g. Busy month! Replaced the shower head; receipt attached."></textarea></div>
 
-      <div class="step-h"><em>5</em>Your data</div>
+      <div class="step-h"><em>5</em>Your plan</div>
+      <div id="planBox" class="plan-box" aria-live="polite"></div>
+
+      <div class="step-h"><em>6</em>Your data</div>
       <p class="help" style="margin-top:0">Your file, deals, expenses and branding are saved in this browser only, so they're here next time. Owner links are the only thing stored on our server.</p>
       <b style="font-size:14px">Owner links you created</b>
       <div class="links-list" id="links"></div>
@@ -101,6 +107,7 @@
 import { parseCSV, toTransactions, detectColumns, listings, months, buildStatement, monthLabel, DEFAULT_SETTINGS, SAMPLE_CSV, money, parseMoney } from "/js/engine.js";
 import { renderStatement } from "/js/view.js";
 import { cursor, magnetic, toast, copy, store } from "/js/fx.js";
+import { PLANS, limitLabel, billingConfig } from "/js/plans.js";
 cursor(); magnetic();
 const $ = s => document.getElementById(s);
 const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
@@ -148,6 +155,7 @@ function loadCSV(text, name, manualMap = null, keepOpts = false) {
   try { if (text.length < 1500000) store.set("lastCSV", { name, text }); } catch {}
   $("dropTitle").textContent = `✓ ${name} · ${tx.length} line${tx.length === 1 ? "" : "s"}`;
   fillSelect($("listing"), listings(tx).map(l => [l, l]), $("listing").value || store.get("lastListing"));
+  refreshListingLabels(); renderPlan();
   refreshMonths();
   $("cfg").style.display = ""; $("empty").style.display = "none"; $("out").style.display = ""; $("jump").style.display = "";
   loadSettingsUI(); renderExpenses(); loadNote(); renderLinks(); update();
@@ -186,11 +194,15 @@ function loadSettingsUI(force = true) {
   if (s.splitPaidToCohost) { const k = splitKey(); if (store.get(k) == null) { store.set(k, s.splitPaidToCohost); toast(`Split amount now saved per month: kept for ${monthLabel($("month").value)}`); } const c = store.get("settings:" + $("listing").value, {}); delete c.splitPaidToCohost; store.set("settings:" + $("listing").value, c); }
   if (force || document.activeElement !== $("pct")) { $("pct").value = s.commissionPct; setPctError(""); }
   $("base").value = s.commissionBase; $("commAdj").checked = s.commissionOnAdjustments !== false;
+  const own = s.reportType === "own"; setSeg("typeSeg", own ? "own" : "managed"); $("dealFields").style.display = own ? "none" : "";
+  $("typeHelp").textContent = own ? "An earnings report for your own home: payout, Airbnb fees, cleaning and expenses. No commission or settlement." : "An owner statement: your commission, who keeps cleaning fees, and who owes whom.";
+  $("ownerL").textContent = own ? "Report for (optional, e.g. a co-owner or your accountant)" : "Owner's name";
+  $("share").querySelector("span").textContent = own ? "✦ Get share link" : "✦ Get owner link";
   setSeg("cleanSeg", s.cleaningTo); setSeg("recvSeg", s.payoutReceiver); setSeg("bySeg", s.monthBy);
   if (force || document.activeElement !== $("splitAmt")) { const v = store.get(splitKey()); $("splitAmt").value = v ? v : ""; setSplitError(""); }
-  $("splitL").textContent = `Amount Airbnb paid the co-host directly for ${monthLabel($("month").value) || "this month"}`;
+  $("splitL").textContent = `Amount Airbnb paid you (the host) directly for ${monthLabel($("month").value) || "this month"}`;
   $("splitField").style.display = s.payoutReceiver === "split" ? "" : "none";
-  $("recvHelp").textContent = { owner: "The statement shows what the owner owes you.", cohost: "The statement shows what you owe the owner.", split: "Airbnb paid you part directly. The statement reconciles it against your deal." }[s.payoutReceiver];
+  $("recvHelp").textContent = { owner: "The owner received the money. The statement shows what the owner owes you.", cohost: "You received the money. The statement shows what you owe the owner.", split: "Airbnb paid you part directly. The statement reconciles it against your deal." }[s.payoutReceiver];
 }
 // While the user is typing, the field they are in is left alone; switching property or month always reloads every field.
 function saveSettings(patch) { store.set("settings:" + $("listing").value, { ...store.get("settings:" + $("listing").value, {}), ...patch }); loadSettingsUI(false); update(); }
@@ -211,7 +223,7 @@ $("splitAmt").oninput = () => {
   if (v != null && (!isFinite(v) || v < 0)) { setSplitError("Enter an amount like 450 or 450.00."); return; }
   setSplitError(""); store.set(splitKey(), v); update();
 };
-[["cleanSeg", "cleaningTo"], ["recvSeg", "payoutReceiver"], ["bySeg", "monthBy"]].forEach(([id, key]) =>
+[["cleanSeg", "cleaningTo"], ["recvSeg", "payoutReceiver"], ["bySeg", "monthBy"], ["typeSeg", "reportType"]].forEach(([id, key]) =>
   document.querySelectorAll(`#${id} button`).forEach(b => b.onclick = () => { if (key === "monthBy") { saveSettingsQuiet({ [key]: b.dataset.v }); refreshMonths(); renderExpenses(); loadNote(); loadSettingsUI(); update(); } else saveSettings({ [key]: b.dataset.v }); }));
 function saveSettingsQuiet(patch) { store.set("settings:" + $("listing").value, { ...store.get("settings:" + $("listing").value, {}), ...patch }); }
 
@@ -257,6 +269,121 @@ function presentable(st) {
   return { ...st, lines: st.lines.map(l => ({ ...l, guest: mode === "first" ? String(l.guest || "").split(/\s+/)[0] : "" })) };
 }
 
+/* ---------- plan limits ---------- */
+// Free = 1 property, Host = 5, Pro = unlimited. Enforced in this browser (the app runs here; the CSV never reaches the server).
+let billing = { enabled: false, links: {} }, interval = "year";
+const getLicense = () => store.get("license", null);
+const currentPlan = () => { const l = getLicense(); return l && l.active && PLANS[l.plan] ? l.plan : "free"; };
+const isSample = () => rawText === SAMPLE_CSV; // the built-in demo file is never limited
+const DAY_MS = 86400000, SWITCH_DAYS = 30;
+// Properties on the plan, in the order they were added. Empty slots fill automatically; swapping one out is limited.
+function allowedSet() {
+  const all = listings(tx);
+  if (isSample()) return new Set(all);
+  const limit = PLANS[currentPlan()].limit; const chosen = store.get("chosenProperties", []);
+  if (chosen.length < limit) { for (const p of [$("listing").value, ...all]) if (p && chosen.length < limit && !chosen.includes(p)) chosen.push(p); store.set("chosenProperties", chosen); }
+  return new Set(chosen.slice(0, limit));
+}
+const isLocked = l => !allowedSet().has(l);
+function nextSwitchDate() { const t = store.get("lastSwitch", 0); return t ? new Date(t + SWITCH_DAYS * DAY_MS) : null; }
+const canSwitch = () => { const d = nextSwitchDate(); return !d || d <= new Date(); };
+// The first swap is free; after that, one swap every 30 days.
+function switchProperty(add, drop) {
+  const limit = PLANS[currentPlan()].limit, chosen = store.get("chosenProperties", []).slice(0, limit);
+  if (chosen.length >= limit) { if (!canSwitch()) return; const i = chosen.indexOf(drop); if (i < 0) return; chosen.splice(i, 1); store.set("lastSwitch", Date.now()); }
+  chosen.push(add); store.set("chosenProperties", chosen);
+  refreshListingLabels(); renderPlan(); firstRender = true; update();
+}
+function refreshListingLabels() { const set = allowedSet(); [...$("listing").options].forEach(o => { o.textContent = (set.has(o.value) ? "" : "🔒 ") + o.value; }); }
+function upgradeButtons(container, rerender) {
+  const cur = currentPlan(), wrap = el("div", "up-wrap");
+  const seg = el("div", "seg up-int"); seg.setAttribute("role", "group"); seg.setAttribute("aria-label", "Billing period");
+  [["month", "Monthly"], ["year", "Yearly · 2 months free"]].forEach(([v, t]) => { const b = Object.assign(el("button", interval === v ? "on" : "", t), { type: "button" }); b.setAttribute("aria-pressed", String(interval === v)); b.onclick = () => { interval = v; renderPlan(); if (rerender) rerender(); }; seg.appendChild(b); });
+  wrap.appendChild(seg);
+  ["host", "pro"].filter(p => PLANS[p].limit > PLANS[cur].limit).forEach(p => {
+    const P = PLANS[p], card = el("div", "up-card"), info = el("div");
+    const price = interval === "year" ? `$${P.year}/year (≈ $${(P.year / 12).toFixed(2)}/mo)` : `$${P.month}/month`;
+    info.append(el("b", "", P.name), el("small", "", `${limitLabel(p)} · ${price}`));
+    let btn;
+    if (billing.enabled && billing.links[p]) btn = Object.assign(el("a", "btn btn-mint btn-sm"), { href: billing.links[p][interval] });
+    else { btn = Object.assign(el("button", "btn btn-sm"), { type: "button", disabled: true }); btn.title = "Paid plans open soon"; }
+    btn.appendChild(el("span", "", billing.enabled ? "Upgrade" : "Opening soon"));
+    card.append(info, btn); wrap.appendChild(card);
+  });
+  wrap.appendChild(el("p", "help", billing.enabled ? "Secure checkout by Stripe. Tax is added where it applies. Cancel anytime." : "Paid plans are opening soon. Everything works on the Free plan for 1 property."));
+  container.appendChild(wrap);
+}
+function renderPlan() {
+  const box = $("planBox"); if (!box) return; box.innerHTML = "";
+  const plan = currentPlan(), lic = getLicense(), P = PLANS[plan];
+  const chosen = store.get("chosenProperties", []).slice(0, P.limit);
+  const head = el("div", "plan-head"); head.append(el("b", "", `${P.name} plan`), el("small", "", P.limit === Infinity ? "Unlimited properties" : `${chosen.length} of ${P.limit} propert${P.limit === 1 ? "y" : "ies"} used`));
+  box.appendChild(head);
+  if (lic && !lic.active) box.appendChild(el("div", "warn", `Your ${PLANS[lic.plan]?.name || "paid"} subscription is ${lic.status}. You're on the Free plan until it's active again.`));
+  if (chosen.length && P.limit !== Infinity) box.appendChild(el("p", "help", `On your plan: ${chosen.join(", ")}.` + (canSwitch() ? "" : ` You can swap a property again on ${nextSwitchDate().toLocaleDateString()}.`)));
+  if (P.limit !== Infinity) upgradeButtons(box);
+  if (lic) {
+    const k = el("div", "lic"); k.append(el("small", "", "License key"), el("code", "", lic.key));
+    const cp = Object.assign(el("button", "mini", "Copy"), { type: "button", onclick: () => copy(lic.key) });
+    const rm = Object.assign(el("button", "mini danger", "Remove"), { type: "button", onclick: () => { if (confirm("Remove the license key from this browser? Your subscription isn't cancelled; you can enter the key again any time.")) { store.set("license", null); renderPlan(); refreshListingLabels(); update(); } } });
+    k.append(cp, rm); box.appendChild(k);
+    box.appendChild(el("p", "help", "Keep this key: it unlocks your plan in another browser. To change or cancel your subscription, sign in at link.com with the email you paid with (Stripe's Link handles Ownermint billing)."));
+  } else {
+    const d = el("details", "lic-enter"); d.appendChild(el("summary", "", "Already subscribed? Enter your license key"));
+    const row = el("div", "sharebox"); const inp = Object.assign(el("input", "input"), { placeholder: "om_…", autocomplete: "off" }); inp.setAttribute("aria-label", "License key");
+    const go = Object.assign(el("button", "btn btn-sm"), { type: "button" }); go.appendChild(el("span", "", "Apply"));
+    go.onclick = async () => { const r = await checkLicense(inp.value.trim()); if (r) toast(r.active ? `${PLANS[r.plan].name} plan unlocked ✦` : `That subscription is ${r.status}`); };
+    row.append(inp, go); d.appendChild(row); box.appendChild(d);
+  }
+}
+async function checkLicense(key, quiet = false) {
+  try {
+    const r = await fetch("/api/billing/license", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ key }) });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) { if (!quiet) toast(d.error || "Couldn't check that key."); if (r.status === 404 && quiet) store.set("license", null); if (quiet) { renderPlan(); refreshListingLabels(); update(); } return null; }
+    const lic = { key, plan: d.plan, status: d.status, active: d.active, checkedAt: Date.now() }; store.set("license", lic);
+    renderPlan(); refreshListingLabels(); update(); return lic;
+  } catch { if (!quiet) toast("Couldn't reach Ownermint. Check your connection."); return null; }
+}
+async function claimCheckout(sid) {
+  const box = $("planBox");
+  try {
+    let r; try { r = await fetch("/api/billing/claim", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ session_id: sid }) }); } catch { throw new Error("Couldn't reach Ownermint to confirm your payment."); }
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(d.error || `Couldn't confirm your payment (error ${r.status}).`);
+    store.set("license", { key: d.key, plan: d.plan, status: d.status, active: d.active, checkedAt: Date.now() });
+    history.replaceState(null, "", location.pathname);
+    renderPlan(); refreshListingLabels(); update();
+    const ok = el("div", "notice"); ok.append(el("b", "", `Welcome to ${PLANS[d.plan].name}! `), document.createTextNode("Your plan is active in this browser. Copy your license key below and keep it safe to use Ownermint on another computer."));
+    box.prepend(ok); toast(`${PLANS[d.plan].name} plan active ✦`);
+    if (!tx.length) $("cfg").style.display = "";
+  } catch (e) {
+    $("cfg").style.display = "";
+    const err = el("div", "warn err"); err.append(document.createTextNode(e.message + " If you were charged, your payment is safe: reload this page to try again. "));
+    const retry = Object.assign(el("button", "mini", "Try again"), { type: "button", onclick: () => { err.remove(); claimCheckout(sid); } }); err.appendChild(retry); box.prepend(err);
+    box.scrollIntoView({ block: "center" });
+  }
+}
+function renderLocked(listing) {
+  const root = $("view"); root.innerHTML = ""; const plan = currentPlan(), P = PLANS[plan];
+  const card = el("section", "panel lock-card");
+  card.append(el("div", "lock-ic", "🔒"), el("h3", "", `${listing} isn't on your ${P.name} plan`));
+  const chosen = store.get("chosenProperties", []).slice(0, P.limit);
+  card.appendChild(el("p", "", `The ${P.name} plan includes ${limitLabel(plan).toLowerCase()}${chosen.length ? " (" + chosen.join(", ") + ")" : ""}. Upgrade to make statements for more properties, or swap this one in.`));
+  upgradeButtons(card, () => renderLocked(listing));
+  const sw = el("div", "swap");
+  if (canSwitch()) {
+    let sel = null;
+    if (chosen.length > 1) { sel = el("select", "input"); sel.setAttribute("aria-label", "Property to swap out"); chosen.forEach(c => sel.appendChild(Object.assign(el("option"), { value: c, textContent: `Swap out ${c}` }))); sw.appendChild(sel); }
+    const b = Object.assign(el("button", "btn btn-ghost btn-sm"), { type: "button" }); b.appendChild(el("span", "", chosen.length === 1 ? `Use ${listing} instead of ${chosen[0]}` : `Use ${listing} instead`));
+    b.onclick = () => { const drop = sel ? sel.value : chosen[0]; if (confirm(`Swap ${drop} out for ${listing}?\n\nAfter this, you can swap a property once every 30 days.`)) switchProperty(listing, drop); };
+    sw.appendChild(b);
+    if (!store.get("lastSwitch", 0)) sw.appendChild(el("p", "help", "Your first swap is free. After that, one swap every 30 days."));
+  } else sw.appendChild(el("p", "help", `You can swap a property again on ${nextSwitchDate().toLocaleDateString()}.`));
+  card.appendChild(sw); root.appendChild(card);
+}
+const setActionsEnabled = on => ["share", "print", "exportCsv"].forEach(id => { $(id).disabled = !on; });
+
 /* ---------- render ---------- */
 function prevMonthKey(key) { const [y, m] = key.split("-").map(Number); return new Date(Date.UTC(y, m - 2, 1)).toISOString().slice(0, 7); }
 function update() {
@@ -270,6 +397,8 @@ function update() {
   $("outTitle").textContent = `${current.listing} · ${monthLabel(current.month)}`;
   $("shareOut").style.display = "none";
   $("stWarns").innerHTML = "";
+  const locked = isLocked(listing); setActionsEnabled(!locked);
+  if (locked) { renderLocked(listing); if (tab === "portfolio") renderPortfolio(); if (tab === "audit") renderAudit(); return; }
   current.warnings.forEach(w => { const d = el("div", "warn"); d.append(el("b", "", "Check before sending"), document.createTextNode(w)); $("stWarns").appendChild(d); });
   renderStatement($("view"), { statement: presentable(current), brand: getBrand(), note: $("note").value, previous: currentPrev }, { animate: firstRender && tab === "statement" });
   firstRender = false;
@@ -294,22 +423,25 @@ const table = (heads, rows, rightFrom = 1) => {
 };
 function renderPortfolio() {
   const root = $("portfolio"); root.innerHTML = ""; const month = $("month").value;
-  const all = listings(tx).map(l => ({ l, st: statementFor(l, month), prevSt: null }));
+  const allowed = allowedSet(), lockedNames = listings(tx).filter(l => !allowed.has(l));
+  const all = listings(tx).filter(l => allowed.has(l)).map(l => ({ l, st: statementFor(l, month), prevSt: null }));
   all.forEach(x => { const pk = prevMonthKey(month); if (months(tx.filter(t => t.listing === x.l), settingsFor(x.l).monthBy).includes(pk)) x.prevSt = statementFor(x.l, pk); });
-  const p1 = el("section", "panel"); p1.append(el("h3", "", `All properties · ${monthLabel(month)}`), el("p", "help", "Each property uses its own saved deal, expenses and split amount for this month. Click a row to open its statement."));
+  const p1 = el("section", "panel"); p1.append(el("h3", "", `All properties · ${monthLabel(month)}`), el("p", "help", "Each property uses its own settings, expenses and split amount for this month. Click a row to open its statement."));
   const curs = [...new Set(all.flatMap(x => x.st.lines.map(l => l.currency)))];
   const single = curs.length <= 1, cur = curs[0] || "USD";
   const sum = f => all.reduce((a, x) => a + f(x.st.totals), 0);
-  if (single) { const sr = el("div", "stat-row"); [["Properties", String(all.length)], ["Stays", String(sum(t => t.reservations))], ["Airbnb payout", money(sum(t => t.payout), cur)], ["Co-host earned", money(sum(t => t.cohostEarned), cur)], ["Owner net", money(sum(t => t.ownerNet), cur)]]
+  if (single) { const sr = el("div", "stat-row"); [["Properties", String(all.length)], ["Stays", String(sum(t => t.reservations))], ["Airbnb payout", money(sum(t => t.payout), cur)], ["Host earned", money(sum(t => t.cohostEarned), cur)], ["Net to owners / you", money(sum(t => t.ownerNet), cur)]]
     .forEach(([k, v]) => { const d = el("div"); d.append(el("b", "num", v), el("span", "", k)); sr.appendChild(d); }); p1.appendChild(sr); }
   else p1.appendChild(el("div", "warn", `These properties use different currencies (${curs.join(", ")}), so no combined totals are shown.`));
   const rows = all.map(({ l, st, prevSt }) => { const T = st.totals, c = st.currency;
     const delta = prevSt ? (T.ownerNet - prevSt.totals.ownerNet >= 0 ? "▲ " : "▼ ") + money(Math.abs(T.ownerNet - prevSt.totals.ownerNet), c) : "–";
     return { cls: l === $("listing").value ? "current" : "", onclick: () => { $("listing").value = l; $("listing").onchange(); setTab("statement"); },
-      cells: [l, T.reservations, T.nights, T.occupancy == null ? "n/a" : Math.round(T.occupancy * 100) + "%", money(T.payout, c), money(T.cohostEarned, c), money(T.ownerNet, c), st.settlement.amount === 0 ? "Nothing to settle" : `${st.settlement.direction === "owner_pays_cohost" ? "Owner → you" : "You → owner"} ${money(st.settlement.amount, c)}`, delta] }; });
-  p1.appendChild(table(["Property", "Stays", "Nights", "Occupancy", "Payout", "Co-host earned", "Owner net", "Settlement", "Owner net vs last month"], rows));
+      cells: [l, T.reservations, T.nights, T.occupancy == null ? "n/a" : Math.round(T.occupancy * 100) + "%", money(T.payout, c), money(T.cohostEarned, c), money(T.ownerNet, c), st.settlement.direction === "none" ? "Own home" : st.settlement.amount === 0 ? "Nothing to settle" : `${st.settlement.direction === "owner_pays_cohost" ? "Owner → you" : "You → owner"} ${money(st.settlement.amount, c)}`, delta] }; });
+  lockedNames.forEach(l => rows.push({ cls: "locked", onclick: () => { $("listing").value = l; $("listing").onchange(); setTab("statement"); }, cells: ["🔒 " + l, "–", "–", "–", "–", "–", "–", `Not on your ${PLANS[currentPlan()].name} plan`, "–"] }));
+  p1.appendChild(table(["Property", "Stays", "Nights", "Occupancy", "Payout", "Host earned", "Net to owner", "Settlement", "vs last month"], rows));
   root.appendChild(p1);
   // month by month for the open property
+  if (isLocked($("listing").value)) return;
   const listing = $("listing").value, ms = months(tx.filter(t => t.listing === listing), getSettings().monthBy).slice().reverse();
   const hist = ms.map(m => ({ m, st: statementFor(listing, m) }));
   const p2 = el("section", "panel"); p2.append(el("h3", "", `${listing} · month by month`), el("p", "help", "Owner net for every month in your file, using this property's deal and each month's expenses."));
@@ -317,7 +449,7 @@ function renderPortfolio() {
   const bars = el("div", "bars"); bars.setAttribute("aria-hidden", "true");
   hist.forEach(({ m, st }) => { const b = el("div", m === month ? "cur" : ""); const i = el("i", st.totals.ownerNet < 0 ? "neg" : ""); i.style.height = Math.max(2, Math.abs(st.totals.ownerNet) / max * 100) + "%"; i.title = `${monthLabel(m)}: ${money(st.totals.ownerNet, st.currency)}`; b.append(i, el("span", "", monthLabel(m).slice(0, 3))); bars.appendChild(b); });
   if (hist.length > 1) p2.appendChild(bars);
-  p2.appendChild(table(["Month", "Stays", "Nights", "Payout", "Co-host earned", "Owner net"], hist.slice().reverse().map(({ m, st }) => ({ cls: m === month ? "current" : "", onclick: () => { $("month").value = m; $("month").onchange(); setTab("statement"); },
+  p2.appendChild(table(["Month", "Stays", "Nights", "Payout", "Host earned", "Net"], hist.slice().reverse().map(({ m, st }) => ({ cls: m === month ? "current" : "", onclick: () => { $("month").value = m; $("month").onchange(); setTab("statement"); },
     cells: [monthLabel(m), st.totals.reservations, st.totals.nights, money(st.totals.payout, st.currency), money(st.totals.cohostEarned, st.currency), money(st.totals.ownerNet, st.currency)] }))));
   root.appendChild(p2);
 }
@@ -336,6 +468,7 @@ function renderAudit() {
   if (A.skipped.length) { p1.appendChild(el("h3", "", "Skipped rows")).style.cssText = "font-size:17px;margin:18px 0 8px"; p1.appendChild(table(["Row", "Type", "Why it was skipped"], A.skipped.map(x => ({ cells: [x.row, x.type || "–", x.reason] })), 99)); }
   if (A.duplicates.length) { p1.appendChild(el("h3", "", "Duplicate rows")).style.cssText = "font-size:17px;margin:18px 0 8px"; p1.appendChild(table(["Row", "Same as row"], A.duplicates.map(x => ({ cells: [x.row, x.sameAs] })), 99)); }
   root.appendChild(p1);
+  if (isLocked(current.listing)) return;
   const T = current.totals, pct = s.commissionPct;
   const p2 = el("section", "panel"); p2.append(el("h3", "", `Every line on this statement · ${monthLabel(current.month)}`), el("p", "help", `Commission = ${pct}% × commission base. Base = ${s.commissionBase === "gross" ? "gross booking" : s.commissionBase === "payout_ex_cleaning" ? "payout minus cleaning fee" : "payout"}${s.commissionOnAdjustments === false ? "; adjustments are not charged" : ""}.`));
   const rows = current.lines.map(l => ({ cells: [l.row ?? "–", l.type, l.guest || l.code || "–", l.start || l.date || "–", money(l.gross, cur), money(l.serviceFee, cur), money(l.cleaningFee, cur), money(l.payout, cur), money(l.commissionBase, cur), money(l.commission, cur)] }));
@@ -343,11 +476,11 @@ function renderAudit() {
   p2.appendChild(table(["Row", "Type", "Guest / code", "Date", "Gross", "Airbnb fee", "Cleaning", "Payout", "Base", "Commission"], rows, 4));
   const steps = el("dl", "kv"); steps.style.marginTop = "18px";
   const st = [["Airbnb payout", money(T.payout, cur)], ["− Commission", money(T.commission, cur)]];
-  if (T.cleaningToCohost) st.push(["− Cleaning fees kept by co-host", money(T.cleaningToCohost, cur)]);
+  if (T.cleaningToCohost) st.push(["− Cleaning fees kept by host", money(T.cleaningToCohost, cur)]);
   current.expenses.forEach(e => st.push([e.amount < 0 ? `+ Credit: ${e.description}` : `− Expense: ${e.description}`, money(Math.abs(e.amount), cur)]));
-  st.push(["= Owner net", money(T.ownerNet, cur)]);
-  const recv = s.payoutReceiver;
-  st.push(["Settlement", recv === "owner" ? `Owner received the payout, so owes the co-host what they earned: ${money(T.cohostEarned, cur)}` : recv === "cohost" ? `Co-host received the payout, so owes the owner the owner net: ${money(T.ownerNet, cur)}` : `Co-host earned ${money(T.cohostEarned, cur)} − already paid by Airbnb ${money(current.settlement.alreadyPaid || 0, cur)}`]);
+  st.push([s.reportType === "own" ? "= Net earnings" : "= Owner net", money(T.ownerNet, cur)]);
+  const recv = s.reportType === "own" ? "own" : s.payoutReceiver;
+  st.push(["Settlement", recv === "own" ? "Your own home: no commission and nothing to settle" : recv === "owner" ? `Owner received the payout, so owes the host what they earned: ${money(T.cohostEarned, cur)}` : recv === "cohost" ? `Host received the payout, so owes the owner the owner net: ${money(T.ownerNet, cur)}` : `Host earned ${money(T.cohostEarned, cur)} − already paid by Airbnb ${money(current.settlement.alreadyPaid || 0, cur)}`]);
   st.push(["Result", current.settlement.amount === 0 ? "Nothing to settle" : `${current.settlement.label}: ${money(current.settlement.amount, cur)}`]);
   st.forEach(([k, v]) => steps.append(el("dt", "", k), el("dd", "num", v)));
   p2.append(el("h3", "", "How the total was worked out"), steps); p2.lastElementChild.previousElementSibling.style.cssText = "font-size:17px;margin:18px 0 8px";
@@ -362,25 +495,26 @@ const drop = $("drop");
 ["dragenter", "dragover"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add("over"); }));
 ["dragleave", "drop"].forEach(ev => drop.addEventListener(ev, () => drop.classList.remove("over")));
 $("sample").onclick = () => loadCSV(SAMPLE_CSV, "sample-airbnb.csv");
-$("listing").onchange = () => { refreshMonths(); loadSettingsUI(); renderExpenses(); loadNote(); firstRender = true; update(); };
+$("listing").onchange = () => { refreshListingLabels(); refreshMonths(); loadSettingsUI(); renderExpenses(); loadNote(); firstRender = true; update(); };
 $("month").onchange = () => { loadSettingsUI(); renderExpenses(); loadNote(); firstRender = true; update(); };
 
 /* ---------- export, print, share ---------- */
 const csvCell = v => { let s = v == null ? "" : String(v); if (typeof v === "string" && /^[=+\-@\t\r]/.test(s)) s = "'" + s; return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
 $("exportCsv").onclick = () => {
-  if (!current) return; const st = presentable(current), T = st.totals;
+  if (!current || isLocked(current.listing)) return; const st = presentable(current), T = st.totals;
   const out = [["Source row", "Type", "Confirmation code", "Guest", "Check-in", "Nights", "Payout date", "Gross", "Airbnb fee", "Cleaning fee", "Payout", "Commission base", "Commission", "Currency"]];
   st.lines.forEach(l => out.push([l.row ?? "", l.type, l.code, l.guest, l.start, l.nights || "", l.date, l.gross, l.serviceFee, l.cleaningFee, l.payout, l.commissionBase, l.commission, l.currency]));
-  out.push([], ["Summary"], ["Airbnb payout", T.payout], ["Commission", T.commission], ["Cleaning fees kept by co-host", T.cleaningToCohost]);
+  out.push([], ["Summary"], ["Airbnb payout", T.payout], ["Commission", T.commission], ["Cleaning fees kept by host", T.cleaningToCohost]);
   st.expenses.forEach(e => out.push([(e.amount < 0 ? "Credit: " : "Expense: ") + e.description, e.amount]));
-  out.push(["Owner net", T.ownerNet], [st.settlement.amount === 0 ? "Nothing to settle" : st.settlement.label, st.settlement.amount]);
+  out.push([st.settlement.direction === "none" ? "Net earnings" : "Owner net", T.ownerNet]);
+  if (st.settlement.direction !== "none") out.push([st.settlement.amount === 0 ? "Nothing to settle" : st.settlement.label, st.settlement.amount]);
   const blob = new Blob(["\ufeff" + out.map(r => r.map(csvCell).join(",")).join("\r\n")], { type: "text/csv;charset=utf-8" });
   const a = Object.assign(el("a"), { href: URL.createObjectURL(blob), download: `${st.listing.replace(/[^\w\- ]+/g, "").trim() || "statement"} ${st.month}.csv` });
   document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 };
 $("print").onclick = () => { if (tab !== "statement") setTab("statement"); setTimeout(() => print(), 50); };
 $("share").onclick = async () => {
-  if (!current) return; const btn = $("share"), label = btn.querySelector("span"), was = label.textContent;
+  if (!current || isLocked(current.listing)) return; const btn = $("share"), label = btn.querySelector("span"), was = label.textContent;
   btn.disabled = true; btn.setAttribute("aria-busy", "true"); label.textContent = "Creating link…";
   try {
     let res;
@@ -391,8 +525,10 @@ $("share").onclick = async () => {
     const links = store.get("links", []); links.push({ id: d.id, editKey: d.editKey, listing: current.listing, month: current.month, at: Date.now() }); store.set("links", links);
     const url = `${location.origin}/s/${d.id}`; $("shareLink").value = url; $("shareOut").style.display = ""; copy(url);
     const b = getBrand(), first = (b.ownerName || "").split(/\s+/)[0];
-    const body = `Hi${first ? " " + first : ""},\n\nYour owner statement for ${current.listing}, ${monthLabel(current.month)} is ready:\n${url}\n\nOwner net: ${money(current.totals.ownerNet, current.currency)}\n${current.settlement.amount === 0 ? "Nothing to settle this month." : `${current.settlement.label}: ${money(current.settlement.amount, current.currency)}`}\n\n${b.company || ""}`.trim();
-    $("mailLink").href = `mailto:?subject=${encodeURIComponent(`Owner statement: ${current.listing}, ${monthLabel(current.month)}`)}&body=${encodeURIComponent(body)}`;
+    const own = current.settlement.direction === "none";
+    const body = own ? `Hi${first ? " " + first : ""},\n\nThe earnings report for ${current.listing}, ${monthLabel(current.month)} is here:\n${url}\n\nNet earnings: ${money(current.totals.ownerNet, current.currency)}\n\n${b.company || ""}`.trim()
+      : `Hi${first ? " " + first : ""},\n\nYour owner statement for ${current.listing}, ${monthLabel(current.month)} is ready:\n${url}\n\nOwner net: ${money(current.totals.ownerNet, current.currency)}\n${current.settlement.amount === 0 ? "Nothing to settle this month." : `${current.settlement.label}: ${money(current.settlement.amount, current.currency)}`}\n\n${b.company || ""}`.trim();
+    $("mailLink").href = `mailto:?subject=${encodeURIComponent(`${own ? "Earnings report" : "Owner statement"}: ${current.listing}, ${monthLabel(current.month)}`)}&body=${encodeURIComponent(body)}`;
     renderLinks();
   } catch (e) { toast(e.message); }
   btn.disabled = false; btn.removeAttribute("aria-busy"); label.textContent = was;
@@ -425,7 +561,7 @@ async function deleteLink(l) {
 }
 $("clearData").onclick = () => {
   const n = store.get("links", []).length;
-  const msg = "Remove everything Ownermint saved in this browser: your last CSV, deals, expenses, notes and branding" + (n ? `, and your list of ${n} owner link${n === 1 ? "" : "s"}` : "") + "?" +
+  const msg = "Remove everything Ownermint saved in this browser: your last CSV, settings, expenses, notes and branding" + (n ? `, and your list of ${n} owner link${n === 1 ? "" : "s"}` : "") + (getLicense() ? ", and your license key (copy it first under \"Your plan\" to use it again; your subscription isn't cancelled)" : "") + "?" +
     (n ? "\n\nThe owner links themselves stay online. To take them down, delete them first under \"Owner links you created\"; after clearing, this browser can no longer delete them." : "");
   if (!confirm(msg)) return;
   try { Object.keys(localStorage).filter(k => k.startsWith("ownermint:")).forEach(k => localStorage.removeItem(k)); } catch {}
@@ -442,8 +578,12 @@ $("applyMap").onclick = () => {
 };
 // On narrow screens the statement sits below the form: offer a shortcut until it's on screen.
 new IntersectionObserver(es => es.forEach(e => $("jump").classList.toggle("hide", e.isIntersecting)), { threshold: 0.05 }).observe($("out"));
-renderLinks();
+renderLinks(); renderPlan();
 const last = store.get("lastCSV"); if (last && last.text) loadCSV(last.text, last.name);
+billingConfig().then(c => { billing = c; renderPlan(); if (current && isLocked(current.listing)) renderLocked(current.listing); });
+const checkoutId = new URLSearchParams(location.search).get("checkout");
+if (checkoutId) claimCheckout(checkoutId);
+else if (getLicense()) checkLicense(getLicense().key, true);
 </script>
 </body>
 </html>

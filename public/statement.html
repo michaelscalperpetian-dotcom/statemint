@@ -28,7 +28,7 @@ const message = (title, text) => { view.innerHTML = ""; const box = document.cre
 const id = location.pathname.split("/").filter(Boolean)[1] || "";
 try {
   const res = await fetch(`/api/statements/${encodeURIComponent(id)}`);
-  if (res.status === 404) message("Statement not found", "This link may have been mistyped, or your co-host may have deleted the statement. Ask them for a new link.");
+  if (res.status === 404) message("Statement not found", "This link may have been mistyped, or the host may have deleted it. Ask them for a new link.");
   else if (!res.ok) message("Couldn't load this statement", `The server returned an error (${res.status}). Please try again in a minute.`);
   else { const data = await res.json(); renderStatement(view, data); document.title = `${data.statement.listing} · Owner statement`; tilt(view, document.body, 2.5); }
 } catch { message("Couldn't load this statement", "Check your internet connection and reload the page."); }
