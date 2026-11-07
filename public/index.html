@@ -80,15 +80,15 @@
 <section class="sec" id="pricing" style="padding-top:0"><div class="wrap">
   <div class="eyebrow reveal">Pricing</div>
   <h2 class="h-sec reveal">Free for your first property.</h2>
-  <div class="bill-toggle reveal" role="group" aria-label="Billing period"><button type="button" data-int="month" aria-pressed="false">Monthly</button><button type="button" data-int="year" aria-pressed="true">Yearly · 2 months free</button></div>
+  <div class="bill-toggle reveal" role="group" aria-label="Billing period"><button type="button" data-int="month" aria-pressed="true">Monthly</button><button type="button" data-int="year" aria-pressed="false">Yearly · 2 months free</button></div>
   <div class="price-grid three">
     <div class="pcard reveal"><b>Free</b><div class="price">$0</div><div class="per">forever</div><p style="color:var(--ink-3)">Everything Ownermint does, for one property.</p>
       <ul><li>1 property</li><li>Owner statements &amp; earnings reports</li><li>PDF, CSV &amp; live share links</li><li>Audit trail for every number</li><li>Your logo &amp; business name</li></ul>
       <a class="btn" style="width:100%" href="/app"><span>Start free</span></a></div>
-    <div class="pcard reveal"><b>Host</b><div class="price" data-plan="host">$4.17<small>/month</small></div><div class="per" data-per="host">$50 billed yearly</div><p style="color:var(--ink-3)">For hosts with a few listings.</p>
+    <div class="pcard reveal"><b>Host</b><div class="price" data-plan="host">$5<small>/month</small></div><div class="per" data-per="host">billed monthly</div><p style="color:var(--ink-3)">For hosts with a few listings.</p>
       <ul><li>Up to 5 properties</li><li>Everything in Free</li><li>All-properties dashboard</li><li>Month-by-month history</li></ul>
       <a class="btn btn-mint" style="width:100%" href="/app" data-buy="host"><span>Choose Host</span></a></div>
-    <div class="pcard pro reveal"><b>Pro <span class="tag">For managers</span></b><div class="price" data-plan="pro">$12.50<small>/month</small></div><div class="per" data-per="pro">$150 billed yearly</div><p style="opacity:.6">For hosts running a portfolio for owners.</p>
+    <div class="pcard pro reveal"><b>Pro <span class="tag">For managers</span></b><div class="price" data-plan="pro">$15<small>/month</small></div><div class="per" data-per="pro">billed monthly</div><p style="opacity:.6">For hosts running a portfolio for owners.</p>
       <ul><li>Unlimited properties</li><li>Everything in Host</li><li>Branded owner links for every home</li></ul>
       <a class="btn btn-mint" style="width:100%" href="/app" data-buy="pro"><span>Choose Pro</span></a></div>
   </div>
@@ -133,7 +133,7 @@ document.getElementById("dPct").addEventListener("input", e => { dState.pct = Nu
 document.querySelectorAll("#dClean button").forEach(b => b.addEventListener("click", () => { dState.clean = b.dataset.v; document.querySelectorAll("#dClean button").forEach(x => { x.classList.toggle("on", x === b); x.setAttribute("aria-pressed", String(x === b)); }); drawDemo(false); }));
 tilt(document.getElementById("stack"), document.getElementById("demo"), 6);
 // Pricing: monthly / yearly toggle. Checkout buttons go live once payments are switched on.
-let billInt = "year", billing = { enabled: false, links: {} };
+let billInt = "month", billing = { enabled: false, links: {} };
 function drawPrices() {
   document.querySelectorAll(".bill-toggle button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.int === billInt)));
   for (const p of ["host", "pro"]) {

@@ -410,7 +410,7 @@ function presentable(st) {
 
 /* ---------- plan limits ---------- */
 // Free = 1 property, Host = 5, Pro = unlimited. Enforced in this browser (the app runs here; the CSV never reaches the server).
-let billing = { enabled: false, links: {} }, interval = "year";
+let billing = { enabled: false, links: {} }, interval = "month"; // monthly prices are shown first
 const getLicense = () => store.get("license", null);
 const currentPlan = () => { const l = getLicense(); return l && l.active && PLANS[l.plan] ? l.plan : "free"; };
 const isSample = () => rawText === SAMPLE_CSV; // the built-in demo file is never limited

@@ -34,7 +34,9 @@ try {
   for (const id of ["share", "exportCsv", "print"]) assert.equal(await page.isDisabled("#" + id), true);
   const btns = await page.$$eval(".lock-card .up-card button", b => b.map(x => [x.textContent, x.disabled]));
   assert.deepEqual(btns, [["Upgrade", false], ["Upgrade", false]]);
-  ok("locked property: no figures, actions disabled, Host and Pro upgrade buttons shown");
+  const upPrices = await page.$$eval(".lock-card .up-card small", x => x.map(e => e.textContent));
+  assert.ok(upPrices[0].includes("$5/month") && upPrices[1].includes("$15/month"), upPrices.join(" | "));
+  ok("locked property: no figures, actions disabled, Host and Pro upgrade buttons shown with monthly prices first");
   await page.screenshot({ path: OUT + "/locked.png" });
 
   // 3. swap: first swap allowed, then locked for 30 days
@@ -91,13 +93,17 @@ try {
   await lpCtx.route(/https:\/\/(checkout|billing)\.stripe\.com\/.*/, r => r.fulfill({ status: 200, contentType: "text/html", body: "<h1>stripe</h1>" }));
   const lp = await lpCtx.newPage(); lp.on("pageerror", e => errors.push(e.message));
   await lp.goto(BASE + "/", { waitUntil: "load" }); await lp.waitForTimeout(500);
-  assert.equal((await lp.textContent("[data-plan=host]")).trim(), "$4.17/month"); assert.equal((await lp.textContent("[data-plan=pro]")).trim(), "$12.50/month");
-  await lp.click(".bill-toggle button[data-int=month]");
+  // monthly is shown first; yearly is one click away
   assert.equal((await lp.textContent("[data-plan=host]")).trim(), "$5/month"); assert.equal((await lp.textContent("[data-plan=pro]")).trim(), "$15/month");
+  assert.equal(await lp.getAttribute(".bill-toggle button[data-int=month]", "aria-pressed"), "true");
+  await lp.click(".bill-toggle button[data-int=year]");
+  assert.equal((await lp.textContent("[data-plan=host]")).trim(), "$4.17/month"); assert.equal((await lp.textContent("[data-plan=pro]")).trim(), "$12.50/month");
+  assert.equal((await lp.textContent("[data-per=host]")).trim(), "$50 billed yearly");
+  await lp.click(".bill-toggle button[data-int=month]");
   assert.equal((await lp.textContent("[data-buy=host]")).trim(), "Choose Host");
   assert.ok((await lp.textContent("h1")).includes("Airbnb statements")); assert.ok(!(await lp.textContent("body")).toLowerCase().includes("co-host"));
   await Promise.all([lp.waitForURL(/checkout\.stripe\.com/), lp.click("[data-buy=pro]")]);
-  ok("landing: hosts wording, yearly $4.17 / $12.50 per month, monthly $5 / $15, Choose Pro opens Stripe Checkout");
+  ok("landing: hosts wording, yearly $4.17 / $12.50 per month, monthly ($5 / $15) shown first, yearly on click, Choose Pro opens Stripe Checkout");
   // early click: settings still loading must not fall through to the app
   const early = await lpCtx.newPage();
   await early.route("**/api/billing/config", async r => { await new Promise(res => setTimeout(res, 1500)); await r.continue(); });
