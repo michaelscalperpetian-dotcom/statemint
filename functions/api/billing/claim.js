@@ -1,7 +1,7 @@
 import { json, bad, randomId } from "../../_lib.js";
-import { stripeGet, planOf, ACTIVE } from "../../_billing.js";
+import { stripeGet, licenseForSession, ACTIVE } from "../../_billing.js";
 // Called when Stripe sends the buyer back with ?checkout={CHECKOUT_SESSION_ID}. Verifies the session with Stripe
-// and returns a license key. Claiming the same session again returns the same key.
+// and returns the license key. The webhook may already have created it; either way the same key comes back.
 export async function onRequestPost({ request, env }) {
   if (!env.STRIPE_SECRET_KEY) return bad("Payments aren't switched on yet.", 503);
   let body; try { body = await request.json(); } catch { return bad("Invalid JSON"); }
@@ -12,12 +12,9 @@ export async function onRequestPost({ request, env }) {
   let session;
   try { session = await stripeGet(env, `checkout/sessions/${sid}?expand[]=subscription`); }
   catch (e) { return bad(e.status === 404 ? "We couldn't find that checkout." : "Couldn't reach Stripe to confirm your payment. Please reload this page in a minute.", e.status === 404 ? 404 : 502); }
-  const sub = session.subscription;
-  if (session.status !== "complete" || session.mode !== "subscription" || !sub || typeof sub !== "object") return bad("This checkout isn't complete yet.", 409);
-  const plan = planOf(sub, env);
-  if (!plan) return bad("This checkout isn't for an Ownermint plan.", 400);
-  const key = "om_" + randomId(28), now = Date.now();
-  await env.DB.prepare("INSERT INTO licenses (key, session_id, subscription_id, plan, status, created_at, checked_at) VALUES (?, ?, ?, ?, ?, ?, ?)")
-    .bind(key, sid, sub.id, plan, sub.status, now, now).run();
-  return json({ key, plan, status: sub.status, active: ACTIVE.includes(sub.status) }, 201);
+  let r;
+  try { r = await licenseForSession(env, session, () => "om_" + randomId(28)); }
+  catch { return bad("Couldn't reach Stripe to confirm your payment. Please reload this page in a minute.", 502); }
+  if (r.error) return bad(r.error, r.status);
+  return json({ key: r.key, plan: r.plan, status: r.status, active: ACTIVE.includes(r.status) }, r.created ? 201 : 200);
 }

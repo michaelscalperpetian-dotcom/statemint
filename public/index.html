@@ -114,7 +114,7 @@
 import { cursor, magnetic, reveals, splitWords, tilt } from "/js/fx.js";
 import { parseCSV, toTransactions, buildStatement, SAMPLE_CSV } from "/js/engine.js";
 import { renderStatement } from "/js/view.js";
-import { PLANS, billingConfig } from "/js/plans.js";
+import { PLANS, billingConfig, startCheckout } from "/js/plans.js";
 document.getElementById("yr").textContent = new Date().getFullYear();
 cursor(); magnetic(); splitWords(document.getElementById("title")); reveals();
 const nav = document.querySelector(".nav"); const onScroll = () => nav.classList.toggle("solid", scrollY > innerHeight - 90); onScroll(); addEventListener("scroll", onScroll, { passive: true });
@@ -141,11 +141,16 @@ function drawPrices() {
     const price = document.querySelector(`[data-plan=${p}]`); price.textContent = "$" + per.replace(/\.00$/, ""); price.appendChild(Object.assign(document.createElement("small"), { textContent: "/month" }));
     document.querySelector(`[data-per=${p}]`).textContent = billInt === "year" ? `$${P.year} billed yearly` : "billed monthly";
     const a = document.querySelector(`[data-buy=${p}]`);
-    if (billing.enabled && billing.links[p]) { a.href = billing.links[p][billInt]; a.firstElementChild.textContent = `Choose ${P.name}`; }
-    else { a.href = "/app"; a.firstElementChild.textContent = "Opening soon · start free"; }
+    a.href = "/app"; a.firstElementChild.textContent = billing.enabled ? `Choose ${P.name}` : "Opening soon · start free";
   }
 }
 document.querySelectorAll(".bill-toggle button").forEach(b => b.addEventListener("click", () => { billInt = b.dataset.int; drawPrices(); }));
+// With checkout on, plan buttons go straight to Stripe Checkout; without it (or if it fails) they open the app.
+document.querySelectorAll("[data-buy]").forEach(a => a.addEventListener("click", async e => {
+  if (!billing.enabled) return; e.preventDefault();
+  const label = a.firstElementChild, was = label.textContent; label.textContent = "Opening checkout…";
+  try { await startCheckout(a.dataset.buy, billInt); } catch (err) { label.textContent = was; location.href = "/app"; }
+}));
 drawPrices(); billingConfig().then(c => { billing = c; drawPrices(); });
 try { const { startHero } = await import("/js/hero3d.js"); startHero(document.getElementById("scene")); } catch (e) { console.warn("3D scene unavailable", e); }
 </script>

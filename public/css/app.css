@@ -346,3 +346,11 @@ footer .wrap { display: flex; justify-content: space-between; gap: 16px; flex-wr
   .tbl th { font-size: 8px; padding: 0 3px 6px; } .tbl td { padding: 5px 3px; }
   .tbl td .exp-meta { font-size: 8px; }
 }
+/* in-page jumps land below the fixed nav */
+section[id], #demo { scroll-margin-top: 90px; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+/* 404 page */
+.nf { min-height: 100vh; display: grid; place-content: center; justify-items: start; gap: 18px; padding: 24px; max-width: 640px; margin: 0 auto; }
+.nf h1 { font-size: clamp(36px, 6vw, 56px); } .nf p { color: var(--ink-2); font-size: 18px; line-height: 1.5; margin: 0; }
+.nf-actions { display: flex; gap: 10px; flex-wrap: wrap; }

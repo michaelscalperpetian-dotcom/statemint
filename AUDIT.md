@@ -189,3 +189,24 @@ Prices are in USD. Stripe Managed Payments adds tax and acts as merchant of reco
 - All earlier suites pass.
 
 **Local payment tests.** Payment and plan tests use test-only plans enabled by `TEST_BILLING=1` in `.dev.vars`. Production has no test plans, and checkout stays off until the separate Ownermint Stripe account's plans are added.
+
+## 10. Stripe integration (separate Ownermint account)
+
+Planned with Stripe's implementation planner:
+- **Checkout:** Stripe-hosted Checkout with Managed Payments.
+- **Plans:** flat-rate Host and Pro, monthly and yearly. The Free plan is freemium and needs no card.
+- **Self-service:** Customer Portal.
+- **Failed renewals:** Smart Retries.
+
+| Part | Where | What it does |
+|---|---|---|
+| Plans | Stripe account `acct_1UZ5JxRVql5OGuqT` | Host: $5/mo or $50/yr. Pro: $15/mo or $150/yr. Tax code `txcd_10103001`; prices exclude tax, which Managed Payments adds. |
+| Checkout | `POST /api/billing/checkout` | The browser names a plan and billing period; the server picks the price ID, so the browser can't choose a price. Creates a Checkout Session with `managed_payments[enabled]` and `subscription_data.billing_mode=flexible`. Verified by a real test session in the account. |
+| Return from Stripe | `POST /api/billing/claim` | Looks up the checkout session with Stripe and returns the license key. Running it twice returns the same key. |
+| Webhook | `POST /api/billing/webhook` | Verifies the Stripe signature (HMAC-SHA256, 5-minute tolerance, constant-time compare). Handles `checkout.session.completed`, `customer.subscription.created/updated/deleted` and `invoice.paid/payment_failed`. Always re-reads the subscription from Stripe, so repeated or out-of-order events are harmless. Replies 500 only when Stripe can't be reached, so Stripe retries. |
+| Portal | `POST /api/billing/portal` | Opens Stripe's billing page for the license holder, using configuration `bpc_1UZDznRVql5OGuqTXas9LADQ`. It covers switching between Host and Pro or monthly and yearly (prorated), downgrades at period end, cancelling at period end, updating the card, and invoice history. |
+| Existing subscribers | front end | "Change plan" goes to the portal rather than a new checkout, so nobody pays for two plans. |
+
+**Tests.** `test/billing.test.mjs` has 15 checks against a fake Stripe: signature rules, form encoding, checkout parameters, the webhook flow, claiming, upgrades, failed payments, cancellation and the portal. `test/plans.e2e.mjs` has 12 browser checks, including real redirects to Stripe Checkout and the portal.
+
+**Not handled.** A customer who loses their license key can manage the subscription through Stripe's portal sign-in page, but can't recover the key without support.

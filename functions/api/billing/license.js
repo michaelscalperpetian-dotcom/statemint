@@ -1,7 +1,8 @@
 import { json, bad } from "../../_lib.js";
 import { stripeGet, planOf, ACTIVE } from "../../_billing.js";
 const RECHECK_MS = 6 * 3600 * 1000;
-// Returns the current plan for a license key, re-checking the subscription with Stripe at most every 6 hours.
+// Returns the current plan for a license key. Webhooks keep it current; as a safety net it is also
+// re-checked with Stripe at most every 6 hours.
 export async function onRequestPost({ request, env }) {
   let body; try { body = await request.json(); } catch { return bad("Invalid JSON"); }
   const key = String((body && body.key) || "").trim();
@@ -11,7 +12,7 @@ export async function onRequestPost({ request, env }) {
   let { plan, status } = row;
   if (env.STRIPE_SECRET_KEY && Date.now() - row.checked_at > RECHECK_MS) {
     try {
-      const sub = await stripeGet(env, `subscriptions/${row.subscription_id}`);
+      const sub = await stripeGet(env, `subscriptions/${encodeURIComponent(row.subscription_id)}`);
       status = sub.status; plan = planOf(sub, env) || plan;
       await env.DB.prepare("UPDATE licenses SET plan = ?, status = ?, checked_at = ? WHERE key = ?").bind(plan, status, Date.now(), key).run();
     } catch { /* Stripe unreachable: answer from the last known status */ }

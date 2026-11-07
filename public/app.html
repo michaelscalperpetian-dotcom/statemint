@@ -118,7 +118,7 @@
 import { parseCSV, toTransactions, detectColumns, listings, months, buildStatement, monthLabel, DEFAULT_SETTINGS, SAMPLE_CSV, money, parseMoney, allocateShared, occupiedNights, guestIndex } from "/js/engine.js";
 import { renderStatement } from "/js/view.js";
 import { cursor, magnetic, toast, copy, store } from "/js/fx.js";
-import { PLANS, limitLabel, billingConfig } from "/js/plans.js";
+import { PLANS, limitLabel, billingConfig, startCheckout, openPortal } from "/js/plans.js";
 cursor({ subtle: true }); magnetic();
 const $ = s => document.getElementById(s);
 const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
@@ -443,10 +443,12 @@ function upgradeButtons(container, rerender) {
     const P = PLANS[p], card = el("div", "up-card"), info = el("div");
     const price = interval === "year" ? `$${P.year}/year (≈ $${(P.year / 12).toFixed(2)}/mo)` : `$${P.month}/month`;
     info.append(el("b", "", P.name), el("small", "", `${limitLabel(p)} · ${price}`));
-    let btn;
-    if (billing.enabled && billing.links[p]) btn = Object.assign(el("a", "btn btn-mint btn-sm"), { href: billing.links[p][interval] });
-    else { btn = Object.assign(el("button", "btn btn-sm"), { type: "button", disabled: true }); btn.title = "Paid plans open soon"; }
-    btn.appendChild(el("span", "", billing.enabled ? "Upgrade" : "Opening soon"));
+    const lic = getLicense(), hasSub = !!(lic && lic.active);
+    const btn = Object.assign(el("button", billing.enabled ? "btn btn-mint btn-sm" : "btn btn-sm"), { type: "button", disabled: !billing.enabled });
+    const label = el("span", "", !billing.enabled ? "Opening soon" : hasSub ? "Change plan" : "Upgrade"); btn.appendChild(label);
+    if (!billing.enabled) btn.title = "Paid plans open soon";
+    // an existing subscriber changes plan in Stripe's portal (prorated), so nobody ends up paying for two plans
+    btn.onclick = async () => { btn.disabled = true; label.textContent = "Opening…"; try { if (hasSub) await openPortal(lic.key); else await startCheckout(p, interval); } catch (e) { toast(e.message); btn.disabled = false; label.textContent = hasSub ? "Change plan" : "Upgrade"; } };
     card.append(info, btn); wrap.appendChild(card);
   });
   wrap.appendChild(el("p", "help", billing.enabled ? "Secure checkout by Stripe. Tax is added where it applies. Cancel anytime." : "Paid plans are opening soon. Everything works on the Free plan for 1 property."));
@@ -466,7 +468,10 @@ function renderPlan() {
     const cp = Object.assign(el("button", "mini", "Copy"), { type: "button", onclick: () => copy(lic.key) });
     const rm = Object.assign(el("button", "mini danger", "Remove"), { type: "button", onclick: () => { if (confirm("Remove the license key from this browser? Your subscription isn't cancelled; you can enter the key again any time.")) { store.set("license", null); renderPlan(); refreshListingLabels(); update(); } } });
     k.append(cp, rm); box.appendChild(k);
-    box.appendChild(el("p", "help", "Keep this key: it unlocks your plan in another browser. To change or cancel your subscription, sign in at link.com with the email you paid with (Stripe's Link handles Ownermint billing)."));
+    if (billing.enabled) { const mg = Object.assign(el("button", "btn btn-ghost btn-sm"), { type: "button" }); const ml = el("span", "", "Manage subscription"); mg.appendChild(ml);
+      mg.onclick = async () => { mg.disabled = true; ml.textContent = "Opening…"; try { await openPortal(lic.key); } catch (e) { toast(e.message); mg.disabled = false; ml.textContent = "Manage subscription"; } };
+      box.appendChild(mg); }
+    box.appendChild(el("p", "help", "Keep this key: it unlocks your plan in another browser. \"Manage subscription\" opens Stripe's secure billing page to change plan, cancel (you keep access until the end of the paid period), update your card or download invoices."));
   } else {
     const d = el("details", "lic-enter"); d.appendChild(el("summary", "", "Already subscribed? Enter your license key"));
     const row = el("div", "sharebox"); const inp = Object.assign(el("input", "input"), { placeholder: "om_…", autocomplete: "off" }); inp.setAttribute("aria-label", "License key");
@@ -817,7 +822,8 @@ renderLinks(); renderPlan();
 const last = store.get("lastCSV"); if (last && last.text) loadCSV(last.text, last.name);
 billingConfig().then(c => { billing = c; renderPlan(); if (current && isLocked(current.listing)) renderLocked(current.listing); });
 const checkoutId = new URLSearchParams(location.search).get("checkout");
-if (checkoutId) claimCheckout(checkoutId);
+if (checkoutId === "cancelled") { history.replaceState(null, "", location.pathname); toast("Checkout cancelled. You haven't been charged."); if (getLicense()) checkLicense(getLicense().key, true); }
+else if (checkoutId) claimCheckout(checkoutId);
 else if (getLicense()) checkLicense(getLicense().key, true);
 </script>
 </body>

@@ -19,5 +19,9 @@ CREATE TABLE IF NOT EXISTS licenses (
   plan TEXT NOT NULL,
   status TEXT NOT NULL,
   created_at INTEGER NOT NULL,
-  checked_at INTEGER NOT NULL
+  checked_at INTEGER NOT NULL,
+  customer_id TEXT
 );
+CREATE INDEX IF NOT EXISTS licenses_subscription ON licenses (subscription_id);
+-- Databases created before customer_id existed need, once:
+--   ALTER TABLE licenses ADD COLUMN customer_id TEXT;
