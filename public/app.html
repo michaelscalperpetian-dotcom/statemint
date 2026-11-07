@@ -821,6 +821,8 @@ new IntersectionObserver(es => es.forEach(e => $("jump").classList.toggle("hide"
 renderLinks(); renderPlan();
 const last = store.get("lastCSV"); if (last && last.text) loadCSV(last.text, last.name);
 billingConfig().then(c => { billing = c; renderPlan(); if (current && isLocked(current.listing)) renderLocked(current.listing); });
+// coming back from Stripe with the Back button restores the page from cache: reset any "Opening…" buttons
+addEventListener("pageshow", e => { if (e.persisted) { renderPlan(); if (current && isLocked(current.listing)) renderLocked(current.listing); } });
 const checkoutId = new URLSearchParams(location.search).get("checkout");
 if (checkoutId === "cancelled") { history.replaceState(null, "", location.pathname); toast("Checkout cancelled. You haven't been charged."); if (getLicense()) checkLicense(getLicense().key, true); }
 else if (checkoutId) claimCheckout(checkoutId);

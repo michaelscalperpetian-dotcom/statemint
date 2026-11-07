@@ -111,7 +111,7 @@
 <footer><div class="wrap"><span>© <span id="yr"></span> Ownermint · Not affiliated with Airbnb</span><span><a href="/app">Make a statement</a></span></div></footer>
 
 <script type="module">
-import { cursor, magnetic, reveals, splitWords, tilt } from "/js/fx.js";
+import { cursor, magnetic, reveals, splitWords, tilt, toast } from "/js/fx.js";
 import { parseCSV, toTransactions, buildStatement, SAMPLE_CSV } from "/js/engine.js";
 import { renderStatement } from "/js/view.js";
 import { PLANS, billingConfig, startCheckout } from "/js/plans.js";
@@ -145,13 +145,22 @@ function drawPrices() {
   }
 }
 document.querySelectorAll(".bill-toggle button").forEach(b => b.addEventListener("click", () => { billInt = b.dataset.int; drawPrices(); }));
-// With checkout on, plan buttons go straight to Stripe Checkout; without it (or if it fails) they open the app.
+// Plan buttons open Stripe Checkout. They wait for the payment settings to load (so an early click can't fall
+// through to the app), and if checkout can't start they say why instead of silently opening another page.
+const billingReady = billingConfig().then(c => { billing = c; drawPrices(); return c; });
 document.querySelectorAll("[data-buy]").forEach(a => a.addEventListener("click", async e => {
-  if (!billing.enabled) return; e.preventDefault();
+  e.preventDefault();
+  if (a.dataset.busy) return; a.dataset.busy = "1";
   const label = a.firstElementChild, was = label.textContent; label.textContent = "Opening checkout…";
-  try { await startCheckout(a.dataset.buy, billInt); } catch (err) { label.textContent = was; location.href = "/app"; }
+  try {
+    const cfg = await billingReady;
+    if (!cfg.enabled) { location.href = "/app"; return; } // paid plans not switched on: the free plan is in the app
+    await startCheckout(a.dataset.buy, billInt);
+  } catch (err) { label.textContent = was; delete a.dataset.busy; toast(err.message || "Couldn't open checkout. Please try again."); }
 }));
-drawPrices(); billingConfig().then(c => { billing = c; drawPrices(); });
+drawPrices();
+// coming back from Stripe with the Back button restores the page from cache: reset the buttons
+addEventListener("pageshow", e => { if (e.persisted) { document.querySelectorAll("[data-buy]").forEach(x => delete x.dataset.busy); drawPrices(); } });
 try { const { startHero } = await import("/js/hero3d.js"); startHero(document.getElementById("scene")); } catch (e) { console.warn("3D scene unavailable", e); }
 </script>
 </body>

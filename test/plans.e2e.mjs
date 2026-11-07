@@ -98,6 +98,20 @@ try {
   assert.ok((await lp.textContent("h1")).includes("Airbnb statements")); assert.ok(!(await lp.textContent("body")).toLowerCase().includes("co-host"));
   await Promise.all([lp.waitForURL(/checkout\.stripe\.com/), lp.click("[data-buy=pro]")]);
   ok("landing: hosts wording, yearly $4.17 / $12.50 per month, monthly $5 / $15, Choose Pro opens Stripe Checkout");
+  // early click: settings still loading must not fall through to the app
+  const early = await lpCtx.newPage();
+  await early.route("**/api/billing/config", async r => { await new Promise(res => setTimeout(res, 1500)); await r.continue(); });
+  await early.goto(BASE + "/", { waitUntil: "domcontentloaded" });
+  await Promise.all([early.waitForURL(/checkout\.stripe\.com/, { timeout: 15000 }), early.click("[data-buy=host]", { force: true })]);
+  ok("clicking Choose Host before payment settings load still opens Stripe Checkout (not the app)");
+  // checkout failure: say so and stay on the page
+  const fail = await lpCtx.newPage(); fail.on("pageerror", e => errors.push(e.message));
+  await fail.route("**/api/billing/checkout", r => r.fulfill({ status: 502, contentType: "application/json", body: JSON.stringify({ error: "Couldn't start checkout. Please try again in a minute." }) }));
+  await fail.goto(BASE + "/", { waitUntil: "load" }); await fail.waitForTimeout(500);
+  await fail.click("[data-buy=pro]"); await fail.waitForTimeout(800);
+  assert.equal(new URL(fail.url()).pathname, "/"); assert.ok((await fail.textContent(".toast")).includes("Couldn't start checkout"));
+  assert.equal((await fail.textContent("[data-buy=pro]")).trim(), "Choose Pro");
+  ok("if checkout can't start, the homepage shows the reason and stays put");
 
   assert.equal(errors.length, 0, errors.join("\n")); ok("no JavaScript errors");
   console.log(`\n${n} plan checks passed`);
