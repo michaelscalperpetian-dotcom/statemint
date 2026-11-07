@@ -123,6 +123,8 @@ The landing page copy was corrected to match the product. "Payout rows are de-du
 | API (local `wrangler pages dev` + local D1) | `BASE=http://localhost:8790 RATE=1 node test/api.test.mjs` | 11 checks pass: invalid JSON, oversize, field allow-list, logo filtering, headers, bad ids, wrong delete key, delete, rate limit |
 | Browser end-to-end (Playwright, Chromium) | `BASE=… node test/e2e.mjs` | 21 checks pass. They include: zero network requests while reading a CSV; the share request carries only the statement; PDF generated and its figures checked by hand; no horizontal overflow at 390, 768 and 1360 px; no CSP violations; no JS errors |
 
+All three suites were also run against the live site (https://statemint-994.pages.dev) after deployment: 10 API checks and 21 browser checks passed. The rate-limit test was run locally only, so the live limit is not used up. Test statements created on production were deleted afterwards. In this sandbox, Node needs `NODE_USE_ENV_PROXY=1 NODE_EXTRA_CA_CERTS=/root/.ccr/ca-bundle.crt` to reach the live site.
+
 ## 7. Recommended next steps
 
 1. Get one real Airbnb transaction CSV from a co-host. Run it through the app and compare against their own spreadsheet.

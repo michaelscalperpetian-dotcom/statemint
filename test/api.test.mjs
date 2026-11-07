@@ -20,8 +20,9 @@ await ok("stored data is whitelisted: unknown keys dropped, note capped at 600, 
   assert.ok(d.createdAt > 0); });
 await ok("external / svg / javascript logos are dropped", async () => {
   for (const logo of ["https://tracker.example/pixel.png", "data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=", "javascript:alert(1)"]) {
-    const r = await post({ statement: st, brand: { logo } }); const { id } = await r.json();
-    assert.equal((await (await fetch(`${BASE}/api/statements/${id}`)).json()).brand.logo, ""); } });
+    const r = await post({ statement: st, brand: { logo } }); const { id, editKey } = await r.json();
+    assert.equal((await (await fetch(`${BASE}/api/statements/${id}`)).json()).brand.logo, "");
+    await fetch(`${BASE}/api/statements/${id}`, { method: "DELETE", headers: { "x-edit-key": editKey } }); } });
 await ok("API responses are noindex + no-store", async () => { const r = await fetch(`${BASE}/api/statements/${created.id}`); assert.equal(r.headers.get("x-robots-tag"), "noindex"); assert.equal(r.headers.get("cache-control"), "no-store"); });
 await ok("bad id -> 404", async () => { assert.equal((await fetch(`${BASE}/api/statements/..%2F..%2Fetc`)).status, 404); assert.equal((await fetch(`${BASE}/api/statements/short`)).status, 404); assert.equal((await fetch(`${BASE}/api/statements/AAAAAAAAAAAA`)).status, 404); });
 await ok("delete with wrong / missing key -> 403, statement still there", async () => {
