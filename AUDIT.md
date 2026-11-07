@@ -169,3 +169,23 @@ Prices are in USD. Stripe Managed Payments adds tax and acts as merchant of reco
 - `test/billing.test.mjs`: 10 checks against a local fake Stripe (`test/fake-stripe.mjs`, enabled only by `.dev.vars`). Covers an invalid, unknown or unpaid checkout; a paid checkout; repeat claims; wrong keys; cancellation; and past-due.
 - `test/plans.e2e.mjs`: 10 browser checks. Covers locking, the swap rule, checkout return, own-home reports, unlimited sample data and landing-page pricing.
 - `financial.test.mjs` now has 24 checks, including own-home net earnings and the new labels.
+
+## 9. Update: stays across months, guests, discounts, utilities, shared bills, saved statements
+
+| Change | Detail |
+|---|---|
+| **Stays across months** | The calendar now shows every night booked in the month. A stay that began in the previous month is drawn striped as "← Name". A stay that runs into the next month is drawn as "Name →". The money stays on the month the stay is attributed to (check-in or payout date), and a note says so. |
+| **Guests tab** | Search for a guest and see all their stays, fees and adjustments, with a CSV export. Adjustments are matched to a guest by confirmation code. Only properties on the user's plan are included. |
+| **Length-of-stay discounts** | Each property can record its Airbnb weekly discount (7+ nights) and monthly discount (28+ nights). Per Airbnb's help pages, the monthly discount replaces the weekly one and both apply only to the nightly price. Airbnb's "Gross earnings" figure is already after these discounts, so totals never change. Qualifying stays are labelled, and the discount given is estimated as room revenue × pct / (100 − pct), excluding the cleaning fee. The estimate is clearly marked and assumes no other promotion applied. If the CSV has its own discount column, that figure is used as-is. |
+| **Expense columns** | Each expense now has a **Category** column (based on IRS Schedule E rental categories, with utilities split into electricity, gas, water and sewer, internet and Wi-Fi, trash, and TV) and an **Applies to** column. Applies to is one of: this month only; every month (fixed costs); or split between properties, equally, by nights booked in that month, or by custom %. Splits are worked out in cents, and the shares always add up exactly to the bill (tested on 1,000 random cases). |
+| **Past months never change** | Changing the amount or split of a monthly expense in a later month starts a new version from that month. Stopping one ends it from that month onward. Earlier statements keep their figures. |
+| **Saved tab** | "☆ Save" keeps a copy of a statement in the browser. The Saved tab lists saved copies and owner links in a section per property, newest month first. Copies can be viewed or deleted; links can be opened, copied or deleted. |
+| **Calmer cursor** | The statement builder and shared statement pages keep the normal pointer, with a small, fast ring around it. The homepage keeps the playful cursor. |
+| **Homepage** | The left column of "The problem" was sticky and taller than many screens, which cut off "Send a statement that impresses". It now scrolls normally. |
+
+**Tests.**
+- `financial.test.mjs`: 39 checks, including discounts, shared bills, cross-month stays and guests.
+- `test/features.e2e.mjs`: 11 browser checks against `test/fixture-features.csv`, with expected values worked out by hand.
+- All earlier suites pass.
+
+**Local payment tests.** Payment and plan tests use test-only plans enabled by `TEST_BILLING=1` in `.dev.vars`. Production has no test plans, and checkout stays off until the separate Ownermint Stripe account's plans are added.

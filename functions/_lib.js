@@ -30,16 +30,21 @@ export function cleanSubmission(body) {
   if (Array.isArray(s.expenses) && s.expenses.length > 200) return { error: "Too many expenses" };
   const totals = Object.fromEntries(TOTALS.map(k => [k, num(s.totals[k])]));
   totals.occupancy = s.totals.occupancy == null ? null : Math.max(0, Math.min(1, num(s.totals.occupancy)));
+  totals.discounts = Math.max(0, num(s.totals.discounts)); totals.discountsEstimated = s.totals.discountsEstimated === true;
   const set = s.settings || {};
   const statement = {
     listing: str(s.listing, 200), month: /^\d{4}-\d{2}$/.test(s.month || "") ? s.month : "", currency: /^[A-Z]{3}$/.test(s.currency || "") ? s.currency : "USD",
     settings: { commissionPct: Math.max(0, Math.min(100, num(set.commissionPct))), commissionBase: oneOf(set.commissionBase, ["payout", "payout_ex_cleaning", "gross"], "payout"),
       cleaningTo: oneOf(set.cleaningTo, ["owner", "cohost"], "owner"), payoutReceiver: oneOf(set.payoutReceiver, ["owner", "cohost", "split"], "owner"), monthBy: oneOf(set.monthBy, ["checkin", "payout"], "checkin"),
-      commissionOnAdjustments: set.commissionOnAdjustments !== false, reportType: oneOf(set.reportType, ["managed", "own"], "managed") },
+      commissionOnAdjustments: set.commissionOnAdjustments !== false, reportType: oneOf(set.reportType, ["managed", "own"], "managed"),
+      weeklyDiscountPct: Math.max(0, Math.min(99, num(set.weeklyDiscountPct))), monthlyDiscountPct: Math.max(0, Math.min(99, num(set.monthlyDiscountPct))) },
     lines: s.lines.map(l => ({ kind: oneOf(l && l.kind, ["reservation", "adjustment"], "adjustment"), type: str(l.type, 80), code: str(l.code, 40), guest: str(l.guest, 120),
       start: str(l.start, 10), end: str(l.end, 10), date: str(l.date, 10), nights: Math.max(0, Math.min(400, Math.round(num(l.nights)))),
-      gross: num(l.gross), serviceFee: num(l.serviceFee), cleaningFee: num(l.cleaningFee), payout: num(l.payout), commission: num(l.commission), row: Math.round(num(l.row)) || null })),
-    expenses: (s.expenses || []).map(e => ({ date: str(e && e.date, 10), description: str(e && e.description, 120), amount: num(e && e.amount) })),
+      gross: num(l.gross), serviceFee: num(l.serviceFee), cleaningFee: num(l.cleaningFee), payout: num(l.payout), commission: num(l.commission), row: Math.round(num(l.row)) || null,
+      discountType: oneOf(l.discountType, ["weekly", "monthly"], ""), discountPct: Math.max(0, Math.min(99, num(l.discountPct))), discount: l.discount == null ? null : Math.abs(num(l.discount)), discountSource: oneOf(l.discountSource, ["file", "estimate"], "") })),
+    stays: (Array.isArray(s.stays) ? s.stays.slice(0, 200) : []).map(t => ({ guest: str(t && t.guest, 120), code: str(t && t.code, 40), start: /^\d{4}-\d{2}-\d{2}$/.test((t && t.start) || "") ? t.start : "",
+      nights: Math.max(0, Math.min(400, Math.round(num(t && t.nights)))), nightsHere: Math.max(0, Math.min(31, Math.round(num(t && t.nightsHere)))), fromPrevious: !!(t && t.fromPrevious), continues: !!(t && t.continues) })).filter(t => t.start),
+    expenses: (s.expenses || []).map(e => ({ date: str(e && e.date, 10), description: str(e && e.description, 120), amount: num(e && e.amount), category: str(e && e.category, 60), note: str(e && e.note, 120) })),
     totals,
     settlement: { direction: oneOf(s.settlement.direction, ["owner_pays_cohost", "cohost_pays_owner", "none"], "owner_pays_cohost"), amount: Math.abs(num(s.settlement.amount)), label: str(s.settlement.label, 80) },
   };

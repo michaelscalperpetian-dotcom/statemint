@@ -1,7 +1,7 @@
 // A tiny stand-in for the two Stripe endpoints Ownermint reads, for local tests only.
 import http from "node:http";
 export const state = { subStatus: "active" };
-const SUB = () => ({ id: "sub_test_1", object: "subscription", status: state.subStatus, items: { data: [{ price: { id: "price_1UYytTFn7xT3nivOANtqXBFb" } }] } });
+const SUB = () => ({ id: "sub_test_1", object: "subscription", status: state.subStatus, items: { data: [{ price: { id: "price_test_host_month" } }] } });
 export function start(port = 8799) {
   const server = http.createServer((req, res) => {
     const send = (code, body) => { res.writeHead(code, { "content-type": "application/json" }); res.end(JSON.stringify(body)); };

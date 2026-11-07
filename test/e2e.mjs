@@ -60,14 +60,14 @@ if (other) { await page.selectOption("#month", other); await page.waitForTimeout
 await page.click("#recvSeg button[data-v=owner]");
 
 // 6. expenses: comma decimal and invalid entry warning
-await page.click("#addExp"); await page.fill("#expList .exp-row:last-child input:first-child", "Supplies"); await page.fill("#expList .exp-row:last-child input:nth-child(2)", "12,50");
+await page.click("#addExp"); await page.fill("#expList .exp-item:last-child .exp-row input:first-child", "Supplies"); await page.fill("#expList .exp-item:last-child .exp-row input:nth-child(2)", "12,50");
 await page.waitForTimeout(150);
 assert.ok((await page.textContent(".summary-rows")).includes("$12.50"));
-await page.click("#addExp"); await page.fill("#expList .exp-row:last-child input:first-child", "Typo"); await page.fill("#expList .exp-row:last-child input:nth-child(2)", "abc");
+await page.click("#addExp"); await page.fill("#expList .exp-item:last-child .exp-row input:first-child", "Typo"); await page.fill("#expList .exp-item:last-child .exp-row input:nth-child(2)", "abc");
 await page.waitForTimeout(150);
 assert.ok((await page.textContent("#stWarns")).includes("Typo"));
-assert.equal(await page.getAttribute("#expList .exp-row:last-child input:nth-child(2)", "aria-invalid"), "true");
-await page.click("#expList .exp-row:last-child .icon-btn");
+assert.equal(await page.getAttribute("#expList .exp-item:last-child .exp-row input:nth-child(2)", "aria-invalid"), "true");
+await page.click("#expList .exp-item:last-child .icon-btn");
 ok("expense '12,50' counts as $12.50; 'abc' is flagged on screen, not silently dropped");
 
 // 7. portfolio + audit tabs
@@ -100,7 +100,8 @@ ok("owner link uploads only the statement (no raw CSV), guest names reduced to f
 const link = await page.inputValue("#shareLink");
 assert.ok((await page.getAttribute("#mailLink", "href")).startsWith("mailto:?subject="));
 ok("email button prepares a mailto: message");
-assert.equal(await page.$$eval("#links .link-item", x => x.length), 1); ok("new link appears in 'Owner links you created'");
+await page.click(".tabs button[data-tab=saved]"); await page.waitForSelector("#saved .link-item");
+assert.equal(await page.$$eval("#saved .link-item", x => x.length), 1); ok("new link appears in the Saved tab, under its property");
 
 // 10. shared statement page + PDF
 const owner = await ctx.newPage(); owner.on("pageerror", e => errors.push(e.message)); owner.on("console", m => { if (m.type() === "error") (/Content Security Policy/i.test(m.text()) ? csp : errors).push(m.text()); });
@@ -112,8 +113,8 @@ await owner.goto(BASE + "/s/AAAAAAAAAAAA", { waitUntil: "load" }); await owner.w
 assert.ok((await owner.textContent(".st-msg")).includes("not found")); ok("unknown link shows a clear 'not found' message");
 
 // 11. delete link from the list
-await page.click("#links .mini.danger"); await page.waitForTimeout(600);
-assert.equal(await page.$$eval("#links .link-item", x => x.length), 0);
+await page.click("#saved .mini.danger"); await page.waitForTimeout(600);
+assert.equal(await page.$$eval("#saved .link-item", x => x.length), 0);
 const gone = await (await fetch(link.replace("/s/", "/api/statements/"))).status; assert.equal(gone, 404); ok("deleting a link from the list removes it on the server (404)");
 
 // 12. clear my data

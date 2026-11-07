@@ -40,6 +40,7 @@ export const FIELDS = {
   cleaningFee: ["cleaningfee", "cleaningfees"],
   gross: ["grossearnings", "gross", "grossamount", "grossbookingvalue", "grossrevenue"],
   taxes: ["occupancytaxes", "taxes", "taxeswithheld"],
+  discount: ["discount", "discounts", "discountamount", "promotion", "promotions", "promotionsanddiscounts", "lengthofstaydiscount"],
 };
 
 export function detectColumns(header) {
@@ -143,6 +144,8 @@ export function toTransactions(rows, map = null, opts = {}) {
       payout: map.amount != null ? amount : gross - serviceFee,
       gross: map.gross != null ? gross : amount + serviceFee,
       serviceFee, cleaningFee, taxes: parseMoney(get(r, "taxes")),
+      // a discount column, when the file has one, is informational: Airbnb's gross is already after discounts
+      discount: map.discount != null && String(get(r, "discount") || "").trim() !== "" ? Math.abs(parseMoney(get(r, "discount"))) : null,
     });
   });
   if (duplicates.length && !opts.excludeDuplicates) warnings.push(`${duplicates.length} row${duplicates.length === 1 ? " is an exact duplicate" : "s are exact duplicates"} of another row and ${duplicates.length === 1 ? "is" : "are"} counted twice. This usually happens when two exports are combined.`);
@@ -166,6 +169,8 @@ export const DEFAULT_SETTINGS = {
   splitPaidToCohost: 0,          // when Airbnb already paid the host directly (per month)
   monthBy: "checkin",            // "checkin" | "payout"
   commissionOnAdjustments: true, // charge commission on refunds/reimbursements/penalties too
+  weeklyDiscountPct: 0,          // the host's Airbnb weekly discount (stays of 7+ nights), for labelling only
+  monthlyDiscountPct: 0,         // the host's Airbnb monthly discount (stays of 28+ nights), for labelling only
   reportType: "managed",         // "managed" = a home the host manages for an owner | "own" = the host's own home
 };
 // Internal names (cohost, cohostEarned, ...) are kept for compatibility with saved settings and existing owner links.
@@ -194,7 +199,7 @@ export function buildStatement(tx, { listing, month, settings = {}, expenses = [
   const rows = lines.map(t => {
     const base = s.commissionBase === "gross" ? t.gross : s.commissionBase === "payout_ex_cleaning" ? t.payout - t.cleaningFee : t.payout;
     const charge = t.kind === "reservation" || s.commissionOnAdjustments !== false;
-    return { ...t, commissionBase: r2(base), commission: charge ? r2(base * pct) : 0 };
+    return { ...t, commissionBase: r2(base), commission: charge ? r2(base * pct) : 0, ...discountInfo(t, s) };
   });
   const currencies = [...new Set(rows.map(t => t.currency))];
   if (currencies.length > 1) warnings.push(`This month mixes currencies (${currencies.join(", ")}). Amounts are not converted, so totals that add them together are not meaningful.`);
@@ -215,7 +220,7 @@ export function buildStatement(tx, { listing, month, settings = {}, expenses = [
     const amt = /^-?[\d.,\s$€£]+$/.test(raw) ? parseMoney(raw) : NaN;
     if (!isFinite(amt) || (amt === 0 && /[1-9]/.test(raw))) { warnings.push(`Expense "${e.description || "(no description)"}" has an amount that isn't a number ("${raw}") and was left out.`); continue; }
     if (amt === 0) continue;
-    exp.push({ date: e.date || "", description: String(e.description || (amt < 0 ? "Credit" : "Expense")), amount: r2(amt) });
+    exp.push({ date: e.date || "", description: String(e.description || (amt < 0 ? "Credit" : "Expense")), amount: r2(amt), category: String(e.category || ""), note: String(e.note || "") });
   }
   const expensesTotal = r2(exp.reduce((a, e) => a + e.amount, 0));
   // Managed: expenses are paid by the host and recharged to the owner. Own home: expenses simply reduce earnings.
@@ -241,14 +246,80 @@ export function buildStatement(tx, { listing, month, settings = {}, expenses = [
   return {
     listing, month, settings: s, currency: rows[0]?.currency || "USD",
     lines: rows.map(t => ({ kind: t.kind, type: t.type, code: t.code, guest: t.guest, start: ymd(t.start), end: ymd(t.end), date: ymd(t.date), nights: t.nights,
-      gross: r2(t.gross), serviceFee: r2(t.serviceFee), cleaningFee: r2(t.cleaningFee), payout: r2(t.payout), commissionBase: t.commissionBase, commission: t.commission, row: t.row, currency: t.currency })),
+      gross: r2(t.gross), serviceFee: r2(t.serviceFee), cleaningFee: r2(t.cleaningFee), payout: r2(t.payout), commissionBase: t.commissionBase, commission: t.commission, row: t.row, currency: t.currency,
+      discountType: t.discountType || "", discountPct: t.discountPct || 0, discount: t.discount == null ? null : r2(t.discount), discountSource: t.discountSource || "" })),
     warnings,
+    // Every stay with at least one night in this month, including stays that began last month or run into next month.
+    // Money stays on the month the stay is attributed to; this list only drives the calendar.
+    stays: month ? tx.filter(t => (!listing || t.listing === listing) && t.kind === "reservation" && t.start && nightsInMonth(t.start, t.nights, month) > 0)
+      .sort((a, b) => a.start - b.start)
+      .map(t => ({ guest: t.guest, code: t.code, start: ymd(t.start), nights: t.nights, nightsHere: nightsInMonth(t.start, t.nights, month),
+        fromPrevious: monthKey(t.start) < month, continues: monthKey(new Date(t.start.getTime() + (t.nights - 1) * DAY)) > month })) : [],
     expenses: exp,
     totals: { reservations: res.length, nights, grossRevenue, airbnbFees, cleaning, payout, commission, cleaningToCohost, expensesTotal, cohostEarned, ownerNet,
       occupancy,
+      discounts: r2(rows.reduce((a, t) => a + (t.discount || 0), 0)),
+      discountsEstimated: rows.some(t => t.discountSource === "estimate"),
       adr: nights ? r2(roomRevenue / nights) : 0 },
     settlement,
   };
+}
+
+// Airbnb's length-of-stay discounts: weekly for 7+ nights, monthly for 28+ nights (monthly replaces weekly, they don't stack).
+// They come off the nightly price only, so the cleaning fee is excluded from the estimate.
+export function discountInfo(t, s) {
+  if (t.kind !== "reservation") return {};
+  const w = Math.max(0, Math.min(99, Number(s.weeklyDiscountPct) || 0)), m = Math.max(0, Math.min(99, Number(s.monthlyDiscountPct) || 0));
+  const type = t.nights >= 28 && m > 0 ? "monthly" : t.nights >= 7 && w > 0 ? "weekly" : "";
+  const pct = type === "monthly" ? m : type === "weekly" ? w : 0;
+  if (t.discount != null) return { discountType: type, discountPct: pct, discount: t.discount, discountSource: "file" };
+  if (!type) return {};
+  const room = Math.max(0, t.gross - t.cleaningFee);
+  return { discountType: type, discountPct: pct, discount: r2(room * pct / (100 - pct)), discountSource: "estimate" };
+}
+
+// Splits one bill across several properties. Works in cents and hands leftover cents out by largest remainder,
+// so the shares always add up to the bill exactly. method: "equal" | "nights" | "custom" (weights = percentages).
+export function allocateShared(amount, units, method = "equal", weights = {}) {
+  const cents = Math.round(Math.abs(Number(amount) || 0) * 100), sign = Number(amount) < 0 ? -1 : 1;
+  if (!units.length) return { shares: {}, method, fallback: false };
+  let w = units.map(u => method === "equal" ? 1 : Math.max(0, Number(weights[u]) || 0));
+  let used = method, fallback = false;
+  if (w.reduce((a, b) => a + b, 0) <= 0) { w = units.map(() => 1); used = "equal"; fallback = method !== "equal"; }
+  const total = w.reduce((a, b) => a + b, 0);
+  const raw = w.map(x => cents * x / total), base = raw.map(Math.floor);
+  let left = cents - base.reduce((a, b) => a + b, 0);
+  raw.map((x, i) => [x - base[i], i]).sort((a, b) => b[0] - a[0] || a[1] - b[1]).forEach(([, i]) => { if (left > 0) { base[i]++; left--; } });
+  const shares = {}; units.forEach((u, i) => { shares[u] = sign * base[i] / 100; });
+  const pctOf = {}; units.forEach((u, i) => { pctOf[u] = w[i] / total * 100; });
+  return { shares, pct: pctOf, method: used, fallback };
+}
+
+// Nights each property is occupied in a month (for "split by nights booked").
+export function occupiedNights(tx, month) {
+  const out = {};
+  for (const t of tx) if (t.kind === "reservation" && t.start) out[t.listing] = (out[t.listing] || 0) + nightsInMonth(t.start, t.nights, month);
+  return out;
+}
+
+// Everything in the file for one guest: their reservations plus adjustments on the same confirmation codes.
+export function guestIndex(tx, listing = null) {
+  const scoped = tx.filter(t => !listing || t.listing === listing);
+  const codeGuest = {}; scoped.forEach(t => { if (t.code && t.guest) codeGuest[t.code] = t.guest; });
+  const map = new Map();
+  for (const t of scoped) {
+    const name = (t.guest || codeGuest[t.code] || "").trim(); if (!name) continue;
+    const key = name.toLowerCase();
+    if (!map.has(key)) map.set(key, { name, lines: [] });
+    map.get(key).lines.push(t);
+  }
+  return [...map.values()].map(g => {
+    const res = g.lines.filter(t => t.kind === "reservation");
+    const sum = f => r2(g.lines.reduce((a, t) => a + (t[f] || 0), 0));
+    g.lines.sort((a, b) => (a.start || a.date) - (b.start || b.date));
+    return { name: g.name, stays: res.length, nights: res.reduce((a, t) => a + t.nights, 0), gross: sum("gross"), serviceFee: sum("serviceFee"), cleaningFee: sum("cleaningFee"), payout: sum("payout"),
+      listings: [...new Set(g.lines.map(t => t.listing))], currency: g.lines[0]?.currency || "USD", lines: g.lines };
+  }).sort((a, b) => b.payout - a.payout || a.name.localeCompare(b.name));
 }
 
 export function money(n, currency = "USD") {

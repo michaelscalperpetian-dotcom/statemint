@@ -14,7 +14,7 @@ export async function onRequestPost({ request, env }) {
   catch (e) { return bad(e.status === 404 ? "We couldn't find that checkout." : "Couldn't reach Stripe to confirm your payment. Please reload this page in a minute.", e.status === 404 ? 404 : 502); }
   const sub = session.subscription;
   if (session.status !== "complete" || session.mode !== "subscription" || !sub || typeof sub !== "object") return bad("This checkout isn't complete yet.", 409);
-  const plan = planOf(sub);
+  const plan = planOf(sub, env);
   if (!plan) return bad("This checkout isn't for an Ownermint plan.", 400);
   const key = "om_" + randomId(28), now = Date.now();
   await env.DB.prepare("INSERT INTO licenses (key, session_id, subscription_id, plan, status, created_at, checked_at) VALUES (?, ?, ?, ?, ?, ?, ?)")

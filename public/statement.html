@@ -21,7 +21,7 @@
 <script type="module">
 import { renderStatement } from "/js/view.js";
 import { cursor, tilt } from "/js/fx.js";
-cursor();
+cursor({ subtle: true });
 document.getElementById("printBtn").addEventListener("click", () => print());
 const view = document.getElementById("view");
 const message = (title, text) => { view.innerHTML = ""; const box = document.createElement("div"); box.className = "st st-msg"; const h = document.createElement("h2"); h.textContent = title; const p = document.createElement("p"); p.textContent = text; box.append(h, p); view.appendChild(box); };

@@ -212,8 +212,7 @@ footer .wrap { display: flex; justify-content: space-between; gap: 16px; flex-wr
 @media (max-width: 720px), (hover: none) { .hero-hint { display: none; } }
 
 #how.sec .split { align-items: start; }
-#how .split > div:first-child { position: sticky; top: 100px; }
-@media (max-width: 900px) { #how .split > div:first-child { position: static; } }
+/* The left column used to be sticky, but it is taller than many screens, so its last card ("Send a statement that impresses") was cut off. It now scrolls normally. */
 
 /* ---------- audit additions ---------- */
 .flow-neg { margin: 12px 0 0; padding: 10px 12px; border-radius: 12px; background: #fde4dd; color: #8a2f1a; font-size: 14px; font-weight: 600; }
@@ -301,3 +300,33 @@ footer .wrap { display: flex; justify-content: space-between; gap: 16px; flex-wr
 @media (max-width: 760px) { .uses { grid-template-columns: minmax(0, 1fr); } }
 .use { background: #fff; border-radius: 22px; padding: 26px; box-shadow: var(--shadow); }
 .use .ic { font-size: 28px; } .use b { display: block; font-family: var(--display); font-size: 22px; letter-spacing: -.02em; margin: 10px 0 6px; } .use p { margin: 0; color: var(--ink-2); line-height: 1.55; }
+
+/* ---------- calmer cursor on statement pages ---------- */
+@media (hover: hover) and (pointer: fine) {
+  body.cursor-subtle .c-dot, body.cursor-subtle .c-ring { position: fixed; left: 0; top: 0; pointer-events: none; z-index: 9999; border-radius: 50%; }
+  body.cursor-subtle .c-dot { display: none; }
+  body.cursor-subtle .c-ring { width: 22px; height: 22px; margin: -11px 0 0 -11px; border: 1.5px solid var(--mint); opacity: .55; transition: width .2s, height .2s, margin .2s, opacity .2s; }
+  body.cursor-subtle .c-ring.hover { width: 30px; height: 30px; margin: -15px 0 0 -15px; opacity: .35; background: transparent; }
+}
+/* ---------- stays across months ---------- */
+.cal .stay.from-prev { border-top-left-radius: 2px; border-bottom-left-radius: 2px; background: repeating-linear-gradient(135deg, #a9f0d6 0 6px, #c6f5e4 6px 12px); box-shadow: none; }
+.cal .stay.continues { border-top-right-radius: 2px; border-bottom-right-radius: 2px; }
+.cal-note { margin: 10px 0 0; font-size: 12px; color: var(--ink-3); }
+.summary-rows .row .exp-meta { display: block; font-size: 12px; color: var(--ink-3); font-weight: 500; margin-top: 2px; }
+.disc-note { margin: 14px 0 0; font-size: 13px; color: var(--ink-2); background: var(--bg); border-radius: 12px; padding: 10px 12px; line-height: 1.5; }
+/* ---------- expenses ---------- */
+.exp-item { background: var(--bg); border-radius: 14px; padding: 8px; margin-bottom: 8px; display: grid; gap: 6px; }
+.exp-item .exp-row { margin: 0; } .exp-item .icon-btn { background: #fff; }
+.exp-row2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px; }
+.exp-row2 .input, .exp-item .input { padding: 9px 10px; font-size: 14px; }
+.exp-share { display: grid; gap: 6px; background: #fff; border-radius: 10px; padding: 8px; }
+.exp-units { display: flex; flex-wrap: wrap; gap: 4px 12px; } .exp-units .check { margin: 0; }
+.exp-pcts { display: grid; gap: 4px; } .pct-row { display: grid; grid-template-columns: minmax(0, 1fr) 80px auto; gap: 6px; align-items: center; font-size: 13px; }
+.exp-info { font-size: 12px; color: var(--ink-2); line-height: 1.45; padding: 0 2px; }
+/* ---------- guests & saved tabs ---------- */
+.guest-bar { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; } .guest-bar .input { flex: 1 1 220px; } .guest-bar .seg { flex: 0 1 300px; }
+.guest-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; } .guest-head .acts { display: flex; gap: 6px; }
+.saved-sec .links-list { margin-top: 4px; } .link-item.snap { background: #f1f7f4; }
+.saved-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; margin: 0 0 14px; }
+.saved-viewer:empty { display: none; } .saved-viewer { margin-bottom: 18px; }
+@media (max-width: 640px) { .tabs { display: flex; overflow-x: auto; max-width: 100%; } .tabs button { white-space: nowrap; } }

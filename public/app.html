@@ -53,11 +53,18 @@
       <div class="field" id="splitField" style="display:none"><label for="splitAmt" id="splitL">Amount Airbnb paid the host directly this month</label><input class="input" id="splitAmt" type="text" inputmode="decimal" placeholder="0.00" aria-describedby="splitErr"><div class="field-err" id="splitErr" aria-live="polite"></div><div class="help">Saved for this month only.</div></div>
       </div>
       <div class="field"><label id="byL">Group stays by</label><div class="seg" id="bySeg" role="group" aria-labelledby="byL"><button data-v="checkin" type="button">Check-in date</button><button data-v="payout" type="button">Payout date</button></div></div>
+      <div class="field"><label id="discL">Airbnb length-of-stay discounts (optional)</label>
+        <div class="row2">
+          <div class="field" style="margin:0"><input class="input" id="wkDisc" type="number" min="0" max="99" step="1" inputmode="decimal" placeholder="Weekly %" aria-label="Weekly discount percent, stays of 7 or more nights"><small class="help">Weekly · 7+ nights</small></div>
+          <div class="field" style="margin:0"><input class="input" id="moDisc" type="number" min="0" max="99" step="1" inputmode="decimal" placeholder="Monthly %" aria-label="Monthly discount percent, stays of 28 or more nights"><small class="help">Monthly · 28+ nights (replaces weekly)</small></div>
+        </div>
+        <div class="field-err" id="discErr" aria-live="polite"></div>
+        <div class="help">Enter the same % as in your Airbnb listing. Airbnb's report already has these discounts taken off the gross, so no totals change: qualifying stays are labelled and the discount given is estimated for your owner.</div></div>
 
-      <div class="step-h"><em>3</em>Expenses this month</div>
+      <div class="step-h"><em>3</em>Expenses</div>
       <div id="expList"></div>
       <button class="btn btn-ghost btn-sm" id="addExp" type="button"><span>+ Add expense</span></button>
-      <p class="help">Supplies, repairs, restocking: anything the owner should cover. Enter a negative amount (e.g. -20) for a credit back to the owner.</p>
+      <p class="help">Pick a category and whether it's for <b>this month only</b>, <b>every month</b> (fixed costs like electricity, gas, water or Wi-Fi), or <b>split between properties</b> (one bill shared by several units, equally, by nights booked, or by your own %). A negative amount (e.g. -20) is a credit.</p>
 
       <div class="step-h"><em>4</em>Branding</div>
       <div class="field"><label for="company">Your business name</label><input class="input" id="company" maxlength="60" placeholder="e.g. Lakeside Hosting"></div>
@@ -71,8 +78,7 @@
 
       <div class="step-h"><em>6</em>Your data</div>
       <p class="help" style="margin-top:0">Your file, deals, expenses and branding are saved in this browser only, so they're here next time. Owner links are the only thing stored on our server.</p>
-      <b style="font-size:14px">Owner links you created</b>
-      <div class="links-list" id="links"></div>
+      <button class="btn btn-ghost btn-sm" id="openSaved" type="button"><span>Saved statements &amp; owner links →</span></button>
       <div style="margin-top:14px"><button class="btn btn-sm btn-danger" id="clearData" type="button"><span>Clear my data from this browser</span></button></div>
     </div>
   </aside>
@@ -83,6 +89,7 @@
       <div class="toolbar">
         <div><b id="outTitle" style="font-family:var(--display);font-size:22px;letter-spacing:-.02em"></b></div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-ghost btn-sm" id="saveSnap" type="button"><span>☆ Save</span></button>
           <button class="btn btn-ghost btn-sm" id="exportCsv" type="button"><span>⤓ CSV</span></button>
           <button class="btn btn-ghost btn-sm" id="print" type="button"><span>⤓ PDF / Print</span></button>
           <button class="btn btn-mint btn-sm" id="share" type="button" data-magnetic=".2"><span>✦ Get owner link</span></button>
@@ -91,24 +98,28 @@
       <div class="tabs no-print" role="tablist" aria-label="View" style="margin-bottom:18px">
         <button role="tab" type="button" data-tab="statement" aria-selected="true" aria-controls="view">Statement</button>
         <button role="tab" type="button" data-tab="portfolio" aria-selected="false" aria-controls="portfolio">All properties</button>
+        <button role="tab" type="button" data-tab="guests" aria-selected="false" aria-controls="guests">Guests</button>
+        <button role="tab" type="button" data-tab="saved" aria-selected="false" aria-controls="saved">Saved</button>
         <button role="tab" type="button" data-tab="audit" aria-selected="false" aria-controls="audit">Audit trail</button>
       </div>
       <div id="shareOut" class="no-print" style="display:none;margin:-6px 0 18px"><div class="sharebox"><input class="input" id="shareLink" readonly aria-label="Owner link"><button class="btn btn-sm" id="copyLink" type="button"><span>Copy</span></button><a class="btn btn-ghost btn-sm" id="mailLink" href="#"><span>✉ Email</span></a></div>
-        <p class="help">Anyone with this link can view the statement (including guest names as shown and your note). Your CSV is not uploaded. "Email" opens your own email app with a ready-made message; Ownermint doesn't send email. You can delete the link any time under "Your data".</p></div>
+        <p class="help">Anyone with this link can view the statement (including guest names as shown and your note). Your CSV is not uploaded. "Email" opens your own email app with a ready-made message; Ownermint doesn't send email. You can delete the link any time in the Saved tab.</p></div>
       <div id="stWarns" class="st-warns no-print" role="status"></div>
       <div id="view" role="tabpanel"></div>
       <div id="portfolio" role="tabpanel" style="display:none"></div>
       <div id="audit" role="tabpanel" style="display:none"></div>
+      <div id="guests" role="tabpanel" style="display:none"></div>
+      <div id="saved" role="tabpanel" style="display:none"></div>
     </div>
     <a class="btn btn-mint btn-sm jump no-print" id="jump" href="#out" style="display:none"><span>View statement ↓</span></a>
   </main>
 </div>
 <script type="module">
-import { parseCSV, toTransactions, detectColumns, listings, months, buildStatement, monthLabel, DEFAULT_SETTINGS, SAMPLE_CSV, money, parseMoney } from "/js/engine.js";
+import { parseCSV, toTransactions, detectColumns, listings, months, buildStatement, monthLabel, DEFAULT_SETTINGS, SAMPLE_CSV, money, parseMoney, allocateShared, occupiedNights, guestIndex } from "/js/engine.js";
 import { renderStatement } from "/js/view.js";
 import { cursor, magnetic, toast, copy, store } from "/js/fx.js";
 import { PLANS, limitLabel, billingConfig } from "/js/plans.js";
-cursor(); magnetic();
+cursor({ subtle: true }); magnetic();
 const $ = s => document.getElementById(s);
 const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
 let tx = [], current = null, currentPrev = null, parsed = null, firstRender = true, tab = "statement";
@@ -151,7 +162,7 @@ function loadCSV(text, name, manualMap = null, keepOpts = false) {
   $("fixCols").style.display = rawRows.length ? "" : "none";
   if (!parsed.transactions.length) { showMapper(rawRows); return; }
   $("mapPanel").style.display = "none";
-  tx = parsed.transactions; firstRender = true;
+  tx = parsed.transactions; firstRender = true; nightsCache.clear();
   try { if (text.length < 1500000) store.set("lastCSV", { name, text }); } catch {}
   $("dropTitle").textContent = `✓ ${name} · ${tx.length} line${tx.length === 1 ? "" : "s"}`;
   fillSelect($("listing"), listings(tx).map(l => [l, l]), $("listing").value || store.get("lastListing"));
@@ -183,7 +194,7 @@ const splitKey = (listing = $("listing").value, month = $("month").value) => `sp
 function statementFor(listing, month) {
   const settings = settingsFor(listing);
   settings.splitPaidToCohost = Number(store.get(splitKey(listing, month), 0)) || 0;
-  return buildStatement(tx, { listing, month, settings, expenses: store.get(`exp:${listing}:${month}`, []) });
+  return buildStatement(tx, { listing, month, settings, expenses: expensesFor(listing, month) });
 }
 function refreshMonths() { const s = getSettings(); fillSelect($("month"), months(tx.filter(t => t.listing === $("listing").value), s.monthBy).map(m => [m, monthLabel(m)]), $("month").value); }
 function setSeg(id, v) { document.querySelectorAll(`#${id} button`).forEach(b => { b.classList.toggle("on", b.dataset.v === v); b.setAttribute("aria-pressed", String(b.dataset.v === v)); }); }
@@ -194,6 +205,8 @@ function loadSettingsUI(force = true) {
   if (s.splitPaidToCohost) { const k = splitKey(); if (store.get(k) == null) { store.set(k, s.splitPaidToCohost); toast(`Split amount now saved per month: kept for ${monthLabel($("month").value)}`); } const c = store.get("settings:" + $("listing").value, {}); delete c.splitPaidToCohost; store.set("settings:" + $("listing").value, c); }
   if (force || document.activeElement !== $("pct")) { $("pct").value = s.commissionPct; setPctError(""); }
   $("base").value = s.commissionBase; $("commAdj").checked = s.commissionOnAdjustments !== false;
+  if (force || document.activeElement !== $("wkDisc")) $("wkDisc").value = s.weeklyDiscountPct || "";
+  if (force || document.activeElement !== $("moDisc")) $("moDisc").value = s.monthlyDiscountPct || "";
   const own = s.reportType === "own"; setSeg("typeSeg", own ? "own" : "managed"); $("dealFields").style.display = own ? "none" : "";
   $("typeHelp").textContent = own ? "An earnings report for your own home: payout, Airbnb fees, cleaning and expenses. No commission or settlement." : "An owner statement: your commission, who keeps cleaning fees, and who owes whom.";
   $("ownerL").textContent = own ? "Report for (optional, e.g. a co-owner or your accountant)" : "Owner's name";
@@ -217,6 +230,11 @@ $("pct").oninput = () => {
 };
 $("pct").onblur = () => { if ($("pctErr").textContent) { $("pct").value = getSettings().commissionPct; setPctError(""); } };
 $("base").onchange = () => saveSettings({ commissionBase: $("base").value });
+[["wkDisc", "weeklyDiscountPct"], ["moDisc", "monthlyDiscountPct"]].forEach(([id, key]) => $(id).oninput = () => {
+  const raw = $(id).value.trim(), v = raw === "" ? 0 : Number(raw);
+  const bad = !isFinite(v) || v < 0 || v >= 100; $(id).classList.toggle("invalid", bad); $(id).setAttribute("aria-invalid", String(bad));
+  $("discErr").textContent = bad ? "Discounts must be between 0 and 99%." : ""; if (!bad) saveSettings({ [key]: v });
+});
 $("commAdj").onchange = () => saveSettings({ commissionOnAdjustments: $("commAdj").checked });
 $("splitAmt").oninput = () => {
   const v = readAmount($("splitAmt").value);
@@ -228,22 +246,143 @@ $("splitAmt").oninput = () => {
 function saveSettingsQuiet(patch) { store.set("settings:" + $("listing").value, { ...store.get("settings:" + $("listing").value, {}), ...patch }); }
 
 /* ---------- expenses, note, branding ---------- */
+/* Expenses come from two places:
+   - one-off expenses for one property and one month (stored per property+month, as before), and
+   - "recurring" items: a fixed monthly cost and/or a bill shared between several properties.
+   A recurring item: { id, description, category, amount, repeat: "once"|"monthly", month, until, units: [..], split: "single"|"equal"|"nights"|"custom", weights }.
+   Money edits to a monthly item made in a later month start a new version from that month, so earlier statements never change. */
+const CATEGORIES = ["", "Utilities: Electricity", "Utilities: Gas", "Utilities: Water & sewer", "Utilities: Internet & Wi-Fi", "Utilities: Trash & recycling", "Utilities: TV & streaming",
+  "Cleaning & maintenance", "Repairs", "Supplies", "Insurance", "HOA & building fees", "Taxes & licenses", "Software & subscriptions", "Advertising", "Other"];
+const SPLIT_LABEL = { equal: "split equally", nights: "split by nights booked", custom: "custom split" };
 function expKey() { return `exp:${$("listing").value}:${$("month").value}`; }
-function renderExpenses() {
-  const list = store.get(expKey(), []); $("expList").innerHTML = "";
-  list.forEach((e, i) => {
-    const row = el("div", "exp-row");
-    const d = Object.assign(el("input", "input"), { placeholder: "Description", value: e.description || "", maxLength: 60 }); d.setAttribute("aria-label", `Expense ${i + 1} description`);
-    const a = Object.assign(el("input", "input"), { type: "text", inputMode: "decimal", placeholder: "0.00", value: e.amount ?? "" }); a.setAttribute("aria-label", `Expense ${i + 1} amount`);
-    const mark = () => { const v = readAmount(a.value); const bad = v != null && !isFinite(v); a.classList.toggle("invalid", bad); a.setAttribute("aria-invalid", String(bad)); };
-    const x = Object.assign(el("button", "icon-btn", "✕"), { type: "button", title: "Remove expense" }); x.setAttribute("aria-label", `Remove expense ${i + 1}`);
-    d.oninput = () => { list[i].description = d.value; store.set(expKey(), list); update(); };
-    a.oninput = () => { list[i].amount = a.value; store.set(expKey(), list); mark(); update(); };
-    x.onclick = () => { list.splice(i, 1); store.set(expKey(), list); renderExpenses(); update(); };
-    mark(); row.append(d, a, x); $("expList").appendChild(row);
-  });
+const recurring = () => store.get("recurring", []);
+const saveRecurring = list => store.set("recurring", list);
+const newId = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+const appliesTo = (it, listing, month) => it.units.includes(listing) && (it.repeat === "once" ? it.month === month : it.month <= month && (!it.until || month <= it.until));
+const nightsCache = new Map();
+const nightsFor = month => { if (!nightsCache.has(month)) nightsCache.set(month, occupiedNights(tx, month)); return nightsCache.get(month); };
+const currencyOf = listing => (tx.find(t => t.listing === listing) || {}).currency || "USD";
+function shareOf(it, listing, month) {
+  const every = it.repeat === "monthly" ? "Every month" : "";
+  if (!it.split || it.split === "single") return { amount: it.amount, note: every };
+  const v = readAmount(it.amount);
+  if (v == null || !isFinite(v)) return { amount: it.amount, note: every }; // the engine reports the bad amount on the statement
+  const r = allocateShared(v, it.units, it.split, it.split === "nights" ? nightsFor(month) : it.weights || {});
+  const pct = Math.round((r.pct[listing] || 0) * 10) / 10;
+  const how = r.fallback ? "split equally (no nights were booked)" : SPLIT_LABEL[r.method];
+  return { amount: String(r.shares[listing] ?? 0), share: r.shares[listing] ?? 0, note: `${every ? every + " · " : ""}${pct}% of a ${money(v, currencyOf(listing))} bill shared by ${it.units.length} properties, ${how}` };
 }
-$("addExp").onclick = () => { const l = store.get(expKey(), []); l.push({ description: "", amount: "" }); store.set(expKey(), l); renderExpenses(); $("expList").lastElementChild?.querySelector("input")?.focus(); };
+function expensesFor(listing, month) {
+  const once = store.get(`exp:${listing}:${month}`, []).map(e => ({ description: e.description, amount: e.amount, category: e.category || "" }));
+  const rec = recurring().filter(it => appliesTo(it, listing, month)).map(it => { const sh = shareOf(it, listing, month); return { description: it.description, amount: sh.amount, category: it.category || "", note: sh.note }; });
+  return [...once, ...rec];
+}
+// Changes that affect money on a monthly item opened in a later month start a new version from this month.
+function editRecurring(id, patch, money_ = false) {
+  const month = $("month").value, list = recurring(), i = list.findIndex(x => x.id === id); if (i < 0) return;
+  const it = list[i];
+  if (money_ && it.repeat === "monthly" && it.month < month) {
+    const next = { ...it, ...patch, id: newId(), month, until: it.until || null };
+    it.until = prevMonthKey(month); list.splice(i + 1, 0, next);
+    toast(`Changed from ${monthLabel(month)} on. ${monthLabel(prevMonthKey(month))} and earlier keep the old figures.`);
+  } else Object.assign(it, patch);
+  saveRecurring(list);
+}
+function removeRecurring(it) {
+  const month = $("month").value, list = recurring(), i = list.findIndex(x => x.id === it.id); if (i < 0) return;
+  if (it.repeat === "monthly" && it.month < month) { list[i].until = prevMonthKey(month); toast(`Stopped from ${monthLabel(month)}. Earlier months keep it.`); }
+  else { if (it.units.length > 1 && !confirm(`Remove "${it.description || "this bill"}" from all ${it.units.length} properties it is shared with?`)) return; list.splice(i, 1); }
+  saveRecurring(list);
+}
+const sel = (opts, value, label) => { const x = el("select", "input"); x.setAttribute("aria-label", label); opts.forEach(([v, t]) => x.appendChild(Object.assign(el("option"), { value: v, textContent: t }))); x.value = value; return x; };
+function renderExpenses() {
+  const listing = $("listing").value, month = $("month").value, box = $("expList"); box.innerHTML = "";
+  const once = store.get(expKey(), []);
+  // recurring/shared first, then this month's one-offs, so a newly added row is always the last one
+  const items = [...recurring().filter(it => appliesTo(it, listing, month)).map(it => ({ kind: "rec", e: it })), ...once.map((e, i) => ({ kind: "once", e, i }))];
+  items.forEach((item, n) => box.appendChild(expenseRow(item, n + 1, listing, month, once)));
+}
+function expenseRow({ kind, e, i }, n, listing, month, once) {
+  const wrap = el("div", "exp-item"), row = el("div", "exp-row");
+  const d = Object.assign(el("input", "input"), { placeholder: "Description", value: e.description || "", maxLength: 60 }); d.setAttribute("aria-label", `Expense ${n} description`);
+  const a = Object.assign(el("input", "input"), { type: "text", inputMode: "decimal", placeholder: "0.00", value: e.amount ?? "" }); a.setAttribute("aria-label", `Expense ${n} amount`);
+  const mark = () => { const v = readAmount(a.value); const bad = v != null && !isFinite(v); a.classList.toggle("invalid", bad); a.setAttribute("aria-invalid", String(bad)); };
+  const x = Object.assign(el("button", "icon-btn", "✕"), { type: "button", title: "Remove expense" }); x.setAttribute("aria-label", `Remove expense ${n}`);
+  row.append(d, a, x); wrap.appendChild(row);
+  const scope = kind === "once" ? "once" : (e.split && e.split !== "single" ? "shared" : "monthly");
+  const row2 = el("div", "exp-row2");
+  const cat = sel(CATEGORIES.map(c => [c, c || "Category…"]), e.category || "", `Expense ${n} category`);
+  const app = sel([["once", "This month only"], ["monthly", "Every month"], ["shared", "Split between properties…"]], scope, `Expense ${n} applies to`);
+  row2.append(cat, app); wrap.appendChild(row2);
+  if (kind === "once") {
+    d.oninput = () => { once[i].description = d.value; store.set(expKey(), once); update(); };
+    a.oninput = () => { once[i].amount = a.value; store.set(expKey(), once); mark(); update(); };
+    cat.onchange = () => { once[i].category = cat.value; store.set(expKey(), once); update(); };
+    x.onclick = () => { once.splice(i, 1); store.set(expKey(), once); renderExpenses(); update(); };
+  } else {
+    d.oninput = () => { editRecurring(e.id, { description: d.value }); update(); };
+    a.oninput = mark;
+    a.onchange = () => { mark(); editRecurring(e.id, { amount: a.value }, true); renderExpenses(); update(); };
+    cat.onchange = () => { editRecurring(e.id, { category: cat.value }); update(); };
+    x.onclick = () => { removeRecurring(e); renderExpenses(); update(); };
+  }
+  app.onchange = () => {
+    const to = app.value, base = { description: d.value, amount: a.value, category: cat.value };
+    if (kind === "once") {
+      once.splice(i, 1); store.set(expKey(), once);
+      const list = recurring();
+      list.push(to === "monthly" ? { id: newId(), ...base, repeat: "monthly", month, until: null, units: [listing], split: "single", weights: {} }
+        : { id: newId(), ...base, repeat: "once", month, until: null, units: listings(tx), split: "nights", weights: {} });
+      saveRecurring(list);
+      if (to === "shared") toast("Enter the whole bill. Pick the properties and how to split it below.");
+    } else if (to === "once") {
+      removeRecurring(e); const l = store.get(expKey(), []); l.push(base); store.set(expKey(), l);
+    } else if (to === "monthly") editRecurring(e.id, { units: [listing], split: "single", repeat: "monthly" }, true);
+    else editRecurring(e.id, { units: [...new Set([...e.units, ...listings(tx)])], split: "nights" }, true);
+    renderExpenses(); update();
+  };
+  mark();
+  if (kind === "rec") {
+    const info = el("div", "exp-info");
+    if (scope === "shared") {
+      const panel = el("div", "exp-share");
+      const all = [...new Set([...listings(tx), ...e.units])];
+      const unitsBox = el("div", "exp-units");
+      all.forEach(u => {
+        const lab = el("label", "check"), cb = Object.assign(el("input"), { type: "checkbox", checked: e.units.includes(u) });
+        cb.onchange = () => {
+          const units = cb.checked ? [...e.units, u] : e.units.filter(z => z !== u);
+          if (!units.length) { cb.checked = true; toast("A shared bill needs at least one property."); return; }
+          editRecurring(e.id, { units }, true); if (!units.includes(listing)) toast(`Removed from ${listing}. It still applies to the other properties.`); renderExpenses(); update();
+        };
+        lab.append(cb, el("span", "", u)); unitsBox.appendChild(lab);
+      });
+      const how = sel([["nights", "By nights booked"], ["equal", "Equally"], ["custom", "Custom %"]], e.split, `Expense ${n} split method`);
+      how.onchange = () => { editRecurring(e.id, { split: how.value }, true); renderExpenses(); update(); };
+      const rep = sel([["once", "This month only"], ["monthly", "Every month"]], e.repeat, `Expense ${n} repeats`);
+      rep.onchange = () => { editRecurring(e.id, { repeat: rep.value }, true); renderExpenses(); update(); };
+      const r2 = el("div", "exp-row2"); r2.append(how, rep);
+      panel.append(el("small", "help", "Shared with:"), unitsBox, r2);
+      if (e.split === "custom") {
+        const pcts = el("div", "exp-pcts"); let sum = 0;
+        e.units.forEach(u => {
+          const v = Number((e.weights || {})[u]) || 0; sum += v;
+          const inp = Object.assign(el("input", "input"), { type: "number", min: "0", max: "100", step: "1", value: v || "" }); inp.setAttribute("aria-label", `${u} share percent`);
+          inp.onchange = () => { editRecurring(e.id, { weights: { ...(e.weights || {}), [u]: Number(inp.value) || 0 } }, true); renderExpenses(); update(); };
+          const lab = el("label", "pct-row"); lab.append(el("span", "", u), inp, el("span", "", "%")); pcts.appendChild(lab);
+        });
+        panel.appendChild(pcts);
+        if (Math.round(sum * 100) !== 10000) panel.appendChild(el("div", "field-err", `These add up to ${Math.round(sum * 10) / 10}%. Shares are scaled to 100%, so ${sum ? "the bill is still fully split" : "until you enter some, it's split equally"}.`));
+      }
+      const sh = shareOf(e, listing, month);
+      if (sh.share != null) info.textContent = `${listing}'s share this month: ${money(sh.share, currencyOf(listing))}. ${sh.note}.`;
+      wrap.appendChild(panel);
+    } else info.textContent = `Every month from ${monthLabel(e.month)}${e.until ? " to " + monthLabel(e.until) : ""}. Remove it in a later month to stop it from then on.`;
+    wrap.appendChild(info);
+  }
+  return wrap;
+}
+$("addExp").onclick = () => { const l = store.get(expKey(), []); l.push({ description: "", amount: "", category: "" }); store.set(expKey(), l); renderExpenses(); $("expList").lastElementChild?.querySelector("input")?.focus(); };
 function noteKey() { return `note:${$("listing").value}:${$("month").value}`; }
 function loadNote() { $("note").value = store.get(noteKey(), ""); }
 $("note").oninput = () => { store.set(noteKey(), $("note").value); update(); };
@@ -382,7 +521,7 @@ function renderLocked(listing) {
   } else sw.appendChild(el("p", "help", `You can swap a property again on ${nextSwitchDate().toLocaleDateString()}.`));
   card.appendChild(sw); root.appendChild(card);
 }
-const setActionsEnabled = on => ["share", "print", "exportCsv"].forEach(id => { $(id).disabled = !on; });
+const setActionsEnabled = on => ["share", "print", "exportCsv", "saveSnap"].forEach(id => { $(id).disabled = !on; });
 
 /* ---------- render ---------- */
 function prevMonthKey(key) { const [y, m] = key.split("-").map(Number); return new Date(Date.UTC(y, m - 2, 1)).toISOString().slice(0, 7); }
@@ -398,19 +537,20 @@ function update() {
   $("shareOut").style.display = "none";
   $("stWarns").innerHTML = "";
   const locked = isLocked(listing); setActionsEnabled(!locked);
-  if (locked) { renderLocked(listing); if (tab === "portfolio") renderPortfolio(); if (tab === "audit") renderAudit(); return; }
+  if (locked) { renderLocked(listing); if (tab === "portfolio") renderPortfolio(); if (tab === "audit") renderAudit(); if (tab === "guests") renderGuests(); return; }
   current.warnings.forEach(w => { const d = el("div", "warn"); d.append(el("b", "", "Check before sending"), document.createTextNode(w)); $("stWarns").appendChild(d); });
   renderStatement($("view"), { statement: presentable(current), brand: getBrand(), note: $("note").value, previous: currentPrev }, { animate: firstRender && tab === "statement" });
   firstRender = false;
   if (tab === "portfolio") renderPortfolio();
   if (tab === "audit") renderAudit();
+  if (tab === "guests") renderGuests();
 }
 function setTab(t) {
   tab = t;
   document.querySelectorAll(".tabs button").forEach(b => b.setAttribute("aria-selected", String(b.dataset.tab === t)));
-  $("view").style.display = t === "statement" ? "" : "none"; $("portfolio").style.display = t === "portfolio" ? "" : "none"; $("audit").style.display = t === "audit" ? "" : "none";
+  for (const id of ["view", "portfolio", "audit", "guests", "saved"]) $(id).style.display = (id === "view" ? "statement" : id) === t ? "" : "none";
   $("stWarns").style.display = t === "statement" ? "" : "none";
-  if (t === "portfolio") renderPortfolio(); if (t === "audit") renderAudit();
+  if (t === "portfolio") renderPortfolio(); if (t === "audit") renderAudit(); if (t === "guests") renderGuests(); if (t === "saved") renderSaved();
 }
 document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => setTab(b.dataset.tab));
 const table = (heads, rows, rightFrom = 1) => {
@@ -505,7 +645,7 @@ $("exportCsv").onclick = () => {
   const out = [["Source row", "Type", "Confirmation code", "Guest", "Check-in", "Nights", "Payout date", "Gross", "Airbnb fee", "Cleaning fee", "Payout", "Commission base", "Commission", "Currency"]];
   st.lines.forEach(l => out.push([l.row ?? "", l.type, l.code, l.guest, l.start, l.nights || "", l.date, l.gross, l.serviceFee, l.cleaningFee, l.payout, l.commissionBase, l.commission, l.currency]));
   out.push([], ["Summary"], ["Airbnb payout", T.payout], ["Commission", T.commission], ["Cleaning fees kept by host", T.cleaningToCohost]);
-  st.expenses.forEach(e => out.push([(e.amount < 0 ? "Credit: " : "Expense: ") + e.description, e.amount]));
+  st.expenses.forEach(e => out.push([(e.amount < 0 ? "Credit: " : "Expense: ") + e.description + ([e.category, e.note].filter(Boolean).length ? ` (${[e.category, e.note].filter(Boolean).join(" · ")})` : ""), e.amount]));
   out.push([st.settlement.direction === "none" ? "Net earnings" : "Owner net", T.ownerNet]);
   if (st.settlement.direction !== "none") out.push([st.settlement.amount === 0 ? "Nothing to settle" : st.settlement.label, st.settlement.amount]);
   const blob = new Blob(["\ufeff" + out.map(r => r.map(csvCell).join(",")).join("\r\n")], { type: "text/csv;charset=utf-8" });
@@ -522,7 +662,7 @@ $("share").onclick = async () => {
     catch { throw new Error("Couldn't reach Ownermint. Check your connection and try again."); }
     const d = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(d.error || `Couldn't create the link (error ${res.status}).`);
-    const links = store.get("links", []); links.push({ id: d.id, editKey: d.editKey, listing: current.listing, month: current.month, at: Date.now() }); store.set("links", links);
+    const links = store.get("links", []); links.push({ id: d.id, editKey: d.editKey, listing: current.listing, month: current.month, at: Date.now(), ownerNet: current.totals.ownerNet, currency: current.currency, own: current.settlement.direction === "none" }); store.set("links", links);
     const url = `${location.origin}/s/${d.id}`; $("shareLink").value = url; $("shareOut").style.display = ""; copy(url);
     const b = getBrand(), first = (b.ownerName || "").split(/\s+/)[0];
     const own = current.settlement.direction === "none";
@@ -536,20 +676,114 @@ $("share").onclick = async () => {
 $("copyLink").onclick = () => copy($("shareLink").value);
 
 /* ---------- your data ---------- */
-function renderLinks() {
-  const links = store.get("links", []), box = $("links"); box.innerHTML = "";
-  if (!links.length) { box.appendChild(el("p", "help", "None yet. Links you create appear here so you can reopen or delete them.")); return; }
-  links.slice().reverse().forEach(l => {
-    const item = el("div", "link-item"), info = el("div");
-    info.append(el("b", "", `${l.listing} · ${monthLabel(l.month)}`), el("small", "", `Created ${new Date(l.at).toLocaleDateString()}`));
-    const acts = el("div", "acts");
-    const open = Object.assign(el("a", "mini", "Open"), { href: `/s/${l.id}`, target: "_blank", rel: "noopener" });
-    const cp = Object.assign(el("button", "mini", "Copy"), { type: "button", onclick: () => copy(`${location.origin}/s/${l.id}`) });
-    const del = Object.assign(el("button", "mini danger", "Delete"), { type: "button", onclick: () => deleteLink(l) });
-    del.setAttribute("aria-label", `Delete owner link for ${l.listing}, ${monthLabel(l.month)}`);
-    acts.append(open, cp, del); item.append(info, acts); box.appendChild(item);
-  });
+function renderLinks() { if (tab === "saved") renderSaved(); }
+/* ---------- Guests tab: everything for one guest ---------- */
+let guestQuery = "", guestScope = "property", openGuest = null;
+function renderGuests() {
+  const root = $("guests"); root.innerHTML = "";
+  const p = el("section", "panel");
+  p.append(el("h3", "", "Guests"), el("p", "help", "Find one guest and see every stay, fee and adjustment for them. Adjustments are matched to the guest by confirmation code."));
+  const bar = el("div", "guest-bar");
+  const q = Object.assign(el("input", "input"), { type: "search", placeholder: "Search guests…", value: guestQuery }); q.setAttribute("aria-label", "Search guests");
+  const scope = el("div", "seg"); scope.setAttribute("role", "group"); scope.setAttribute("aria-label", "Which properties");
+  [["property", "This property"], ["all", "All my properties"]].forEach(([v, t]) => { const b = Object.assign(el("button", guestScope === v ? "on" : "", t), { type: "button" }); b.setAttribute("aria-pressed", String(guestScope === v)); b.onclick = () => { guestScope = v; openGuest = null; renderGuests(); }; scope.appendChild(b); });
+  bar.append(q, scope); p.appendChild(bar);
+  const results = el("div"); p.appendChild(results); root.appendChild(p);
+  const detail = el("div"); root.appendChild(detail);
+  const allowed = allowedSet();
+  const list = guestIndex(tx.filter(t => allowed.has(t.listing) && (guestScope === "all" || t.listing === $("listing").value)));
+  const draw = () => {
+    results.innerHTML = "";
+    const f = list.filter(g => g.name.toLowerCase().includes(guestQuery.trim().toLowerCase()));
+    if (!f.length) { results.appendChild(el("p", "help", list.length ? "No guest matches that search." : "No guests in this file for these properties.")); return; }
+    results.appendChild(table(["Guest", "Stays", "Nights", "Gross", "Airbnb fees", "Cleaning", "Payout"],
+      f.map(g => ({ cls: openGuest === g.name ? "current" : "", onclick: () => { openGuest = g.name; draw(); drawDetail(); detail.scrollIntoView({ behavior: "smooth", block: "nearest" }); },
+        cells: [g.name + (g.listings.length > 1 ? ` (${g.listings.length} properties)` : ""), g.stays, g.nights, money(g.gross, g.currency), money(g.serviceFee, g.currency), money(g.cleaningFee, g.currency), money(g.payout, g.currency)] }))));
+  };
+  const drawDetail = () => {
+    detail.innerHTML = ""; const g = list.find(x => x.name === openGuest); if (!g) return;
+    const d = el("section", "panel guest-detail");
+    const head = el("div", "guest-head"); head.appendChild(el("h3", "", g.name));
+    const close = Object.assign(el("button", "mini", "Close"), { type: "button", onclick: () => { openGuest = null; draw(); drawDetail(); } });
+    const exp = Object.assign(el("button", "mini", "⤓ CSV"), { type: "button", onclick: () => exportGuest(g) });
+    const acts = el("div", "acts"); acts.append(exp, close); head.appendChild(acts); d.appendChild(head);
+    const sr = el("div", "stat-row");
+    [["Stays", String(g.stays)], ["Nights", String(g.nights)], ["Gross", money(g.gross, g.currency)], ["Payout to host", money(g.payout, g.currency)]].forEach(([k, v]) => { const x = el("div"); x.append(el("b", "num", v), el("span", "", k)); sr.appendChild(x); });
+    d.appendChild(sr);
+    const rows = g.lines.map(t => ({ cells: [t.start ? ymdShort(t.start) : t.date ? ymdShort(t.date) : "–", t.listing, t.type, t.code || "–", t.nights || "", money(t.gross, t.currency), money(t.serviceFee, t.currency), money(t.cleaningFee, t.currency), money(t.payout, t.currency)] }));
+    rows.foot = ["", "", "Total", "", String(g.nights), money(g.gross, g.currency), money(g.serviceFee, g.currency), money(g.cleaningFee, g.currency), money(g.payout, g.currency)];
+    d.appendChild(table(["Check-in / date", "Property", "Type", "Code", "Nights", "Gross", "Airbnb fee", "Cleaning", "Payout"], rows, 4));
+    detail.appendChild(d);
+  };
+  q.oninput = () => { guestQuery = q.value; draw(); };
+  draw(); drawDetail();
 }
+const ymdShort = d => d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
+function exportGuest(g) {
+  const out = [["Check-in", "Payout date", "Property", "Type", "Confirmation code", "Nights", "Gross", "Airbnb fee", "Cleaning fee", "Payout", "Currency"]];
+  g.lines.forEach(t => out.push([t.start ? t.start.toISOString().slice(0, 10) : "", t.date ? t.date.toISOString().slice(0, 10) : "", t.listing, t.type, t.code, t.nights || "", t.gross, t.serviceFee, t.cleaningFee, t.payout, t.currency]));
+  downloadCsv(out, `Guest ${g.name}.csv`);
+}
+function downloadCsv(rows, name) {
+  const blob = new Blob(["﻿" + rows.map(r => r.map(csvCell).join(",")).join("\r\n")], { type: "text/csv;charset=utf-8" });
+  const a = Object.assign(el("a"), { href: URL.createObjectURL(blob), download: name.replace(/[^\w\- .]+/g, "").trim() || "export.csv" });
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+/* ---------- Saved tab: saved copies and owner links, in a section per property ---------- */
+const SAVED_MAX = 300;
+function renderSaved(viewId = null) {
+  const root = $("saved"); root.innerHTML = "";
+  const snaps = store.get("saved", []), links = store.get("links", []);
+  const viewer = el("div", "saved-viewer"); root.appendChild(viewer);
+  if (!snaps.length && !links.length) {
+    const p = el("section", "panel"); p.append(el("h3", "", "Saved statements"), el("p", "help", "Nothing saved yet. Press ☆ Save to keep a copy of a statement in this browser, or ✦ Get owner link to share one. They're listed here by property."));
+    root.appendChild(p); return;
+  }
+  const items = [...snaps.map(x => ({ ...x, kind: "snap" })), ...links.map(x => ({ ...x, kind: "link" }))];
+  const byListing = new Map(); items.forEach(it => { if (!byListing.has(it.listing)) byListing.set(it.listing, []); byListing.get(it.listing).push(it); });
+  [...byListing.keys()].sort().forEach(listing => {
+    const list = byListing.get(listing).sort((a, b) => (b.month || "").localeCompare(a.month || "") || b.at - a.at);
+    const sec = el("section", "panel saved-sec");
+    sec.append(el("h3", "", listing), el("p", "help", `${list.filter(x => x.kind === "snap").length} saved · ${list.filter(x => x.kind === "link").length} owner link${list.filter(x => x.kind === "link").length === 1 ? "" : "s"}`));
+    const box = el("div", "links-list");
+    list.forEach(it => {
+      const item = el("div", "link-item" + (it.kind === "snap" ? " snap" : "")), info = el("div");
+      info.append(el("b", "", monthLabel(it.month)), el("small", "", `${it.kind === "link" ? "Owner link" : "Saved copy"} · ${new Date(it.at).toLocaleDateString()}${it.ownerNet != null ? ` · ${it.own ? "Net" : "Owner net"} ${money(it.ownerNet, it.currency || "USD")}` : ""}`));
+      const acts = el("div", "acts");
+      if (it.kind === "snap") {
+        acts.append(Object.assign(el("button", "mini", "View"), { type: "button", onclick: () => showSnapshot(it.id) }),
+          Object.assign(el("button", "mini danger", "Delete"), { type: "button", onclick: () => { if (!confirm(`Delete the saved copy of ${listing}, ${monthLabel(it.month)}?`)) return; store.set("saved", store.get("saved", []).filter(x => x.id !== it.id)); renderSaved(); } }));
+      } else {
+        const del = Object.assign(el("button", "mini danger", "Delete"), { type: "button", onclick: () => deleteLink(it) });
+        del.setAttribute("aria-label", `Delete owner link for ${it.listing}, ${monthLabel(it.month)}`);
+        acts.append(Object.assign(el("a", "mini", "Open"), { href: `/s/${it.id}`, target: "_blank", rel: "noopener" }),
+          Object.assign(el("button", "mini", "Copy"), { type: "button", onclick: () => copy(`${location.origin}/s/${it.id}`) }), del);
+      }
+      item.append(info, acts); box.appendChild(item);
+    });
+    sec.appendChild(box); root.appendChild(sec);
+  });
+  if (viewId) showSnapshot(viewId);
+}
+function showSnapshot(id) {
+  const snap = store.get("saved", []).find(x => x.id === id), viewer = document.querySelector("#saved .saved-viewer"); if (!snap || !viewer) return;
+  viewer.innerHTML = "";
+  const bar = el("div", "notice saved-bar"); bar.append(el("b", "", "Saved copy "), document.createTextNode(`of ${snap.listing}, ${monthLabel(snap.month)}, saved ${new Date(snap.at).toLocaleString()}. It shows the figures as they were then.`));
+  const close = Object.assign(el("button", "mini", "Close"), { type: "button", onclick: () => { viewer.innerHTML = ""; } }); bar.appendChild(close);
+  const v = el("div"); viewer.append(bar, v);
+  renderStatement(v, snap.data, { animate: false }); viewer.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+$("saveSnap").onclick = () => {
+  if (!current || isLocked(current.listing)) return;
+  const snaps = store.get("saved", []);
+  if (snaps.length >= SAVED_MAX) { toast(`You have ${SAVED_MAX} saved copies. Delete some in the Saved tab first.`); return; }
+  snaps.push({ id: newId(), listing: current.listing, month: current.month, at: Date.now(), ownerNet: current.totals.ownerNet, currency: current.currency, own: current.settlement.direction === "none",
+    data: { statement: presentable(current), brand: getBrand(), note: $("note").value, previous: currentPrev } });
+  if (!store.set("saved", snaps)) { toast("Couldn't save: this browser's storage is full. Delete some saved copies or remove the logo."); return; }
+  toast("Saved ✦ It's in the Saved tab");
+  if (tab === "saved") renderSaved();
+};
 async function deleteLink(l) {
   if (!confirm(`Delete the owner link for ${l.listing}, ${monthLabel(l.month)}?\n\nAnyone who opens it afterwards will see "Statement not found". This can't be undone.`)) return;
   try {
@@ -561,12 +795,13 @@ async function deleteLink(l) {
 }
 $("clearData").onclick = () => {
   const n = store.get("links", []).length;
-  const msg = "Remove everything Ownermint saved in this browser: your last CSV, settings, expenses, notes and branding" + (n ? `, and your list of ${n} owner link${n === 1 ? "" : "s"}` : "") + (getLicense() ? ", and your license key (copy it first under \"Your plan\" to use it again; your subscription isn't cancelled)" : "") + "?" +
-    (n ? "\n\nThe owner links themselves stay online. To take them down, delete them first under \"Owner links you created\"; after clearing, this browser can no longer delete them." : "");
+  const msg = "Remove everything Ownermint saved in this browser: your last CSV, settings, expenses, notes, branding and saved statements" + (n ? `, and your list of ${n} owner link${n === 1 ? "" : "s"}` : "") + (getLicense() ? ", and your license key (copy it first under \"Your plan\" to use it again; your subscription isn't cancelled)" : "") + "?" +
+    (n ? "\n\nThe owner links themselves stay online. To take them down, delete them first in the Saved tab; after clearing, this browser can no longer delete them." : "");
   if (!confirm(msg)) return;
   try { Object.keys(localStorage).filter(k => k.startsWith("ownermint:")).forEach(k => localStorage.removeItem(k)); } catch {}
   location.reload();
 };
+$("openSaved").onclick = () => { setTab("saved"); $("out").scrollIntoView({ behavior: "smooth", block: "start" }); };
 $("fixCols").onclick = () => showMapper(rawRows);
 $("noHeader").onchange = () => showMapper(rawRows);
 $("applyMap").onclick = () => {

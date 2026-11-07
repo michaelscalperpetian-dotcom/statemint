@@ -12,7 +12,7 @@ export async function onRequestPost({ request, env }) {
   if (env.STRIPE_SECRET_KEY && Date.now() - row.checked_at > RECHECK_MS) {
     try {
       const sub = await stripeGet(env, `subscriptions/${row.subscription_id}`);
-      status = sub.status; plan = planOf(sub) || plan;
+      status = sub.status; plan = planOf(sub, env) || plan;
       await env.DB.prepare("UPDATE licenses SET plan = ?, status = ?, checked_at = ? WHERE key = ?").bind(plan, status, Date.now(), key).run();
     } catch { /* Stripe unreachable: answer from the last known status */ }
   }

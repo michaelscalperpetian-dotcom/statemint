@@ -1,15 +1,17 @@
 export const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
 export const fine = matchMedia("(hover: hover) and (pointer: fine)").matches;
-export function cursor() {
+// subtle: keeps the normal pointer and adds only a small, quick ring (used on statement pages, where people read).
+export function cursor({ subtle = false } = {}) {
   if (!fine || reduce) return;
-  document.body.classList.add("has-cursor");
+  document.body.classList.add(subtle ? "cursor-subtle" : "has-cursor");
   const dot = Object.assign(document.createElement("div"), { className: "c-dot" });
   const ring = Object.assign(document.createElement("div"), { className: "c-ring" });
   document.body.append(dot, ring);
   let x = -100, y = -100, rx = x, ry = y;
   addEventListener("pointermove", e => { x = e.clientX; y = e.clientY; dot.style.transform = `translate(${x}px,${y}px)`; }, { passive: true });
   document.addEventListener("pointerover", e => ring.classList.toggle("hover", !!e.target.closest?.("a,button,input,select,label,.drop,[data-hover]")));
-  (function loop() { rx += (x - rx) * .17; ry += (y - ry) * .17; ring.style.transform = `translate(${rx}px,${ry}px)`; requestAnimationFrame(loop); })();
+  const k = subtle ? .45 : .17;
+  (function loop() { rx += (x - rx) * k; ry += (y - ry) * k; ring.style.transform = `translate(${rx}px,${ry}px)`; requestAnimationFrame(loop); })();
 }
 export function magnetic(root = document) {
   if (!fine || reduce) return;
