@@ -1,7 +1,7 @@
 import { json } from "../../_lib.js";
 import { LINKS } from "../../_billing.js";
-// Checkout is only offered once the server can verify payments (STRIPE_SECRET_KEY is set).
+// Checkout is only offered once the server can verify payments (STRIPE_SECRET_KEY is set) and plan links exist.
 export async function onRequestGet({ env }) {
-  const enabled = !!env.STRIPE_SECRET_KEY;
+  const enabled = !!(env.STRIPE_SECRET_KEY && LINKS.host && LINKS.pro);
   return json({ enabled, links: enabled ? LINKS : {} });
 }
