@@ -71,12 +71,12 @@ try {
   // 8. landing pricing
   const lp = await (await browser.newContext({ viewport: { width: 1360, height: 900 } })).newPage(); lp.on("pageerror", e => errors.push(e.message));
   await lp.goto(BASE + "/", { waitUntil: "load" }); await lp.waitForTimeout(500);
-  assert.equal((await lp.textContent("[data-plan=host]")).trim(), "$7.50/month"); assert.equal((await lp.textContent("[data-plan=pro]")).trim(), "$24.17/month");
+  assert.equal((await lp.textContent("[data-plan=host]")).trim(), "$4.17/month"); assert.equal((await lp.textContent("[data-plan=pro]")).trim(), "$12.50/month");
   await lp.click(".bill-toggle button[data-int=month]");
-  assert.equal((await lp.textContent("[data-plan=host]")).trim(), "$9/month"); assert.equal((await lp.textContent("[data-plan=pro]")).trim(), "$29/month");
+  assert.equal((await lp.textContent("[data-plan=host]")).trim(), "$5/month"); assert.equal((await lp.textContent("[data-plan=pro]")).trim(), "$15/month");
   assert.ok((await lp.getAttribute("[data-buy=host]", "href")).startsWith("https://buy.stripe.com/"));
   assert.ok((await lp.textContent("h1")).includes("Airbnb statements")); assert.ok(!(await lp.textContent("body")).toLowerCase().includes("co-host"));
-  ok("landing: hosts wording, yearly $7.50 / $24.17 per month, monthly $9 / $29, checkout links live");
+  ok("landing: hosts wording, yearly $4.17 / $12.50 per month, monthly $5 / $15, checkout links live");
   await lp.locator("#pricing").screenshot({ path: OUT + "/pricing.png" });
 
   assert.equal(errors.length, 0, errors.join("\n")); ok("no JavaScript errors");

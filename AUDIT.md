@@ -145,8 +145,8 @@ All user-facing text says "host". Internal field names (`cohostEarned`, `payoutR
 | Plan | Properties | Monthly | Yearly |
 |---|---|---|---|
 | Free | 1 | $0 | $0 |
-| Host | 5 | $9 | $90 |
-| Pro | Unlimited | $29 | $290 |
+| Host | 5 | $5 | $50 |
+| Pro | Unlimited | $15 | $150 |
 
 Prices are in USD. Stripe Managed Payments adds tax and acts as merchant of record. Customers manage or cancel at link.com.
 
