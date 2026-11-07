@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dashboard · Ownermint</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600..800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/app.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='44' fill='%232fd3a0'/></svg>">
+</head>
+<body class="dash-page">
+<header class="dash-top">
+  <div class="dash-wrap dash-bar">
+    <a class="logo" href="/"><i></i>Ownermint</a>
+    <div class="acct"><span class="acct-who" id="acctWho"></span><a class="btn btn-mint btn-sm" href="/app"><span>Open statement builder</span></a><button type="button" class="linkish" id="signOut">Sign out</button></div>
+  </div>
+</header>
+<main class="dash-wrap" id="main">
+  <h1 class="dash-h" id="hello">Your dashboard</h1>
+  <nav class="dash-nav" aria-label="Sections"><a href="#properties">Properties</a><a href="#links">Statements &amp; owner links</a><a href="#plan">Plan &amp; billing</a><a href="#account">Account</a></nav>
+
+  <section class="panel" id="properties" aria-labelledby="propH"><h3 id="propH">Properties</h3><div id="propBody"></div></section>
+  <section class="panel" id="links" aria-labelledby="linksH"><h3 id="linksH">Statements &amp; owner links</h3><div id="linksBody"><div class="st-loading"><span class="spinner" aria-hidden="true"></span>Loading…</div></div></section>
+  <section class="panel" id="plan" aria-labelledby="planH"><h3 id="planH">Plan &amp; billing</h3><div id="planBody"></div></section>
+  <section class="panel" id="account" aria-labelledby="acctH"><h3 id="acctH">Account</h3><div id="acctBody"></div></section>
+</main>
+<script type="module">
+import { parseCSV, toTransactions, listings, months, monthLabel, money, SAMPLE_CSV } from "/js/engine.js";
+import { toast, copy, store } from "/js/fx.js";
+import { PLANS, limitLabel, billingConfig, startCheckout, openPortal } from "/js/plans.js";
+import { ensureSession, fetchMe, signOut, deleteAllData } from "/js/account.js";
+let me = await ensureSession();
+const $ = s => document.getElementById(s);
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+const button = (text, cls, onclick) => { const b = Object.assign(el("button", cls), { type: "button" }); b.appendChild(el("span", "", text)); b.onclick = onclick; return b; };
+// runs an async action on a button: "Working…" while it runs, the error as a toast if it fails
+const busy = (b, text, fn) => async () => { const s = b.querySelector("span") || b, was = s.textContent; b.disabled = true; s.textContent = text; try { await fn(); } catch (e) { toast(e.message); } b.disabled = false; s.textContent = was; };
+$("acctWho").textContent = me.user.email;
+$("hello").textContent = me.user.name ? `Hi, ${me.user.name.split(/\s+/)[0]}` : "Your dashboard";
+$("signOut").onclick = () => signOut();
+if (me.imported) toast("Signed in. We saved what this browser had to your account.");
+if (me.syncFailed) toast("Couldn't reach your account just now, so this shows what this browser had saved. Reload to try again.");
+addEventListener("om-sync-error", e => toast(e.detail));
+let billing = { enabled: false }, interval = "month";
+const plan = () => (PLANS[me.plan] ? me.plan : "free");
+
+/* ---------- properties ---------- */
+function readCSV() {
+  const last = store.get("lastCSV"); if (!last || !last.text) return null;
+  try {
+    const rows = parseCSV(last.text); if (!rows.length) return null;
+    const sig = r => r.map(c => c.trim().toLowerCase()).join("|");
+    const map = store.get("colmap:" + sig(rows[0]));
+    const noHeader = !!(map && map.__noHeader);
+    const all = noHeader ? [Array.from({ length: Math.max(...rows.slice(0, 5).map(r => r.length)) }, (_, i) => "Column " + (i + 1)), ...rows] : rows;
+    const clean = map ? Object.fromEntries(Object.entries(map).filter(([k]) => !k.startsWith("__"))) : null;
+    const p = toTransactions(all, clean, { dateFormat: store.get("datefmt:" + sig(rows[0]), "") || undefined, firstRow: noHeader ? 1 : 2 });
+    return { name: last.name, tx: p.transactions, sample: last.text === SAMPLE_CSV };
+  } catch { return null; }
+}
+function renderProperties() {
+  const box = $("propBody"); box.innerHTML = "";
+  const csv = readCSV();
+  if (!csv || !csv.tx.length) {
+    box.append(el("p", "help", "No Airbnb report yet. Upload your transaction CSV in the statement builder and your properties show up here."));
+    const a = el("a", "btn btn-mint btn-sm"); a.href = "/app"; a.appendChild(el("span", "", "Upload a CSV")); box.appendChild(a); return;
+  }
+  const names = listings(csv.tx), P = PLANS[plan()];
+  const chosen = new Set(csv.sample ? names : store.get("chosenProperties", []).slice(0, P.limit));
+  box.append(el("p", "help", `From ${csv.name}${csv.sample ? " (sample data)" : ""} · ${names.length} propert${names.length === 1 ? "y" : "ies"}` + (csv.sample || P.limit === Infinity ? "" : ` · ${Math.min(chosen.size, P.limit)} of ${P.limit} on your ${P.name} plan`)));
+  const wrap = el("div", "tbl-wrap"), t = el("table", "tbl"), head = el("tr");
+  ["Property", "Plan", "Report", "Owner's email", "Months in file", ""].forEach(h => head.appendChild(el("th", "", h)));
+  t.appendChild(el("thead")).appendChild(head); const tb = el("tbody");
+  for (const name of names) {
+    const s = store.get("settings:" + name, {}), own = s.reportType === "own";
+    const ms = months(csv.tx.filter(x => x.listing === name), s.monthBy || "checkin");
+    const tr = el("tr"); const on = chosen.has(name);
+    tr.append(el("td", "l", name), el("td", "", on ? "On your plan" : "🔒 Not on plan"),
+      el("td", "", own ? "Earnings report (own home)" : `Owner statement · ${s.commissionPct ?? 20}% commission`),
+      el("td", "", s.ownerEmail || "–"), el("td", "", ms.length ? `${ms.length} · latest ${monthLabel(ms[ms.length - 1])}` : "–"));
+    const open = Object.assign(el("a", "mini", "Open"), { href: "/app" }); open.onclick = () => store.set("lastListing", name);
+    tr.appendChild(el("td")).appendChild(open); tb.appendChild(tr);
+  }
+  t.appendChild(tb); wrap.appendChild(t); box.appendChild(wrap);
+}
+
+/* ---------- statements & owner links ---------- */
+async function deleteLink(l) {
+  if (!confirm(`Delete the owner link for ${l.listing || "this statement"}${l.month ? ", " + monthLabel(l.month) : ""}? Anyone who opens it will see "Statement not found".`)) return;
+  const headers = l.editKey ? { "x-edit-key": l.editKey } : {};
+  let r; try { r = await fetch(`/api/statements/${encodeURIComponent(l.id)}`, { method: "DELETE", headers }); } catch { throw new Error("Couldn't reach Ownermint. Check your connection."); }
+  if (!r.ok && r.status !== 404) { const d = await r.json().catch(() => ({})); throw new Error(d.error || `Couldn't delete the link (error ${r.status}).`); }
+  store.set("links", store.get("links", []).filter(x => x.id !== l.id));
+  toast(r.ok ? "Link deleted" : "That link was already gone."); renderLinks();
+}
+async function renderLinks() {
+  const box = $("linksBody");
+  let server = [];
+  try { const r = await fetch("/api/statements", { cache: "no-store" }); if (!r.ok) throw 0; server = (await r.json()).links; }
+  catch { box.innerHTML = ""; box.append(el("div", "warn err", "Couldn't load your owner links. Reload the page to try again.")); return; }
+  box.innerHTML = "";
+  // links made before accounts existed live only in this list (with their delete key); anyone signed in can open those
+  const ids = new Set(server.map(l => l.id));
+  const older = store.get("links", []).filter(l => !ids.has(l.id) && l.editKey);
+  const saved = store.get("saved", []);
+  box.append(el("p", "help", "Only the email a link was shared with (and you) can open it, after signing in with Google."));
+  if (!server.length && !older.length) box.append(el("p", "dash-empty", "No owner links yet. Make one with \"Get owner link\" in the statement builder."));
+  const table = (rows, older) => {
+    const wrap = el("div", "tbl-wrap"), t = el("table", "tbl"), head = el("tr");
+    ["Property", "Month", older ? "Who can open it" : "Shared with", "Owner net", "Created", older ? "" : "Views", ""].forEach(h => head.appendChild(el("th", "", h)));
+    t.appendChild(el("thead")).appendChild(head); const tb = el("tbody");
+    for (const l of rows) {
+      const tr = el("tr"), url = `${location.origin}/s/${l.id}`, when = l.createdAt || l.at;
+      tr.append(el("td", "l", l.listing || "–"), el("td", "", l.month ? monthLabel(l.month) : "–"), el("td", "", older ? "Anyone signed in with the link" : l.ownerEmail),
+        el("td", "r", l.ownerNet != null ? money(l.ownerNet, l.currency || "USD") : "–"), el("td", "", when ? new Date(when).toLocaleDateString() : "–"), el("td", "r", older ? "" : String(l.views)));
+      const act = el("td", "acts");
+      act.append(Object.assign(el("a", "mini", "Open"), { href: url, target: "_blank", rel: "noopener" }), Object.assign(el("button", "mini", "Copy link"), { type: "button", onclick: () => copy(url) }));
+      const del = Object.assign(el("button", "mini danger", "Delete"), { type: "button" }); del.onclick = busy(del, "Deleting…", () => deleteLink(l)); act.appendChild(del);
+      tr.appendChild(act); tb.appendChild(tr);
+    }
+    t.appendChild(tb); wrap.appendChild(t); return wrap;
+  };
+  if (server.length) box.appendChild(table(server, false));
+  if (older.length) { box.append(el("h4", "dash-sub", "Older links"), el("p", "help", "Made before sign-in existed, so they aren't tied to an owner's email: anyone signed in who has the link can open them. To limit one to your owner, make a new link and delete the old one.")); box.appendChild(table(older, true)); }
+  const s = el("p", "help"); s.append(document.createTextNode(`Saved copies: ${saved.length}. `));
+  const a = Object.assign(el("a", "", "See them in the Saved tab →"), { href: "/app#saved" }); s.appendChild(a); box.appendChild(s);
+}
+
+/* ---------- plan & billing ---------- */
+function renderPlan() {
+  const box = $("planBody"); box.innerHTML = "";
+  const p = plan(), P = PLANS[p];
+  const head = el("div", "plan-head"); head.append(el("b", "", `${P.name} plan`), el("small", "", limitLabel(p))); box.appendChild(head);
+  if (me.subscriptionStatus && !me.hasSubscription && me.canManageBilling) box.appendChild(el("div", "warn", `Your subscription is ${me.subscriptionStatus.replace(/_/g, " ")}. You're on the Free plan until it's active again.`));
+  if (me.subscriptionStatus === "past_due") box.appendChild(el("div", "warn", "Your last payment didn't go through. Stripe will try your card again; update it under Manage subscription to keep your plan."));
+  if (P.limit !== Infinity) {
+    const seg = el("div", "seg up-int dash-int"); seg.setAttribute("role", "group"); seg.setAttribute("aria-label", "Billing period");
+    [["month", "Monthly"], ["year", "Yearly · 2 months free"]].forEach(([v, t]) => { const b = Object.assign(el("button", interval === v ? "on" : "", t), { type: "button" }); b.setAttribute("aria-pressed", String(interval === v)); b.onclick = () => { interval = v; renderPlan(); }; seg.appendChild(b); });
+    box.appendChild(seg);
+    ["host", "pro"].filter(x => PLANS[x].limit > P.limit).forEach(x => {
+      const X = PLANS[x], card = el("div", "up-card"), info = el("div");
+      info.append(el("b", "", X.name), el("small", "", `${limitLabel(x)} · ${interval === "year" ? `$${X.year}/year (≈ $${(X.year / 12).toFixed(2)}/mo)` : `$${X.month}/month`}`));
+      const label = !billing.enabled ? "Opening soon" : me.hasSubscription ? "Change plan" : "Upgrade";
+      const b = button(label, billing.enabled ? "btn btn-mint btn-sm" : "btn btn-sm"); b.disabled = !billing.enabled;
+      b.onclick = busy(b, "Opening…", () => (me.hasSubscription ? openPortal() : startCheckout(x, interval)));
+      card.append(info, b); box.appendChild(card);
+    });
+    box.appendChild(el("p", "help", billing.enabled ? "Secure checkout by Stripe. Tax is added where it applies. Cancel anytime." : "Paid plans are opening soon. Everything works on the Free plan for 1 property."));
+  }
+  if (me.canManageBilling && billing.enabled) {
+    const b = button("Manage subscription", "btn btn-ghost btn-sm"); b.onclick = busy(b, "Opening…", () => openPortal());
+    box.append(b, el("p", "help", "Opens Stripe's secure billing page: change plan, cancel (you keep access until the end of the paid period), update your card or download invoices."));
+  }
+}
+
+/* ---------- account ---------- */
+function renderAccount() {
+  const box = $("acctBody"); box.innerHTML = "";
+  const dl = el("dl", "dash-dl");
+  dl.append(el("dt", "", "Name"), el("dd", "", me.user.name || "–"), el("dt", "", "Email"), el("dd", "", me.user.email), el("dt", "", "Sign-in"), el("dd", "", "Google"));
+  box.appendChild(dl);
+  const row = el("div", "dash-actions");
+  row.appendChild(button("Sign out", "btn btn-ghost btn-sm", () => signOut()));
+  const clear = button("Delete my saved data", "btn btn-sm btn-danger");
+  clear.onclick = busy(clear, "Deleting…", async () => {
+    if (!confirm("Delete your CSV, settings, expenses, notes, branding and saved copies from your account?\n\nYour account, plan and owner links stay. Delete owner links separately above.")) return;
+    await deleteAllData(); toast("Your saved data was deleted."); renderProperties(); renderLinks();
+  });
+  const del = button("Delete my account", "btn btn-sm btn-danger");
+  del.onclick = busy(del, "Deleting…", async () => {
+    if (me.hasSubscription) { showCancelFirst(); return; }
+    if (!confirm("Delete your Ownermint account?\n\nThis removes everything saved to it, and every owner link you made stops working. This can't be undone.")) return;
+    let r; try { r = await fetch("/api/account", { method: "DELETE" }); } catch { throw new Error("Couldn't reach Ownermint. Check your connection."); }
+    const d = await r.json().catch(() => ({}));
+    if (r.status === 409) { me = { ...me, ...(await fetchMe().catch(() => null) || {}) }; showCancelFirst(); return; }
+    if (!r.ok) throw new Error(d.error || `Couldn't delete your account (error ${r.status}).`);
+    try { Object.keys(localStorage).filter(k => k.startsWith("ownermint:")).forEach(k => localStorage.removeItem(k)); } catch {}
+    location.href = "/?deleted=1";
+  });
+  row.append(clear, del); box.appendChild(row);
+  box.appendChild(el("div", "", "")).id = "cancelFirst";
+}
+function showCancelFirst() {
+  const box = $("cancelFirst"); box.innerHTML = "";
+  const w = el("div", "warn"); w.append(el("b", "", "Cancel your subscription first. "), document.createTextNode(`Your ${PLANS[plan()].name} subscription is still active. Cancel it under Manage subscription, then you can delete your account once it has ended.`));
+  if (me.canManageBilling) { const b = button("Manage subscription", "mini"); b.onclick = busy(b, "Opening…", () => openPortal()); w.append(document.createTextNode(" "), b); }
+  box.appendChild(w);
+}
+
+renderProperties(); renderLinks(); renderPlan(); renderAccount();
+billingConfig().then(c => { billing = c; renderPlan(); });
+addEventListener("pageshow", e => { if (e.persisted) fetchMe().then(m => { if (m) { me = { ...me, ...m }; renderPlan(); } }).catch(() => {}); });
+</script>
+</body>
+</html>

@@ -50,7 +50,10 @@ export function toast(msg) {
   t.textContent = msg; t.classList.add("in"); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("in"), 2400);
 }
 export async function copy(text) { try { await navigator.clipboard.writeText(text); toast("Link copied ✦"); } catch { prompt("Copy this link:", text); } }
+// App storage. Values live in this browser and, when signed in, are copied to the account (see account.js).
+const storeListeners = [];
 export const store = {
   get(k, d) { try { const v = localStorage.getItem("ownermint:" + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
-  set(k, v) { try { localStorage.setItem("ownermint:" + k, JSON.stringify(v)); return true; } catch { return false; } },
+  set(k, v) { let ok = false; try { localStorage.setItem("ownermint:" + k, JSON.stringify(v)); ok = true; } catch {} storeListeners.forEach(f => f(k, v)); return ok; },
+  onChange(f) { storeListeners.push(f); },
 };
