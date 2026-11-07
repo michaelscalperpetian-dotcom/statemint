@@ -46,12 +46,12 @@
     <h2 class="h-sec reveal">Airbnb moves the money. It doesn't explain it.</h2>
     <p class="lede reveal">Split payouts land in two bank accounts, the numbers never match your deal, and every month you rebuild the same spreadsheet so your owner understands where their money went.</p>
     <div class="feature-list">
-      <div class="feature reveal"><div class="ic">📄</div><div><b>Drop in the CSV</b><p>Export your transaction history from Airbnb and drop it in. Payout rows are de-duplicated automatically.</p></div></div>
+      <div class="feature reveal"><div class="ic">📄</div><div><b>Drop in the CSV</b><p>Export your transaction history from Airbnb and drop it in. Bank-transfer rows are skipped so nothing is counted twice, and every skipped row is listed in the audit trail.</p></div></div>
       <div class="feature reveal"><div class="ic">🧮</div><div><b>Set your deal once</b><p>Commission % on payout, payout minus cleaning, or gross. Who keeps cleaning fees. Who received the money. Saved per property.</p></div></div>
       <div class="feature reveal"><div class="ic">✦</div><div><b>Send a statement that impresses</b><p>A branded, animated web statement or a clean PDF, with what's owed and to whom, down to the cent.</p></div></div>
     </div>
   </div>
-  <div class="reveal" id="demo"><div class="demo-controls"><div><label for="dPct">Your commission <b id="dPctV">20%</b></label><input type="range" id="dPct" min="5" max="40" step="1" value="20"></div><div class="seg" id="dClean"><button data-v="owner" type="button">Cleaning → owner</button><button data-v="cohost" type="button" class="on">Cleaning → you</button></div></div><div class="tilt-wrap"><div class="stack-demo" id="stack"><div id="demoView"></div></div></div><p class="demo-note">Live demo with sample data. Drag the slider and the statement recalculates.</p></div>
+  <div class="reveal" id="demo"><div class="demo-controls"><div><label for="dPct">Your commission <b id="dPctV">20%</b></label><input type="range" id="dPct" min="5" max="40" step="1" value="20"></div><div class="seg" id="dClean" role="group" aria-label="Who keeps cleaning fees"><button data-v="owner" type="button" aria-pressed="false">Cleaning → owner</button><button data-v="cohost" type="button" class="on" aria-pressed="true">Cleaning → you</button></div></div><div class="tilt-wrap"><div class="stack-demo" id="stack"><div id="demoView"></div></div></div><p class="demo-note">Live demo with sample data. Drag the slider and the statement recalculates.</p></div>
 </div></section>
 
 <section class="sec" style="padding-top:0"><div class="wrap">
@@ -73,10 +73,10 @@
   <h2 class="h-sec reveal">Start free. Grow when you do.</h2>
   <div class="price-grid">
     <div class="pcard reveal"><b>Launch plan</b><div class="price">$0</div><p style="color:var(--ink-3)">Everything is free while we're new.</p>
-      <ul><li>Unlimited statements &amp; properties</li><li>PDF export &amp; live owner links</li><li>Your logo &amp; business name</li><li>Split-payout reconciliation</li></ul>
+      <ul><li>Unlimited statements &amp; properties</li><li>PDF, CSV export &amp; live owner links</li><li>Your logo &amp; business name</li><li>Split-payout reconciliation</li><li>All-properties view &amp; month-by-month history</li><li>Line-by-line audit trail</li></ul>
       <a class="btn btn-block" style="width:100%" href="/app"><span>Start free</span></a></div>
     <div class="pcard pro reveal"><b>Pro, coming soon</b><div class="price">$12<small>/month</small></div><p style="opacity:.6">Planned for co-hosts managing several homes. Launch-plan users will get notice before anything changes.</p>
-      <ul><li>Statement history across months</li><li>Automatic month-over-month comparisons</li><li>Saved deals synced across devices</li></ul>
+      <ul><li>Statement history saved in the cloud</li><li>Saved deals synced across devices</li><li>Statements emailed to owners for you</li></ul>
       <a class="btn btn-mint" style="width:100%" href="/app"><span>Start free now</span></a></div>
   </div>
 </div></section>
@@ -85,7 +85,7 @@
   <div class="eyebrow reveal">FAQ</div>
   <h2 class="h-sec reveal">Questions co-hosts ask</h2>
   <div class="feature-list">
-    <div class="feature reveal"><div><b>Is my data uploaded anywhere?</b><p>No. Your CSV is read inside your browser. Only if you create an owner link do we store that one statement, so the owner can open it.</p></div></div>
+    <div class="feature reveal"><div><b>Is my data uploaded anywhere?</b><p>Your CSV is read inside your browser and is never uploaded; it is saved in your browser so it's there next time, and "Clear my data" removes it. If you create an owner link, we store that one statement (the figures, guest names as you chose to show them, your branding and note) so the owner can open it. You can delete a link at any time.</p></div></div>
     <div class="feature reveal"><div><b>Where do I get the CSV?</b><p>On Airbnb: Menu → Earnings → Transaction history → filter by listing and dates → Export CSV.</p></div></div>
     <div class="feature reveal"><div><b>Airbnb already splits payouts between me and the owner. Does it still help?</b><p>Yes. Pick "Airbnb split", enter what Airbnb paid you, and Ownermint shows whether anyone owes a difference against your agreed deal.</p></div></div>
     <div class="feature reveal"><div><b>Is this accounting or tax advice?</b><p>No. Ownermint organizes the numbers in your Airbnb report. Check anything tax-related with your accountant.</p></div></div>
@@ -113,7 +113,7 @@ let rendered = false;
 drawDemo(false);
 new IntersectionObserver((es, o) => es.forEach(e => { if (e.isIntersecting && !rendered) { rendered = true; drawDemo(true); o.disconnect(); } }), { threshold: .2 }).observe(demo);
 document.getElementById("dPct").addEventListener("input", e => { dState.pct = Number(e.target.value); document.getElementById("dPctV").textContent = dState.pct + "%"; drawDemo(false); });
-document.querySelectorAll("#dClean button").forEach(b => b.addEventListener("click", () => { dState.clean = b.dataset.v; document.querySelectorAll("#dClean button").forEach(x => x.classList.toggle("on", x === b)); drawDemo(false); }));
+document.querySelectorAll("#dClean button").forEach(b => b.addEventListener("click", () => { dState.clean = b.dataset.v; document.querySelectorAll("#dClean button").forEach(x => { x.classList.toggle("on", x === b); x.setAttribute("aria-pressed", String(x === b)); }); drawDemo(false); }));
 tilt(document.getElementById("stack"), document.getElementById("demo"), 6);
 try { const { startHero } = await import("/js/hero3d.js"); startHero(document.getElementById("scene")); } catch (e) { console.warn("3D scene unavailable", e); }
 </script>

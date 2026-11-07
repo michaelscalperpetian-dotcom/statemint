@@ -15,9 +15,14 @@
 
     <div class="step-h"><em>1</em>Your Airbnb report</div>
     <div class="drop" id="drop"><input type="file" id="file" accept=".csv,text/csv" aria-label="Upload Airbnb CSV">
-      <div style="font-size:30px">📄</div><b id="dropTitle">Drop your Airbnb CSV here</b><small>Earnings → Transaction history → Export CSV.<br>Stays in your browser; nothing is uploaded.</small></div>
+      <div style="font-size:30px" aria-hidden="true">📄</div><b id="dropTitle">Drop your Airbnb CSV here</b><small>Earnings → Transaction history → Export CSV.<br>Read inside your browser; the file is never uploaded.</small></div>
     <div style="margin-top:8px"><button class="btn btn-ghost btn-sm" id="sample" type="button"><span>Try with sample data</span></button></div>
-    <div id="warns"></div>
+    <div id="warns" role="status"></div>
+    <div id="parseOpts" style="display:none">
+      <div class="field" id="dateFmtField" style="display:none"><label for="dateFmt">Date format in this file</label>
+        <select class="input" id="dateFmt"><option value="">Auto-detect</option><option value="mdy">Month/Day/Year (e.g. 10/31/2026)</option><option value="dmy">Day/Month/Year (e.g. 31/10/2026)</option></select></div>
+      <label class="check" id="dupField" style="display:none"><input type="checkbox" id="exclDup"> <span>Leave out exact duplicate rows (<span id="dupCount">0</span> found). Only do this if you combined two exports that overlap.</span></label>
+    </div>
     <div id="mapPanel" class="panel-map" style="display:none">
       <b>Match your columns</b>
       <p class="help">We couldn't recognize every column in this file. Tell us which column is which; we'll remember it for next time.</p>
@@ -35,25 +40,34 @@
 
       <div class="step-h"><em>2</em>Your deal</div>
       <div class="row2">
-        <div class="field"><label for="pct">Commission %</label><input class="input" id="pct" type="number" min="0" max="100" step="0.5"></div>
+        <div class="field"><label for="pct">Commission %</label><input class="input" id="pct" type="number" min="0" max="100" step="0.5" inputmode="decimal" aria-describedby="pctErr"></div>
         <div class="field"><label for="base">Commission on</label><select class="input" id="base"><option value="payout">Payout (after Airbnb fee)</option><option value="payout_ex_cleaning">Payout minus cleaning</option><option value="gross">Gross booking</option></select></div>
       </div>
-      <div class="field"><label>Cleaning fees go to</label><div class="seg" id="cleanSeg"><button data-v="owner" type="button">Owner</button><button data-v="cohost" type="button">Co-host</button></div></div>
-      <div class="field"><label>Who received the Airbnb payouts?</label><div class="seg" id="recvSeg"><button data-v="owner" type="button">Owner</button><button data-v="cohost" type="button">Co-host</button><button data-v="split" type="button">Airbnb split</button></div>
+      <div class="field-err" id="pctErr" aria-live="polite"></div>
+      <label class="check"><input type="checkbox" id="commAdj"> <span>Also charge commission on adjustments (damage reimbursements, refunds, cancellation fees)</span></label>
+      <div class="field"><label id="cleanL">Cleaning fees go to</label><div class="seg" id="cleanSeg" role="group" aria-labelledby="cleanL"><button data-v="owner" type="button">Owner</button><button data-v="cohost" type="button">Co-host</button></div></div>
+      <div class="field"><label id="recvL">Who received the Airbnb payouts?</label><div class="seg" id="recvSeg" role="group" aria-labelledby="recvL"><button data-v="owner" type="button">Owner</button><button data-v="cohost" type="button">Co-host</button><button data-v="split" type="button">Airbnb split</button></div>
         <div class="help" id="recvHelp"></div></div>
-      <div class="field" id="splitField" style="display:none"><label for="splitAmt">Amount Airbnb already paid the co-host this month</label><input class="input" id="splitAmt" type="number" min="0" step="0.01"></div>
-      <div class="field"><label>Group stays by</label><div class="seg" id="bySeg"><button data-v="checkin" type="button">Check-in date</button><button data-v="payout" type="button">Payout date</button></div></div>
+      <div class="field" id="splitField" style="display:none"><label for="splitAmt" id="splitL">Amount Airbnb paid the co-host directly this month</label><input class="input" id="splitAmt" type="text" inputmode="decimal" placeholder="0.00" aria-describedby="splitErr"><div class="field-err" id="splitErr" aria-live="polite"></div><div class="help">Saved for this month only.</div></div>
+      <div class="field"><label id="byL">Group stays by</label><div class="seg" id="bySeg" role="group" aria-labelledby="byL"><button data-v="checkin" type="button">Check-in date</button><button data-v="payout" type="button">Payout date</button></div></div>
 
       <div class="step-h"><em>3</em>Expenses this month</div>
       <div id="expList"></div>
       <button class="btn btn-ghost btn-sm" id="addExp" type="button"><span>+ Add expense</span></button>
-      <p class="help">Supplies, repairs, restocking: anything the owner should cover.</p>
+      <p class="help">Supplies, repairs, restocking: anything the owner should cover. Enter a negative amount (e.g. -20) for a credit back to the owner.</p>
 
       <div class="step-h"><em>4</em>Branding</div>
       <div class="field"><label for="company">Your business name</label><input class="input" id="company" maxlength="60" placeholder="e.g. Lakeside Co-Hosting"></div>
       <div class="field"><label for="owner">Owner's name</label><input class="input" id="owner" maxlength="60" placeholder="e.g. Pat Morgan"></div>
-      <div class="field"><label for="logo">Logo (optional)</label><input class="input" id="logo" type="file" accept="image/*"></div>
+      <div class="field"><label for="logo">Logo (optional)</label><input class="input" id="logo" type="file" accept="image/png,image/jpeg,image/webp,image/gif"><button class="btn btn-ghost btn-sm" id="logoClear" type="button" style="display:none;justify-self:start"><span>Remove logo</span></button></div>
+      <div class="field"><label for="guestNames">Guest names on the statement</label><select class="input" id="guestNames"><option value="full">Full names</option><option value="first">First names only</option><option value="none">Hide names (show booking code)</option></select></div>
       <div class="field"><label for="note">Note to the owner (this month)</label><textarea class="input" id="note" rows="3" maxlength="600" placeholder="e.g. Busy month! Replaced the shower head; receipt attached."></textarea></div>
+
+      <div class="step-h"><em>5</em>Your data</div>
+      <p class="help" style="margin-top:0">Your file, deals, expenses and branding are saved in this browser only, so they're here next time. Owner links are the only thing stored on our server.</p>
+      <b style="font-size:14px">Owner links you created</b>
+      <div class="links-list" id="links"></div>
+      <div style="margin-top:14px"><button class="btn btn-sm btn-danger" id="clearData" type="button"><span>Clear my data from this browser</span></button></div>
     </div>
   </aside>
 
@@ -63,145 +77,360 @@
       <div class="toolbar">
         <div><b id="outTitle" style="font-family:var(--display);font-size:22px;letter-spacing:-.02em"></b></div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-ghost btn-sm" id="exportCsv" type="button"><span>⤓ CSV</span></button>
           <button class="btn btn-ghost btn-sm" id="print" type="button"><span>⤓ PDF / Print</span></button>
           <button class="btn btn-mint btn-sm" id="share" type="button" data-magnetic=".2"><span>✦ Get owner link</span></button>
         </div>
       </div>
-      <div id="shareOut" class="no-print" style="display:none;margin:-6px 0 18px"><div class="sharebox"><input class="input" id="shareLink" readonly><button class="btn btn-sm" id="copyLink" type="button"><span>Copy</span></button></div><p class="help">Send this to the owner. It opens as a live, animated statement. Anyone with the link can view it.</p></div>
-      <div id="view"></div>
+      <div class="tabs no-print" role="tablist" aria-label="View" style="margin-bottom:18px">
+        <button role="tab" type="button" data-tab="statement" aria-selected="true" aria-controls="view">Statement</button>
+        <button role="tab" type="button" data-tab="portfolio" aria-selected="false" aria-controls="portfolio">All properties</button>
+        <button role="tab" type="button" data-tab="audit" aria-selected="false" aria-controls="audit">Audit trail</button>
+      </div>
+      <div id="shareOut" class="no-print" style="display:none;margin:-6px 0 18px"><div class="sharebox"><input class="input" id="shareLink" readonly aria-label="Owner link"><button class="btn btn-sm" id="copyLink" type="button"><span>Copy</span></button><a class="btn btn-ghost btn-sm" id="mailLink" href="#"><span>✉ Email</span></a></div>
+        <p class="help">Anyone with this link can view the statement (including guest names as shown and your note). Your CSV is not uploaded. "Email" opens your own email app with a ready-made message; Ownermint doesn't send email. You can delete the link any time under "Your data".</p></div>
+      <div id="stWarns" class="st-warns no-print" role="status"></div>
+      <div id="view" role="tabpanel"></div>
+      <div id="portfolio" role="tabpanel" style="display:none"></div>
+      <div id="audit" role="tabpanel" style="display:none"></div>
     </div>
+    <a class="btn btn-mint btn-sm jump no-print" id="jump" href="#out" style="display:none"><span>View statement ↓</span></a>
   </main>
 </div>
 <script type="module">
-import { parseCSV, toTransactions, detectColumns, FIELDS, listings, months, buildStatement, monthLabel, DEFAULT_SETTINGS, SAMPLE_CSV, money } from "/js/engine.js";
+import { parseCSV, toTransactions, detectColumns, listings, months, buildStatement, monthLabel, DEFAULT_SETTINGS, SAMPLE_CSV, money, parseMoney } from "/js/engine.js";
 import { renderStatement } from "/js/view.js";
 import { cursor, magnetic, toast, copy, store } from "/js/fx.js";
 cursor(); magnetic();
 const $ = s => document.getElementById(s);
-let tx = [], current = null;
-const brand = store.get("brand", { company: "", ownerName: "", logo: "" });
-$("company").value = brand.company; $("owner").value = brand.ownerName;
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+let tx = [], current = null, currentPrev = null, parsed = null, firstRender = true, tab = "statement";
+let rawRows = [], rawName = "", rawText = "", parseOpts = { dateFormat: "", excludeDuplicates: false };
+const brand = store.get("brand", { company: "", ownerName: "", logo: "", guestNames: "full" });
+$("company").value = brand.company || ""; $("owner").value = brand.ownerName || ""; $("guestNames").value = brand.guestNames || "full";
 
+/* ---------- reading the file ---------- */
 const MAP_FIELDS = [["date", "Date (payout/transaction)"], ["type", "Type"], ["start", "Check-in / start date"], ["nights", "Nights"], ["guest", "Guest"], ["listing", "Listing"],
   ["amount", "Amount / payout (after Airbnb fee)"], ["gross", "Gross earnings"], ["serviceFee", "Host service fee"], ["cleaningFee", "Cleaning fee"], ["code", "Confirmation code"]];
-let rawRows = [], rawName = "";
+const FIELD_LABEL = { ...Object.fromEntries(MAP_FIELDS), end: "Check-out", currency: "Currency", paidOut: "Paid out", taxes: "Occupancy taxes" };
 const sig = header => header.map(x => String(x).trim().toLowerCase()).join("|");
 function showMapper(rows) {
   const noHeader = $("noHeader").checked;
-  const first = rows[0] || []; const n = Math.max(...rows.slice(0, 5).map(r => r.length));
+  const first = rows[0] || []; const n = Math.max(0, ...rows.slice(0, 5).map(r => r.length));
   const names = Array.from({ length: n }, (_, i) => noHeader ? `Column ${i + 1} (e.g. "${String(first[i] ?? "").slice(0, 18)}")` : `${first[i] ?? "Column " + (i + 1)}`);
   const auto = noHeader ? {} : detectColumns(first);
   $("mapFields").innerHTML = "";
   MAP_FIELDS.forEach(([f, label]) => {
-    const wrap = document.createElement("div"); wrap.className = "field";
-    const l = document.createElement("label"); l.textContent = label; const sel = document.createElement("select"); sel.className = "input"; sel.dataset.field = f;
-    sel.appendChild(Object.assign(document.createElement("option"), { value: "", textContent: "(not in my file)" }));
-    names.forEach((nm, i) => sel.appendChild(Object.assign(document.createElement("option"), { value: String(i), textContent: nm })));
+    const wrap = el("div", "field"); const id = "map_" + f;
+    const l = el("label", "", label); l.htmlFor = id; const sel = el("select", "input"); sel.id = id; sel.dataset.field = f;
+    sel.appendChild(Object.assign(el("option"), { value: "", textContent: "(not in my file)" }));
+    names.forEach((nm, i) => sel.appendChild(Object.assign(el("option"), { value: String(i), textContent: nm })));
     if (auto[f] != null) sel.value = String(auto[f]);
     wrap.append(l, sel); $("mapFields").appendChild(wrap);
   });
   $("mapPanel").style.display = "";
 }
-function loadCSV(text, name, manualMap = null) {
-  rawRows = parseCSV(text); rawName = name;
+function loadCSV(text, name, manualMap = null, keepOpts = false) {
+  rawRows = parseCSV(text); rawName = name; rawText = text;
+  if (!keepOpts) parseOpts = { dateFormat: rawRows.length ? store.get("datefmt:" + sig(rawRows[0]), "") : "", excludeDuplicates: false };
   let rows = rawRows, map = manualMap;
   if (!map && rows.length) { const saved = store.get("colmap:" + sig(rows[0])); if (saved) map = saved; }
-  if (map && map.__noHeader) rows = [Array.from({ length: Math.max(...rawRows.slice(0, 5).map(r => r.length)) }, (_, i) => "Column " + (i + 1)), ...rawRows];
+  const noHeader = !!(map && map.__noHeader);
+  if (noHeader) rows = [Array.from({ length: Math.max(...rawRows.slice(0, 5).map(r => r.length)) }, (_, i) => "Column " + (i + 1)), ...rawRows];
   const clean = map ? Object.fromEntries(Object.entries(map).filter(([k]) => !k.startsWith("__"))) : null;
-  const { transactions, warnings } = toTransactions(rows, clean);
-  $("warns").innerHTML = "";
-  warnings.forEach(w => { const d = document.createElement("div"); d.className = "warn"; d.textContent = w; $("warns").appendChild(d); });
+  parsed = toTransactions(rows, clean, { dateFormat: parseOpts.dateFormat || undefined, excludeDuplicates: parseOpts.excludeDuplicates, firstRow: noHeader ? 1 : 2 });
+  parsed.header = rows[0] || []; parsed.noHeader = noHeader;
+  renderParseMessages();
   $("fixCols").style.display = rawRows.length ? "" : "none";
-  if (!transactions.length) { showMapper(rawRows); return; }
+  if (!parsed.transactions.length) { showMapper(rawRows); return; }
   $("mapPanel").style.display = "none";
-  tx = transactions; firstRender = true;
+  tx = parsed.transactions; firstRender = true;
   try { if (text.length < 1500000) store.set("lastCSV", { name, text }); } catch {}
-  $("dropTitle").textContent = `✓ ${name} · ${tx.length} lines`;
-  fillSelect($("listing"), listings(tx).map(l => [l, l]), store.get("lastListing"));
+  $("dropTitle").textContent = `✓ ${name} · ${tx.length} line${tx.length === 1 ? "" : "s"}`;
+  fillSelect($("listing"), listings(tx).map(l => [l, l]), $("listing").value || store.get("lastListing"));
   refreshMonths();
-  $("cfg").style.display = ""; $("empty").style.display = "none"; $("out").style.display = "";
-  loadSettingsUI(); renderExpenses(); loadNote(); update();
+  $("cfg").style.display = ""; $("empty").style.display = "none"; $("out").style.display = ""; $("jump").style.display = "";
+  loadSettingsUI(); renderExpenses(); loadNote(); renderLinks(); update();
 }
-function fillSelect(sel, opts, keep) { sel.innerHTML = ""; opts.forEach(([v, t]) => { const o = document.createElement("option"); o.value = v; o.textContent = t; sel.appendChild(o); }); if (keep && opts.some(o => o[0] === keep)) sel.value = keep; }
-function settingsKey() { return "settings:" + $("listing").value; }
-function getSettings() { return { ...DEFAULT_SETTINGS, ...store.get(settingsKey(), {}) }; }
+function renderParseMessages() {
+  $("warns").innerHTML = "";
+  parsed.warnings.forEach(w => $("warns").appendChild(el("div", "warn", w)));
+  parsed.notices.forEach(w => $("warns").appendChild(el("div", "notice", w)));
+  const hasDates = parsed.dateFormat && parsed.dateFormat.status !== "none";
+  const dups = parsed.audit.duplicates.length;
+  $("parseOpts").style.display = hasDates || dups ? "" : "none";
+  $("dateFmtField").style.display = hasDates ? "" : "none"; $("dateFmt").value = parseOpts.dateFormat;
+  $("dupField").style.display = dups ? "" : "none"; $("dupCount").textContent = dups; $("exclDup").checked = parseOpts.excludeDuplicates;
+}
+const reparse = () => { if (rawText) loadCSV(rawText, rawName, null, true); };
+$("dateFmt").onchange = () => { parseOpts.dateFormat = $("dateFmt").value; if (rawRows.length) store.set("datefmt:" + sig(rawRows[0]), parseOpts.dateFormat); reparse(); };
+$("exclDup").onchange = () => { parseOpts.excludeDuplicates = $("exclDup").checked; reparse(); };
+
+/* ---------- settings ---------- */
+function fillSelect(sel, opts, keep) { sel.innerHTML = ""; opts.forEach(([v, t]) => sel.appendChild(Object.assign(el("option"), { value: v, textContent: t }))); if (keep && opts.some(o => o[0] === keep)) sel.value = keep; }
+const settingsFor = listing => ({ ...DEFAULT_SETTINGS, ...store.get("settings:" + listing, {}) });
+const getSettings = () => settingsFor($("listing").value);
+const splitKey = (listing = $("listing").value, month = $("month").value) => `split:${listing}:${month}`;
+// Every statement is built the same way: the property's saved deal, plus that month's expenses and split amount.
+function statementFor(listing, month) {
+  const settings = settingsFor(listing);
+  settings.splitPaidToCohost = Number(store.get(splitKey(listing, month), 0)) || 0;
+  return buildStatement(tx, { listing, month, settings, expenses: store.get(`exp:${listing}:${month}`, []) });
+}
 function refreshMonths() { const s = getSettings(); fillSelect($("month"), months(tx.filter(t => t.listing === $("listing").value), s.monthBy).map(m => [m, monthLabel(m)]), $("month").value); }
-function setSeg(id, v) { document.querySelectorAll(`#${id} button`).forEach(b => b.classList.toggle("on", b.dataset.v === v)); }
-function loadSettingsUI() {
+function setSeg(id, v) { document.querySelectorAll(`#${id} button`).forEach(b => { b.classList.toggle("on", b.dataset.v === v); b.setAttribute("aria-pressed", String(b.dataset.v === v)); }); }
+function loadSettingsUI(force = true) {
   const s = getSettings();
-  $("pct").value = s.commissionPct; $("base").value = s.commissionBase; setSeg("cleanSeg", s.cleaningTo); setSeg("recvSeg", s.payoutReceiver); setSeg("bySeg", s.monthBy);
-  $("splitAmt").value = s.splitPaidToCohost || ""; $("splitField").style.display = s.payoutReceiver === "split" ? "" : "none";
+  // The split amount used to be saved once per property and silently reused for every month.
+  // It is now saved per month; an old value is kept only for the month that is open.
+  if (s.splitPaidToCohost) { const k = splitKey(); if (store.get(k) == null) { store.set(k, s.splitPaidToCohost); toast(`Split amount now saved per month: kept for ${monthLabel($("month").value)}`); } const c = store.get("settings:" + $("listing").value, {}); delete c.splitPaidToCohost; store.set("settings:" + $("listing").value, c); }
+  if (force || document.activeElement !== $("pct")) { $("pct").value = s.commissionPct; setPctError(""); }
+  $("base").value = s.commissionBase; $("commAdj").checked = s.commissionOnAdjustments !== false;
+  setSeg("cleanSeg", s.cleaningTo); setSeg("recvSeg", s.payoutReceiver); setSeg("bySeg", s.monthBy);
+  if (force || document.activeElement !== $("splitAmt")) { const v = store.get(splitKey()); $("splitAmt").value = v ? v : ""; setSplitError(""); }
+  $("splitL").textContent = `Amount Airbnb paid the co-host directly for ${monthLabel($("month").value) || "this month"}`;
+  $("splitField").style.display = s.payoutReceiver === "split" ? "" : "none";
   $("recvHelp").textContent = { owner: "The statement shows what the owner owes you.", cohost: "The statement shows what you owe the owner.", split: "Airbnb paid you part directly. The statement reconciles it against your deal." }[s.payoutReceiver];
 }
-function saveSettings(patch) { store.set(settingsKey(), { ...getSettings(), ...patch }); loadSettingsUI(); update(); }
+// While the user is typing, the field they are in is left alone; switching property or month always reloads every field.
+function saveSettings(patch) { store.set("settings:" + $("listing").value, { ...store.get("settings:" + $("listing").value, {}), ...patch }); loadSettingsUI(false); update(); }
+function setPctError(msg) { $("pctErr").textContent = msg; $("pct").classList.toggle("invalid", !!msg); $("pct").setAttribute("aria-invalid", String(!!msg)); }
+function setSplitError(msg) { $("splitErr").textContent = msg; $("splitAmt").classList.toggle("invalid", !!msg); $("splitAmt").setAttribute("aria-invalid", String(!!msg)); }
+// "" -> null, a valid amount -> number, anything else -> NaN
+const readAmount = raw => { raw = String(raw).trim(); if (!raw) return null; return /^-?\s*[$€£]?\s*\d[\d.,\s]*$/.test(raw) ? parseMoney(raw) : NaN; };
+$("pct").oninput = () => {
+  const raw = $("pct").value.trim(), v = Number(raw);
+  if (raw === "" || !isFinite(v) || v < 0 || v > 100) { setPctError(`Enter a commission between 0 and 100. Until then the statement uses ${getSettings().commissionPct}%.`); return; }
+  setPctError(""); saveSettings({ commissionPct: v });
+};
+$("pct").onblur = () => { if ($("pctErr").textContent) { $("pct").value = getSettings().commissionPct; setPctError(""); } };
+$("base").onchange = () => saveSettings({ commissionBase: $("base").value });
+$("commAdj").onchange = () => saveSettings({ commissionOnAdjustments: $("commAdj").checked });
+$("splitAmt").oninput = () => {
+  const v = readAmount($("splitAmt").value);
+  if (v != null && (!isFinite(v) || v < 0)) { setSplitError("Enter an amount like 450 or 450.00."); return; }
+  setSplitError(""); store.set(splitKey(), v); update();
+};
+[["cleanSeg", "cleaningTo"], ["recvSeg", "payoutReceiver"], ["bySeg", "monthBy"]].forEach(([id, key]) =>
+  document.querySelectorAll(`#${id} button`).forEach(b => b.onclick = () => { if (key === "monthBy") { saveSettingsQuiet({ [key]: b.dataset.v }); refreshMonths(); renderExpenses(); loadNote(); loadSettingsUI(); update(); } else saveSettings({ [key]: b.dataset.v }); }));
+function saveSettingsQuiet(patch) { store.set("settings:" + $("listing").value, { ...store.get("settings:" + $("listing").value, {}), ...patch }); }
+
+/* ---------- expenses, note, branding ---------- */
 function expKey() { return `exp:${$("listing").value}:${$("month").value}`; }
 function renderExpenses() {
   const list = store.get(expKey(), []); $("expList").innerHTML = "";
   list.forEach((e, i) => {
-    const row = document.createElement("div"); row.className = "exp-row";
-    const d = Object.assign(document.createElement("input"), { className: "input", placeholder: "Description", value: e.description || "", maxLength: 60 });
-    const a = Object.assign(document.createElement("input"), { className: "input", type: "number", step: "0.01", min: "0", placeholder: "0.00", value: e.amount || "" });
-    const x = Object.assign(document.createElement("button"), { className: "icon-btn", type: "button", textContent: "✕", title: "Remove" });
-    d.oninput = () => { list[i].description = d.value; store.set(expKey(), list); update(false); };
-    a.oninput = () => { list[i].amount = a.value; store.set(expKey(), list); update(false); };
+    const row = el("div", "exp-row");
+    const d = Object.assign(el("input", "input"), { placeholder: "Description", value: e.description || "", maxLength: 60 }); d.setAttribute("aria-label", `Expense ${i + 1} description`);
+    const a = Object.assign(el("input", "input"), { type: "text", inputMode: "decimal", placeholder: "0.00", value: e.amount ?? "" }); a.setAttribute("aria-label", `Expense ${i + 1} amount`);
+    const mark = () => { const v = readAmount(a.value); const bad = v != null && !isFinite(v); a.classList.toggle("invalid", bad); a.setAttribute("aria-invalid", String(bad)); };
+    const x = Object.assign(el("button", "icon-btn", "✕"), { type: "button", title: "Remove expense" }); x.setAttribute("aria-label", `Remove expense ${i + 1}`);
+    d.oninput = () => { list[i].description = d.value; store.set(expKey(), list); update(); };
+    a.oninput = () => { list[i].amount = a.value; store.set(expKey(), list); mark(); update(); };
     x.onclick = () => { list.splice(i, 1); store.set(expKey(), list); renderExpenses(); update(); };
-    row.append(d, a, x); $("expList").appendChild(row);
+    mark(); row.append(d, a, x); $("expList").appendChild(row);
   });
 }
-let firstRender = true;
-function prevMonthKey(key) { const [y, m] = key.split("-").map(Number); const d = new Date(Date.UTC(y, m - 2, 1)); return d.toISOString().slice(0, 7); }
+$("addExp").onclick = () => { const l = store.get(expKey(), []); l.push({ description: "", amount: "" }); store.set(expKey(), l); renderExpenses(); $("expList").lastElementChild?.querySelector("input")?.focus(); };
 function noteKey() { return `note:${$("listing").value}:${$("month").value}`; }
 function loadNote() { $("note").value = store.get(noteKey(), ""); }
-function update(full = true) {
+$("note").oninput = () => { store.set(noteKey(), $("note").value); update(); };
+const getBrand = () => ({ guestNames: "full", ...store.get("brand", brand) });
+const saveBrand = () => { const b = getBrand(); b.company = $("company").value.trim(); b.ownerName = $("owner").value.trim(); b.guestNames = $("guestNames").value; store.set("brand", b); update(); };
+$("company").oninput = saveBrand; $("owner").oninput = saveBrand; $("guestNames").onchange = saveBrand;
+function showLogoClear() { $("logoClear").style.display = getBrand().logo ? "" : "none"; }
+$("logo").onchange = e => {
+  const f = e.target.files[0]; if (!f) return;
+  if (!/^image\/(png|jpeg|webp|gif)$/.test(f.type)) { toast("Please choose a PNG, JPG, WebP or GIF image"); e.target.value = ""; return; }
+  const url = URL.createObjectURL(f); const img = new Image();
+  img.onload = () => { const c = document.createElement("canvas"); const s = 96; c.width = c.height = s; const ctx = c.getContext("2d");
+    const m = Math.min(img.width, img.height); ctx.drawImage(img, (img.width - m) / 2, (img.height - m) / 2, m, m, 0, 0, s, s); URL.revokeObjectURL(url);
+    const b = getBrand(); b.logo = c.toDataURL("image/png"); store.set("brand", b); showLogoClear(); update(); };
+  img.onerror = () => { URL.revokeObjectURL(url); toast("That image couldn't be read. Try a PNG or JPG."); e.target.value = ""; };
+  img.src = url;
+};
+$("logoClear").onclick = () => { const b = getBrand(); b.logo = ""; store.set("brand", b); $("logo").value = ""; showLogoClear(); update(); };
+showLogoClear();
+// Applies the "guest names" choice to what is shown, exported and shared. The underlying numbers are untouched.
+function presentable(st) {
+  const mode = getBrand().guestNames || "full"; if (mode === "full") return st;
+  return { ...st, lines: st.lines.map(l => ({ ...l, guest: mode === "first" ? String(l.guest || "").split(/\s+/)[0] : "" })) };
+}
+
+/* ---------- render ---------- */
+function prevMonthKey(key) { const [y, m] = key.split("-").map(Number); return new Date(Date.UTC(y, m - 2, 1)).toISOString().slice(0, 7); }
+function update() {
   if (!tx.length) return;
-  store.set("lastListing", $("listing").value);
-  const settings = getSettings(), listing = $("listing").value, month = $("month").value;
-  current = buildStatement(tx, { listing, month, settings, expenses: store.get(expKey(), []) });
-  const pk = prevMonthKey(month);
-  const prevExp = store.get(`exp:${listing}:${pk}`, []);
-  const prev = months(tx.filter(t => t.listing === listing), settings.monthBy).includes(pk) ? buildStatement(tx, { listing, month: pk, settings, expenses: prevExp }) : null;
+  const listing = $("listing").value, month = $("month").value, settings = getSettings();
+  store.set("lastListing", listing);
+  current = statementFor(listing, month);
+  const pk = month ? prevMonthKey(month) : "";
+  const prev = pk && months(tx.filter(t => t.listing === listing), settings.monthBy).includes(pk) ? statementFor(listing, pk) : null;
   currentPrev = prev ? { ownerNet: prev.totals.ownerNet, nights: prev.totals.nights, month: pk } : null;
   $("outTitle").textContent = `${current.listing} · ${monthLabel(current.month)}`;
   $("shareOut").style.display = "none";
-  renderStatement($("view"), { statement: current, brand: store.get("brand", brand), note: $("note").value, previous: currentPrev }, { animate: firstRender });
+  $("stWarns").innerHTML = "";
+  current.warnings.forEach(w => { const d = el("div", "warn"); d.append(el("b", "", "Check before sending"), document.createTextNode(w)); $("stWarns").appendChild(d); });
+  renderStatement($("view"), { statement: presentable(current), brand: getBrand(), note: $("note").value, previous: currentPrev }, { animate: firstRender && tab === "statement" });
   firstRender = false;
+  if (tab === "portfolio") renderPortfolio();
+  if (tab === "audit") renderAudit();
 }
-let currentPrev = null;
-$("file").addEventListener("change", e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => loadCSV(String(r.result), f.name); r.readAsText(f); });
+function setTab(t) {
+  tab = t;
+  document.querySelectorAll(".tabs button").forEach(b => b.setAttribute("aria-selected", String(b.dataset.tab === t)));
+  $("view").style.display = t === "statement" ? "" : "none"; $("portfolio").style.display = t === "portfolio" ? "" : "none"; $("audit").style.display = t === "audit" ? "" : "none";
+  $("stWarns").style.display = t === "statement" ? "" : "none";
+  if (t === "portfolio") renderPortfolio(); if (t === "audit") renderAudit();
+}
+document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => setTab(b.dataset.tab));
+const table = (heads, rows, rightFrom = 1) => {
+  const wrap = el("div", "tbl-wrap"), t = el("table", "tbl"), hr = el("tr");
+  heads.forEach((c, i) => hr.appendChild(el("th", i >= rightFrom ? "r" : "", c))); t.appendChild(el("thead")).appendChild(hr);
+  const tb = el("tbody"); rows.forEach(r => { const tr = el("tr", r.cls || ""); if (r.onclick) { tr.onclick = r.onclick; tr.classList.add("click"); tr.tabIndex = 0; tr.onkeydown = e => { if (e.key === "Enter") r.onclick(); }; }
+    r.cells.forEach((v, i) => tr.appendChild(el("td", (i >= rightFrom ? "r num" : "l"), String(v)))); tb.appendChild(tr); });
+  t.appendChild(tb); if (rows.foot) { const tf = el("tfoot"), fr = el("tr"); rows.foot.forEach((v, i) => fr.appendChild(el("td", i >= rightFrom ? "r num" : "", String(v)))); tf.appendChild(fr); t.appendChild(tf); }
+  wrap.appendChild(t); return wrap;
+};
+function renderPortfolio() {
+  const root = $("portfolio"); root.innerHTML = ""; const month = $("month").value;
+  const all = listings(tx).map(l => ({ l, st: statementFor(l, month), prevSt: null }));
+  all.forEach(x => { const pk = prevMonthKey(month); if (months(tx.filter(t => t.listing === x.l), settingsFor(x.l).monthBy).includes(pk)) x.prevSt = statementFor(x.l, pk); });
+  const p1 = el("section", "panel"); p1.append(el("h3", "", `All properties · ${monthLabel(month)}`), el("p", "help", "Each property uses its own saved deal, expenses and split amount for this month. Click a row to open its statement."));
+  const curs = [...new Set(all.flatMap(x => x.st.lines.map(l => l.currency)))];
+  const single = curs.length <= 1, cur = curs[0] || "USD";
+  const sum = f => all.reduce((a, x) => a + f(x.st.totals), 0);
+  if (single) { const sr = el("div", "stat-row"); [["Properties", String(all.length)], ["Stays", String(sum(t => t.reservations))], ["Airbnb payout", money(sum(t => t.payout), cur)], ["Co-host earned", money(sum(t => t.cohostEarned), cur)], ["Owner net", money(sum(t => t.ownerNet), cur)]]
+    .forEach(([k, v]) => { const d = el("div"); d.append(el("b", "num", v), el("span", "", k)); sr.appendChild(d); }); p1.appendChild(sr); }
+  else p1.appendChild(el("div", "warn", `These properties use different currencies (${curs.join(", ")}), so no combined totals are shown.`));
+  const rows = all.map(({ l, st, prevSt }) => { const T = st.totals, c = st.currency;
+    const delta = prevSt ? (T.ownerNet - prevSt.totals.ownerNet >= 0 ? "▲ " : "▼ ") + money(Math.abs(T.ownerNet - prevSt.totals.ownerNet), c) : "–";
+    return { cls: l === $("listing").value ? "current" : "", onclick: () => { $("listing").value = l; $("listing").onchange(); setTab("statement"); },
+      cells: [l, T.reservations, T.nights, T.occupancy == null ? "n/a" : Math.round(T.occupancy * 100) + "%", money(T.payout, c), money(T.cohostEarned, c), money(T.ownerNet, c), st.settlement.amount === 0 ? "Nothing to settle" : `${st.settlement.direction === "owner_pays_cohost" ? "Owner → you" : "You → owner"} ${money(st.settlement.amount, c)}`, delta] }; });
+  p1.appendChild(table(["Property", "Stays", "Nights", "Occupancy", "Payout", "Co-host earned", "Owner net", "Settlement", "Owner net vs last month"], rows));
+  root.appendChild(p1);
+  // month by month for the open property
+  const listing = $("listing").value, ms = months(tx.filter(t => t.listing === listing), getSettings().monthBy).slice().reverse();
+  const hist = ms.map(m => ({ m, st: statementFor(listing, m) }));
+  const p2 = el("section", "panel"); p2.append(el("h3", "", `${listing} · month by month`), el("p", "help", "Owner net for every month in your file, using this property's deal and each month's expenses."));
+  const max = Math.max(1, ...hist.map(x => Math.abs(x.st.totals.ownerNet)));
+  const bars = el("div", "bars"); bars.setAttribute("aria-hidden", "true");
+  hist.forEach(({ m, st }) => { const b = el("div", m === month ? "cur" : ""); const i = el("i", st.totals.ownerNet < 0 ? "neg" : ""); i.style.height = Math.max(2, Math.abs(st.totals.ownerNet) / max * 100) + "%"; i.title = `${monthLabel(m)}: ${money(st.totals.ownerNet, st.currency)}`; b.append(i, el("span", "", monthLabel(m).slice(0, 3))); bars.appendChild(b); });
+  if (hist.length > 1) p2.appendChild(bars);
+  p2.appendChild(table(["Month", "Stays", "Nights", "Payout", "Co-host earned", "Owner net"], hist.slice().reverse().map(({ m, st }) => ({ cls: m === month ? "current" : "", onclick: () => { $("month").value = m; $("month").onchange(); setTab("statement"); },
+    cells: [monthLabel(m), st.totals.reservations, st.totals.nights, money(st.totals.payout, st.currency), money(st.totals.cohostEarned, st.currency), money(st.totals.ownerNet, st.currency)] }))));
+  root.appendChild(p2);
+}
+function renderAudit() {
+  const root = $("audit"); root.innerHTML = ""; if (!parsed || !current) return; const A = parsed.audit, cur = current.currency, s = current.settings;
+  const p1 = el("section", "panel"); p1.append(el("h3", "", "How your file was read"), el("p", "help", "Row numbers match the rows in your CSV when opened in a spreadsheet."));
+  const dfName = { mdy: "Month/Day/Year", dmy: "Day/Month/Year" }[parsed.dateFormat?.format] || "n/a";
+  const dfHow = { detected: "detected from the dates", assumed: "assumed (every date was ambiguous)", chosen: "chosen by you", conflict: "dates were inconsistent", none: "" }[parsed.dateFormat?.status] || "";
+  const kv = el("dl", "kv");
+  [["File", rawName], ["Rows read", String(A.rows) + (parsed.noHeader ? " (no header row)" : " (plus the header row)")], ["Lines used", String(tx.length)], ["Rows skipped", String(A.skipped.length)],
+   ["Exact duplicates", A.duplicates.length ? `${A.duplicates.length} (${parseOpts.excludeDuplicates ? "left out" : "counted"})` : "none"], ["Date format", dfName + (dfHow ? ` (${dfHow})` : "")],
+   ["Columns used", Object.entries(parsed.map).filter(([, i]) => i != null).map(([f, i]) => `${FIELD_LABEL[f] || f} ← "${parsed.header[i] ?? "Column " + (i + 1)}"`)]]
+    .forEach(([k, v]) => { const dd = el("dd", Array.isArray(v) ? "chips" : "", Array.isArray(v) ? null : v); if (Array.isArray(v)) v.forEach(x => dd.appendChild(el("span", "", x))); kv.append(el("dt", "", k), dd); });
+  p1.appendChild(kv);
+  p1.appendChild(table(["Row type in file", "Rows used"], Object.entries(A.types).map(([t, n]) => ({ cells: [t, n] }))));
+  if (A.skipped.length) { p1.appendChild(el("h3", "", "Skipped rows")).style.cssText = "font-size:17px;margin:18px 0 8px"; p1.appendChild(table(["Row", "Type", "Why it was skipped"], A.skipped.map(x => ({ cells: [x.row, x.type || "–", x.reason] })), 99)); }
+  if (A.duplicates.length) { p1.appendChild(el("h3", "", "Duplicate rows")).style.cssText = "font-size:17px;margin:18px 0 8px"; p1.appendChild(table(["Row", "Same as row"], A.duplicates.map(x => ({ cells: [x.row, x.sameAs] })), 99)); }
+  root.appendChild(p1);
+  const T = current.totals, pct = s.commissionPct;
+  const p2 = el("section", "panel"); p2.append(el("h3", "", `Every line on this statement · ${monthLabel(current.month)}`), el("p", "help", `Commission = ${pct}% × commission base. Base = ${s.commissionBase === "gross" ? "gross booking" : s.commissionBase === "payout_ex_cleaning" ? "payout minus cleaning fee" : "payout"}${s.commissionOnAdjustments === false ? "; adjustments are not charged" : ""}.`));
+  const rows = current.lines.map(l => ({ cells: [l.row ?? "–", l.type, l.guest || l.code || "–", l.start || l.date || "–", money(l.gross, cur), money(l.serviceFee, cur), money(l.cleaningFee, cur), money(l.payout, cur), money(l.commissionBase, cur), money(l.commission, cur)] }));
+  rows.foot = ["", "Total", "", "", money(T.grossRevenue, cur), money(T.airbnbFees, cur), money(T.cleaning, cur), money(T.payout, cur), "", money(T.commission, cur)];
+  p2.appendChild(table(["Row", "Type", "Guest / code", "Date", "Gross", "Airbnb fee", "Cleaning", "Payout", "Base", "Commission"], rows, 4));
+  const steps = el("dl", "kv"); steps.style.marginTop = "18px";
+  const st = [["Airbnb payout", money(T.payout, cur)], ["− Commission", money(T.commission, cur)]];
+  if (T.cleaningToCohost) st.push(["− Cleaning fees kept by co-host", money(T.cleaningToCohost, cur)]);
+  current.expenses.forEach(e => st.push([e.amount < 0 ? `+ Credit: ${e.description}` : `− Expense: ${e.description}`, money(Math.abs(e.amount), cur)]));
+  st.push(["= Owner net", money(T.ownerNet, cur)]);
+  const recv = s.payoutReceiver;
+  st.push(["Settlement", recv === "owner" ? `Owner received the payout, so owes the co-host what they earned: ${money(T.cohostEarned, cur)}` : recv === "cohost" ? `Co-host received the payout, so owes the owner the owner net: ${money(T.ownerNet, cur)}` : `Co-host earned ${money(T.cohostEarned, cur)} − already paid by Airbnb ${money(current.settlement.alreadyPaid || 0, cur)}`]);
+  st.push(["Result", current.settlement.amount === 0 ? "Nothing to settle" : `${current.settlement.label}: ${money(current.settlement.amount, cur)}`]);
+  st.forEach(([k, v]) => steps.append(el("dt", "", k), el("dd", "num", v)));
+  p2.append(el("h3", "", "How the total was worked out"), steps); p2.lastElementChild.previousElementSibling.style.cssText = "font-size:17px;margin:18px 0 8px";
+  root.appendChild(p2);
+}
+
+/* ---------- file, sample, listing/month ---------- */
+$("file").addEventListener("change", e => { const f = e.target.files[0]; if (!f) return;
+  if (f.size > 20 * 1024 * 1024) { toast("That file is over 20 MB. Export a shorter date range from Airbnb."); return; }
+  const r = new FileReader(); r.onload = () => loadCSV(String(r.result), f.name); r.onerror = () => toast("Couldn't read that file."); r.readAsText(f); e.target.value = ""; });
 const drop = $("drop");
 ["dragenter", "dragover"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add("over"); }));
 ["dragleave", "drop"].forEach(ev => drop.addEventListener(ev, () => drop.classList.remove("over")));
 $("sample").onclick = () => loadCSV(SAMPLE_CSV, "sample-airbnb.csv");
-$("listing").onchange = () => { loadSettingsUI(); refreshMonths(); renderExpenses(); loadNote(); firstRender = true; update(); };
-$("month").onchange = () => { renderExpenses(); loadNote(); firstRender = true; update(); };
-$("pct").oninput = () => saveSettings({ commissionPct: Number($("pct").value) });
-$("base").onchange = () => saveSettings({ commissionBase: $("base").value });
-$("splitAmt").oninput = () => saveSettings({ splitPaidToCohost: Number($("splitAmt").value) });
-[["cleanSeg", "cleaningTo"], ["recvSeg", "payoutReceiver"], ["bySeg", "monthBy"]].forEach(([id, key]) =>
-  document.querySelectorAll(`#${id} button`).forEach(b => b.onclick = () => { saveSettings({ [key]: b.dataset.v }); if (key === "monthBy") { refreshMonths(); renderExpenses(); update(); } }));
-$("addExp").onclick = () => { const l = store.get(expKey(), []); l.push({ description: "", amount: "" }); store.set(expKey(), l); renderExpenses(); };
-const saveBrand = () => { const b = store.get("brand", brand); b.company = $("company").value.trim(); b.ownerName = $("owner").value.trim(); store.set("brand", b); update(false); };
-$("company").oninput = saveBrand; $("owner").oninput = saveBrand;
-$("logo").onchange = e => {
-  const f = e.target.files[0]; if (!f) return;
-  const img = new Image(); img.onload = () => { const c = document.createElement("canvas"); const s = 96; c.width = c.height = s; const ctx = c.getContext("2d");
-    const m = Math.min(img.width, img.height); ctx.drawImage(img, (img.width - m) / 2, (img.height - m) / 2, m, m, 0, 0, s, s);
-    const b = store.get("brand", brand); b.logo = c.toDataURL("image/png"); store.set("brand", b); update(false); };
-  img.src = URL.createObjectURL(f);
+$("listing").onchange = () => { refreshMonths(); loadSettingsUI(); renderExpenses(); loadNote(); firstRender = true; update(); };
+$("month").onchange = () => { loadSettingsUI(); renderExpenses(); loadNote(); firstRender = true; update(); };
+
+/* ---------- export, print, share ---------- */
+const csvCell = v => { let s = v == null ? "" : String(v); if (typeof v === "string" && /^[=+\-@\t\r]/.test(s)) s = "'" + s; return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+$("exportCsv").onclick = () => {
+  if (!current) return; const st = presentable(current), T = st.totals;
+  const out = [["Source row", "Type", "Confirmation code", "Guest", "Check-in", "Nights", "Payout date", "Gross", "Airbnb fee", "Cleaning fee", "Payout", "Commission base", "Commission", "Currency"]];
+  st.lines.forEach(l => out.push([l.row ?? "", l.type, l.code, l.guest, l.start, l.nights || "", l.date, l.gross, l.serviceFee, l.cleaningFee, l.payout, l.commissionBase, l.commission, l.currency]));
+  out.push([], ["Summary"], ["Airbnb payout", T.payout], ["Commission", T.commission], ["Cleaning fees kept by co-host", T.cleaningToCohost]);
+  st.expenses.forEach(e => out.push([(e.amount < 0 ? "Credit: " : "Expense: ") + e.description, e.amount]));
+  out.push(["Owner net", T.ownerNet], [st.settlement.amount === 0 ? "Nothing to settle" : st.settlement.label, st.settlement.amount]);
+  const blob = new Blob(["\ufeff" + out.map(r => r.map(csvCell).join(",")).join("\r\n")], { type: "text/csv;charset=utf-8" });
+  const a = Object.assign(el("a"), { href: URL.createObjectURL(blob), download: `${st.listing.replace(/[^\w\- ]+/g, "").trim() || "statement"} ${st.month}.csv` });
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 };
-$("print").onclick = () => print();
+$("print").onclick = () => { if (tab !== "statement") setTab("statement"); setTimeout(() => print(), 50); };
 $("share").onclick = async () => {
-  if (!current) return; $("share").disabled = true;
+  if (!current) return; const btn = $("share"), label = btn.querySelector("span"), was = label.textContent;
+  btn.disabled = true; btn.setAttribute("aria-busy", "true"); label.textContent = "Creating link…";
   try {
-    const res = await fetch("/api/statements", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ statement: current, brand: store.get("brand", brand), note: $("note").value, previous: currentPrev }) });
-    const d = await res.json(); if (!res.ok) throw new Error(d.error || "Couldn't create link");
+    let res;
+    try { res = await fetch("/api/statements", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ statement: presentable(current), brand: getBrand(), note: $("note").value, previous: currentPrev }) }); }
+    catch { throw new Error("Couldn't reach Ownermint. Check your connection and try again."); }
+    const d = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(d.error || `Couldn't create the link (error ${res.status}).`);
     const links = store.get("links", []); links.push({ id: d.id, editKey: d.editKey, listing: current.listing, month: current.month, at: Date.now() }); store.set("links", links);
-    $("shareLink").value = `${location.origin}/s/${d.id}`; $("shareOut").style.display = ""; copy($("shareLink").value);
+    const url = `${location.origin}/s/${d.id}`; $("shareLink").value = url; $("shareOut").style.display = ""; copy(url);
+    const b = getBrand(), first = (b.ownerName || "").split(/\s+/)[0];
+    const body = `Hi${first ? " " + first : ""},\n\nYour owner statement for ${current.listing}, ${monthLabel(current.month)} is ready:\n${url}\n\nOwner net: ${money(current.totals.ownerNet, current.currency)}\n${current.settlement.amount === 0 ? "Nothing to settle this month." : `${current.settlement.label}: ${money(current.settlement.amount, current.currency)}`}\n\n${b.company || ""}`.trim();
+    $("mailLink").href = `mailto:?subject=${encodeURIComponent(`Owner statement: ${current.listing}, ${monthLabel(current.month)}`)}&body=${encodeURIComponent(body)}`;
+    renderLinks();
   } catch (e) { toast(e.message); }
-  $("share").disabled = false;
+  btn.disabled = false; btn.removeAttribute("aria-busy"); label.textContent = was;
 };
 $("copyLink").onclick = () => copy($("shareLink").value);
-$("note").oninput = () => { store.set(noteKey(), $("note").value); update(false); };
+
+/* ---------- your data ---------- */
+function renderLinks() {
+  const links = store.get("links", []), box = $("links"); box.innerHTML = "";
+  if (!links.length) { box.appendChild(el("p", "help", "None yet. Links you create appear here so you can reopen or delete them.")); return; }
+  links.slice().reverse().forEach(l => {
+    const item = el("div", "link-item"), info = el("div");
+    info.append(el("b", "", `${l.listing} · ${monthLabel(l.month)}`), el("small", "", `Created ${new Date(l.at).toLocaleDateString()}`));
+    const acts = el("div", "acts");
+    const open = Object.assign(el("a", "mini", "Open"), { href: `/s/${l.id}`, target: "_blank", rel: "noopener" });
+    const cp = Object.assign(el("button", "mini", "Copy"), { type: "button", onclick: () => copy(`${location.origin}/s/${l.id}`) });
+    const del = Object.assign(el("button", "mini danger", "Delete"), { type: "button", onclick: () => deleteLink(l) });
+    del.setAttribute("aria-label", `Delete owner link for ${l.listing}, ${monthLabel(l.month)}`);
+    acts.append(open, cp, del); item.append(info, acts); box.appendChild(item);
+  });
+}
+async function deleteLink(l) {
+  if (!confirm(`Delete the owner link for ${l.listing}, ${monthLabel(l.month)}?\n\nAnyone who opens it afterwards will see "Statement not found". This can't be undone.`)) return;
+  try {
+    let r; try { r = await fetch(`/api/statements/${encodeURIComponent(l.id)}`, { method: "DELETE", headers: { "x-edit-key": l.editKey } }); } catch { throw new Error("Couldn't reach Ownermint. Check your connection and try again."); }
+    if (r.ok || r.status === 404) { store.set("links", store.get("links", []).filter(x => x.id !== l.id)); toast(r.ok ? "Link deleted" : "That link was already gone. Removed it from your list."); }
+    else { const d = await r.json().catch(() => ({})); throw new Error(d.error || `Couldn't delete the link (error ${r.status}).`); }
+  } catch (e) { toast(e.message); }
+  renderLinks();
+}
+$("clearData").onclick = () => {
+  const n = store.get("links", []).length;
+  const msg = "Remove everything Ownermint saved in this browser: your last CSV, deals, expenses, notes and branding" + (n ? `, and your list of ${n} owner link${n === 1 ? "" : "s"}` : "") + "?" +
+    (n ? "\n\nThe owner links themselves stay online. To take them down, delete them first under \"Owner links you created\"; after clearing, this browser can no longer delete them." : "");
+  if (!confirm(msg)) return;
+  try { Object.keys(localStorage).filter(k => k.startsWith("ownermint:")).forEach(k => localStorage.removeItem(k)); } catch {}
+  location.reload();
+};
 $("fixCols").onclick = () => showMapper(rawRows);
 $("noHeader").onchange = () => showMapper(rawRows);
 $("applyMap").onclick = () => {
@@ -209,9 +438,11 @@ $("applyMap").onclick = () => {
   if (map.amount == null && map.gross == null) { toast("Pick at least the Amount or Gross earnings column"); return; }
   if ($("noHeader").checked) map.__noHeader = true;
   if (rawRows.length) store.set("colmap:" + sig(rawRows[0]), map);
-  loadCSV(rawRows.map(r => r.map(v => /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v).join(",")).join("\n"), rawName, map);
+  loadCSV(rawRows.map(r => r.map(v => /[",\n\r]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v).join(",")).join("\n"), rawName, map, true);
 };
-loadSettingsUI();
+// On narrow screens the statement sits below the form: offer a shortcut until it's on screen.
+new IntersectionObserver(es => es.forEach(e => $("jump").classList.toggle("hide", e.isIntersecting)), { threshold: 0.05 }).observe($("out"));
+renderLinks();
 const last = store.get("lastCSV"); if (last && last.text) loadCSV(last.text, last.name);
 </script>
 </body>

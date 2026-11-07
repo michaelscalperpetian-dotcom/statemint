@@ -5,11 +5,19 @@ const short = d => { if (!d) return ""; const x = new Date(d + "T00:00:00Z"); re
 const h = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
 
 function countUp(el, to, currency, dur = 1400) {
-  if (reduce) { el.textContent = money(to, currency); return; }
+  el.dataset.final = money(to, currency);
+  if (reduce) { el.textContent = el.dataset.final; return; }
   const start = performance.now();
-  const step = now => { const p = Math.min(1, (now - start) / dur); const e = 1 - Math.pow(1 - p, 4); el.textContent = money(to * e, currency); if (p < 1) requestAnimationFrame(step); };
+  const step = now => { if (el.dataset.done) return; const p = Math.min(1, (now - start) / dur); const e = 1 - Math.pow(1 - p, 4); el.textContent = money(to * e, currency); if (p < 1) requestAnimationFrame(step); };
   requestAnimationFrame(step);
 }
+// Printing or saving as PDF mid-animation must never show a half-counted number or an empty bar.
+function finishAnimations() {
+  document.querySelectorAll(".st .amt[data-final]").forEach(el => { el.dataset.done = "1"; el.textContent = el.dataset.final; });
+  document.querySelectorAll(".st .flow > div").forEach(d => { d.style.transition = "none"; d.style.width = d.dataset.w + "%"; });
+  document.querySelectorAll(".st .cal").forEach(c => c.classList.add("in"));
+}
+if (typeof window !== "undefined") { addEventListener("beforeprint", finishAnimations); matchMedia("print").addEventListener?.("change", e => e.matches && finishAnimations()); }
 
 const pctDelta = (now, before) => (before ? (now - before) / Math.abs(before) : null);
 function deltaChip(now, before, fmt) {
@@ -28,7 +36,7 @@ export function renderStatement(root, data, opts = {}) {
   const head = h("header", "st-head");
   head.appendChild(h("div", "st-coin"));
   const brandRow = h("div", "brand");
-  if (brand.logo) { const img = h("img"); img.src = brand.logo; img.alt = ""; brandRow.appendChild(img); }
+  if (brand.logo) { const img = h("img"); img.src = brand.logo; img.alt = brand.company ? brand.company + " logo" : ""; brandRow.appendChild(img); }
   brandRow.appendChild(h("span", "", brand.company || "Owner statement"));
   head.appendChild(brandRow);
   head.appendChild(h("h2", "", st.listing || "Your property"));
@@ -43,7 +51,7 @@ export function renderStatement(root, data, opts = {}) {
   big.appendChild(h("div", "label", "Owner net for the month"));
   const amt = h("div", "amt num", money(animate ? 0 : T.ownerNet, cur)); big.appendChild(amt);
   if (previous) { const c = deltaChip(T.ownerNet, previous.ownerNet, v => money(v, cur)); if (c) big.appendChild(c); }
-  big.appendChild(h("div", "who", `${st.settlement.label}: ${money(st.settlement.amount, cur)}`));
+  big.appendChild(h("div", "who", st.settlement.amount === 0 ? "Nothing to settle this month" : `${st.settlement.label}: ${money(st.settlement.amount, cur)}`));
   hero.appendChild(big);
   const kpis = h("div", "st-kpis");
   const kpi = (k, v, chip) => { const d = h("div", "kpi"); d.append(h("div", "k", k), h("div", "v num", v)); if (chip) d.appendChild(chip); kpis.appendChild(d); };
@@ -56,11 +64,13 @@ export function renderStatement(root, data, opts = {}) {
 
   // where the money went
   const flowSec = h("section", "st-sec"); flowSec.appendChild(h("h3", "", "Where the money went"));
+  // The bar shows how the payout was divided. If costs exceed the payout the owner's share is negative,
+  // which a bar can't show, so it is left out of the bar and stated in words instead.
   const parts = [
     ["Owner net", Math.max(0, T.ownerNet), "#2fd3a0"],
     ["Co-host commission", T.commission, "#8f7bff"],
     ["Cleaning", T.cleaningToCohost, "#58b4ff"],
-    ["Expenses", T.expensesTotal, "#f5c451"],
+    ["Expenses", Math.max(0, T.expensesTotal), "#f5c451"],
     ["Airbnb fees", T.airbnbFees, "#ff7a59"],
   ].filter(p => p[1] > 0);
   const totalFlow = parts.reduce((a, p) => a + p[1], 0) || 1;
@@ -69,7 +79,9 @@ export function renderStatement(root, data, opts = {}) {
     const seg = h("div"); seg.style.background = c; seg.dataset.w = (v / totalFlow * 100).toFixed(2); flow.appendChild(seg);
     const l = h("span"); const i = h("i"); i.style.background = c; l.append(i, document.createTextNode(name + " "), h("b", "num", money(v, cur))); legend.appendChild(l);
   });
-  flowSec.append(flow, legend); card.appendChild(flowSec);
+  flowSec.append(flow, legend);
+  if (T.ownerNet < 0) flowSec.appendChild(h("p", "flow-neg", `Owner net is ${money(T.ownerNet, cur)} this month: commission, cleaning and expenses add up to more than the Airbnb payout.`));
+  card.appendChild(flowSec);
 
   // calendar of stays
   const res = st.lines.filter(l => l.kind === "reservation" && l.start);
@@ -117,10 +129,10 @@ export function renderStatement(root, data, opts = {}) {
   row("Airbnb payout for these stays", T.payout);
   row(`Co-host commission (${s.commissionPct}% of ${s.commissionBase === "gross" ? "gross" : s.commissionBase === "payout_ex_cleaning" ? "payout excl. cleaning" : "payout"})`, T.commission, true);
   if (T.cleaningToCohost) row("Cleaning fees kept by co-host", T.cleaningToCohost, true);
-  st.expenses.forEach(e => row(`Expense: ${e.description}`, e.amount, true));
+  st.expenses.forEach(e => e.amount < 0 ? row(`Credit: ${e.description}`, -e.amount, false) : row(`Expense: ${e.description}`, e.amount, true));
   row("Owner net", T.ownerNet, false, "total");
   if (st.settlement.alreadyPaid != null) row("Already paid to co-host by Airbnb split", st.settlement.alreadyPaid);
-  const settle = h("div", "row total"); settle.append(h("span", "", st.settlement.label), h("span", "num", money(st.settlement.amount, cur))); rows.appendChild(settle);
+  const settle = h("div", "row total"); settle.append(h("span", "", st.settlement.amount === 0 ? "Nothing to settle" : st.settlement.label), h("span", "num", money(st.settlement.amount, cur))); rows.appendChild(settle);
   sSec.appendChild(rows); card.appendChild(sSec);
 
   const foot = h("footer", "st-foot");

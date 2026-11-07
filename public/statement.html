@@ -14,19 +14,24 @@
 <div class="page"><div class="wrap">
   <div class="no-print" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;gap:10px">
     <a class="logo" href="/" style="font-size:19px"><i style="width:24px;height:24px"></i>Ownermint</a>
-    <button class="btn btn-ghost btn-sm" onclick="print()"><span>⤓ Save as PDF</span></button>
+    <button class="btn btn-ghost btn-sm" id="printBtn" type="button"><span>⤓ Save as PDF</span></button>
   </div>
-  <div id="view"><p style="text-align:center;color:var(--ink-3)">Loading statement…</p></div>
+  <div id="view" aria-live="polite"><div class="st-loading"><span class="spinner" aria-hidden="true"></span>Loading statement…</div></div>
 </div></div>
 <script type="module">
 import { renderStatement } from "/js/view.js";
 import { cursor, tilt } from "/js/fx.js";
 cursor();
-const id = location.pathname.split("/").filter(Boolean)[1] || "";
-const res = await fetch(`/api/statements/${encodeURIComponent(id)}`);
+document.getElementById("printBtn").addEventListener("click", () => print());
 const view = document.getElementById("view");
-if (!res.ok) view.innerHTML = '<div class="st" style="padding:40px;text-align:center"><h2>Statement not found</h2><p style="color:var(--ink-3)">Check the link you were sent.</p></div>';
-else { const data = await res.json(); renderStatement(view, data); document.title = `${data.statement.listing} · Owner statement`; tilt(view, document.body, 2.5); }
+const message = (title, text) => { view.innerHTML = ""; const box = document.createElement("div"); box.className = "st st-msg"; const h = document.createElement("h2"); h.textContent = title; const p = document.createElement("p"); p.textContent = text; box.append(h, p); view.appendChild(box); };
+const id = location.pathname.split("/").filter(Boolean)[1] || "";
+try {
+  const res = await fetch(`/api/statements/${encodeURIComponent(id)}`);
+  if (res.status === 404) message("Statement not found", "This link may have been mistyped, or your co-host may have deleted the statement. Ask them for a new link.");
+  else if (!res.ok) message("Couldn't load this statement", `The server returned an error (${res.status}). Please try again in a minute.`);
+  else { const data = await res.json(); renderStatement(view, data); document.title = `${data.statement.listing} · Owner statement`; tilt(view, document.body, 2.5); }
+} catch { message("Couldn't load this statement", "Check your internet connection and reload the page."); }
 </script>
 </body>
 </html>
