@@ -385,3 +385,9 @@ html { scroll-behavior: smooth; }
 .dash-dl dt { color: var(--ink-3); } .dash-dl dd { margin: 0; overflow-wrap: anywhere; }
 .dash-actions { display: flex; gap: 10px; flex-wrap: wrap; }
 .dash-empty { font-size: 14px; color: var(--ink-2); }
+/* privacy page */
+.legal { max-width: 760px; padding-bottom: 40px; }
+.legal .panel { font-size: 15px; line-height: 1.6; }
+.legal h2 { font-size: 20px; margin: 26px 0 8px; }
+.legal ul { padding-left: 20px; margin: 0; } .legal li { margin: 6px 0; }
+.legal p { margin: 0 0 10px; }
