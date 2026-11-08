@@ -63,7 +63,7 @@ export async function refreshSubscription(env, subscriptionId) {
 
 // Creates the license for a completed checkout (from the webhook or the browser's return). Idempotent per checkout session.
 export async function licenseForSession(env, session, randomKey) {
-  const existing = await env.DB.prepare("SELECT key, plan, status, user_id FROM licenses WHERE session_id = ?").bind(session.id).first();
+  const existing = await env.DB.prepare("SELECT key, plan, status FROM licenses WHERE session_id = ?").bind(session.id).first();
   if (existing) return { ...existing, created: false };
   const subId = idOf(session.subscription);
   if (session.status !== "complete" || session.mode !== "subscription" || !subId) return { error: "This checkout isn't complete yet.", status: 409 };
@@ -72,11 +72,9 @@ export async function licenseForSession(env, session, randomKey) {
   if (!plan) return { error: "This checkout isn't for an Ownermint plan.", status: 400 };
   const key = randomKey(), now = Date.now();
   // INSERT OR IGNORE: if the webhook and the browser race, the first insert wins and both read the same row back
-  // the checkout was started by a signed-in user (client_reference_id); the plan belongs to that account
-  const ref = typeof session.client_reference_id === "string" && /^u_[A-Za-z0-9]{20}$/.test(session.client_reference_id) ? session.client_reference_id : null;
-  await env.DB.prepare("INSERT OR IGNORE INTO licenses (key, session_id, subscription_id, customer_id, plan, status, created_at, checked_at, user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
-    .bind(key, session.id, sub.id, idOf(session.customer) || idOf(sub.customer), plan, sub.status, now, now, ref).run();
-  const row = await env.DB.prepare("SELECT key, plan, status, user_id FROM licenses WHERE session_id = ?").bind(session.id).first();
+  await env.DB.prepare("INSERT OR IGNORE INTO licenses (key, session_id, subscription_id, customer_id, plan, status, created_at, checked_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
+    .bind(key, session.id, sub.id, idOf(session.customer) || idOf(sub.customer), plan, sub.status, now, now).run();
+  const row = await env.DB.prepare("SELECT key, plan, status FROM licenses WHERE session_id = ?").bind(session.id).first();
   return { ...row, created: row.key === key };
 }
 

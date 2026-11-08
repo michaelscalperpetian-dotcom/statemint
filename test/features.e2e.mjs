@@ -2,16 +2,14 @@
 // Expected numbers (worked out by hand) are in the comments. Run against a local server: BASE=http://localhost:8790 node test/features.e2e.mjs
 import { createRequire } from "node:module";
 import assert from "node:assert/strict";
-import { start } from "./fake-stripe.mjs";
-import { signIn } from "./signin.mjs";
 const { chromium } = createRequire(import.meta.url)("playwright");
 const BASE = process.env.BASE || "http://localhost:8790", OUT = process.env.OUT || ".";
 const csv = new URL("./fixture-features.csv", import.meta.url).pathname;
-const browser = await chromium.launch(); const fake = start(8799);
+const browser = await chromium.launch();
 const errors = []; let n = 0; const ok = name => { n++; console.log("ok -", name); };
 const final = async p => (await p.getAttribute("#view .st-big .amt", "data-final")) ?? (await p.textContent("#view .st-big .amt")).trim();
 try {
-  const pctx = await browser.newContext({ viewport: { width: 1360, height: 900 } }); await signIn(pctx, BASE); const page = await pctx.newPage();
+  const page = await (await browser.newContext({ viewport: { width: 1360, height: 900 } })).newPage();
   page.on("pageerror", e => errors.push(e.message)); page.on("dialog", d => d.accept());
   page.on("console", m => { if (m.type() === "error" && !/Failed to load resource|fonts\./.test(m.text())) errors.push(m.text()); });
   await page.goto(BASE + "/app", { waitUntil: "load" });
@@ -112,4 +110,4 @@ try {
 
   assert.equal(errors.length, 0, errors.join("\n")); ok("no JavaScript errors");
   console.log(`\n${n} feature checks passed`);
-} finally { await browser.close(); fake.close(); }
+} finally { await browser.close(); }

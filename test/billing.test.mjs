@@ -4,7 +4,6 @@ import assert from "node:assert/strict";
 import { execSync } from "node:child_process";
 import { createHmac } from "node:crypto";
 import { start, state } from "./fake-stripe.mjs";
-import { apiSignIn, uniqueEmail, userIdFor } from "./signin.mjs";
 import { verifySignature, encodeForm } from "../functions/_billing.js";
 const BASE = process.env.BASE || "http://localhost:8790", WHSEC = "whsec_test_secret";
 execSync(`npx wrangler d1 execute statemint --local --command "DELETE FROM licenses WHERE session_id LIKE 'cs_test_%'"`, { stdio: "ignore" });
@@ -25,63 +24,48 @@ try {
     assert.equal(await verifySignature(p, "garbage", WHSEC, 300, t), false); });
   await ok("form encoding matches Stripe's nested format", async () => assert.equal(encodeForm({ a: { b: [{ c: 1 }] }, x: "y z" }), "a%5Bb%5D%5B0%5D%5Bc%5D=1&x=y%20z"));
   await ok("config: checkout enabled", async () => assert.equal((await (await fetch(BASE + "/api/billing/config")).json()).enabled, true));
-  const A = await apiSignIn(BASE, uniqueEmail("buyer")), B = await apiSignIn(BASE, uniqueEmail("other"));
-  const aId = userIdFor(A.email); state.paidRef = aId;
-  const as = who => ({ cookie: who.cookie, connection: "close" });
-  const me = async who => (await fetch(BASE + "/api/me", { headers: as(who) })).json();
-  await ok("checkout: signed out 401, cross-site 403, unknown plan 400", async () => {
-    assert.equal((await post("/api/billing/checkout", { plan: "pro", interval: "year" })).status, 401);
-    assert.equal((await post("/api/billing/checkout", { plan: "pro", interval: "year" }, { ...as(A), origin: "https://evil.example" })).status, 403);
-    assert.equal((await post("/api/billing/checkout", { plan: "gold", interval: "month" }, as(A))).status, 400); });
-  await ok("checkout: Pro yearly -> Stripe URL; Managed Payments, flexible billing, the server's price, tied to the account", async () => {
-    const r = await post("/api/billing/checkout", { plan: "pro", interval: "year", price: "price_attacker" }, as(A)); assert.equal(r.status, 200);
+  await ok("checkout: unknown plan -> 400", async () => assert.equal((await post("/api/billing/checkout", { plan: "gold", interval: "month" })).status, 400));
+  await ok("checkout: Pro yearly -> Stripe URL; sends Managed Payments, flexible billing, the server's price, success/cancel URLs", async () => {
+    const r = await post("/api/billing/checkout", { plan: "pro", interval: "year", price: "price_attacker" }); assert.equal(r.status, 200);
     assert.match((await r.json()).url, /^https:\/\/checkout\.stripe\.com\//);
     const f = state.lastCheckout;
     assert.equal(f["line_items[0][price]"], "price_test_pro_year"); assert.equal(f["managed_payments[enabled]"], "true");
     assert.equal(f["subscription_data[billing_mode][type]"], "flexible"); assert.equal(f.mode, "subscription");
-    assert.deepEqual([f.client_reference_id, f.customer_email], [aId, A.email]);
     assert.match(f.success_url, /\/app\?checkout=\{CHECKOUT_SESSION_ID\}$/); assert.match(f.cancel_url, /\/app\?checkout=cancelled$/); });
   await ok("webhook: missing or forged signature -> 400, nothing recorded", async () => {
     assert.equal((await hook({ type: "checkout.session.completed", data: { object: { id: "cs_test_paidhost1234", mode: "subscription", status: "complete" } } }, "")).status, 400);
     assert.equal((await hook({ type: "checkout.session.completed", data: { object: { id: "cs_test_paidhost1234", mode: "subscription", status: "complete" } } }, sign("{}"))).status, 400);
     assert.equal(db("SELECT COUNT(*) AS c FROM licenses WHERE session_id = 'cs_test_paidhost1234'")[0].c, 0); });
-  await ok("webhook: checkout.session.completed puts the plan on the buyer's account even if they never return", async () => {
+  let key;
+  await ok("webhook: checkout.session.completed creates the license (customer stored) even if the buyer never returns", async () => {
     assert.equal((await hook({ id: "evt_1", type: "checkout.session.completed", data: { object: { id: "cs_test_paidhost1234", mode: "subscription", status: "complete" } } })).status, 200);
-    const row = db("SELECT plan, status, customer_id, user_id FROM licenses WHERE session_id = 'cs_test_paidhost1234'")[0];
-    assert.deepEqual([row.plan, row.status, row.customer_id, row.user_id], ["host", "active", "cus_test_1", aId]);
-    const m = await me(A); assert.deepEqual([m.plan, m.hasSubscription, m.canManageBilling], ["host", true, true]);
-    assert.equal((await me(B)).plan, "free"); });
-  await ok("claim after webhook confirms the plan (repeating the webhook doesn't create a second record); another account gets 403", async () => {
+    const row = db("SELECT key, plan, status, customer_id FROM licenses WHERE session_id = 'cs_test_paidhost1234'")[0];
+    assert.deepEqual([row.plan, row.status, row.customer_id], ["host", "active", "cus_test_1"]); key = row.key; });
+  await ok("claim after webhook returns the same key (and repeating the webhook doesn't create a second one)", async () => {
     await hook({ id: "evt_1", type: "checkout.session.completed", data: { object: { id: "cs_test_paidhost1234", mode: "subscription", status: "complete" } } });
-    const d = await (await post("/api/billing/claim", { session_id: "cs_test_paidhost1234" }, as(A))).json(); assert.deepEqual([d.plan, d.active], ["host", true]);
-    assert.equal(db("SELECT COUNT(*) AS c FROM licenses WHERE session_id = 'cs_test_paidhost1234'")[0].c, 1);
-    assert.equal((await post("/api/billing/claim", { session_id: "cs_test_paidhost1234" }, as(B))).status, 403);
-    assert.equal((await post("/api/billing/claim", { session_id: "cs_test_paidhost1234" })).status, 401); });
+    const d = await (await post("/api/billing/claim", { session_id: "cs_test_paidhost1234" })).json(); assert.equal(d.key, key);
+    assert.equal(db("SELECT COUNT(*) AS c FROM licenses WHERE session_id = 'cs_test_paidhost1234'")[0].c, 1); });
   await ok("claim: malformed / unknown / unpaid -> 400 / 404 / 409", async () => {
-    assert.equal((await post("/api/billing/claim", { session_id: "hello" }, as(A))).status, 400);
-    assert.equal((await post("/api/billing/claim", { session_id: "cs_test_doesnotexist1" }, as(A))).status, 404);
-    assert.equal((await post("/api/billing/claim", { session_id: "cs_test_unpaid12345" }, as(A))).status, 409); });
-  await ok("checkout again while subscribed -> 409 (change plan in the portal instead)", async () => assert.equal((await post("/api/billing/checkout", { plan: "pro", interval: "month" }, as(A))).status, 409));
-  await ok("delete account while subscribed -> 409 'cancel first'", async () => {
-    const r = await fetch(BASE + "/api/account", { method: "DELETE", headers: as(A) }); assert.equal(r.status, 409); assert.match((await r.json()).error, /cancel your subscription first/i); });
-  await ok("webhook: upgrade to Pro in the portal (subscription.updated) switches the account to Pro immediately", async () => {
+    assert.equal((await post("/api/billing/claim", { session_id: "hello" })).status, 400);
+    assert.equal((await post("/api/billing/claim", { session_id: "cs_test_doesnotexist1" })).status, 404);
+    assert.equal((await post("/api/billing/claim", { session_id: "cs_test_unpaid12345" })).status, 409); });
+  await ok("webhook: upgrade to Pro in the portal (subscription.updated) switches the license to Pro immediately", async () => {
     state.subPrice = "price_test_pro_month";
     assert.equal((await hook({ type: "customer.subscription.updated", data: { object: { id: "sub_test_1", status: "active" } } })).status, 200);
-    assert.equal((await me(A)).plan, "pro"); });
+    const d = await (await post("/api/billing/license", { key })).json(); assert.deepEqual([d.plan, d.active], ["pro", true]); });
   await ok("webhook: invoice.payment_failed (new invoice shape) -> past_due, access kept while Stripe retries", async () => {
     state.subStatus = "past_due";
     await hook({ type: "invoice.payment_failed", data: { object: { id: "in_1", parent: { subscription_details: { subscription: "sub_test_1" } } } } });
-    const m = await me(A); assert.deepEqual([m.subscriptionStatus, m.plan], ["past_due", "pro"]); });
-  await ok("portal: the subscriber's customer, our configuration, back to the dashboard; no subscription -> 404; signed out -> 401", async () => {
-    const r = await post("/api/billing/portal", {}, as(A)); assert.equal(r.status, 200); assert.match((await r.json()).url, /^https:\/\/billing\.stripe\.com\//);
-    assert.deepEqual([state.lastPortal.customer, state.lastPortal.configuration], ["cus_test_1", "bpc_test"]); assert.match(state.lastPortal.return_url, /\/dashboard$/);
-    assert.equal((await post("/api/billing/portal", {}, as(B))).status, 404); assert.equal((await post("/api/billing/portal", {})).status, 401); });
-  await ok("webhook: subscription.deleted -> canceled, back to Free", async () => {
+    const d = await (await post("/api/billing/license", { key })).json(); assert.deepEqual([d.status, d.active], ["past_due", true]); });
+  await ok("webhook: subscription.deleted -> canceled, paid features off", async () => {
     state.subStatus = "canceled";
     await hook({ type: "customer.subscription.deleted", data: { object: { id: "sub_test_1", status: "canceled" } } });
-    const m = await me(A); assert.deepEqual([m.plan, m.hasSubscription, m.subscriptionStatus], ["free", false, "canceled"]); });
+    const d = await (await post("/api/billing/license", { key })).json(); assert.deepEqual([d.status, d.active], ["canceled", false]); });
   await ok("webhook: unrelated event types are acknowledged (200) and ignored", async () => assert.equal((await hook({ type: "customer.created", data: { object: {} } })).status, 200));
-  await ok("after cancelling, the account can be deleted", async () => {
-    assert.equal((await fetch(BASE + "/api/account", { method: "DELETE", headers: as(A) })).status, 200); assert.equal((await fetch(BASE + "/api/me", { headers: as(A) })).status, 401); });
+  await ok("portal: valid key -> Stripe billing page for that customer with our configuration; bad key -> 404", async () => {
+    const r = await post("/api/billing/portal", { key }); assert.equal(r.status, 200); assert.match((await r.json()).url, /^https:\/\/billing\.stripe\.com\//);
+    assert.deepEqual([state.lastPortal.customer, state.lastPortal.configuration], ["cus_test_1", "bpc_test"]); assert.match(state.lastPortal.return_url, /\/app$/);
+    assert.equal((await post("/api/billing/portal", { key: "om_" + "x".repeat(28) })).status, 404); });
+  await ok("license: wrong key -> 404", async () => { assert.equal((await post("/api/billing/license", { key: "om_" + "x".repeat(28) })).status, 404); assert.equal((await post("/api/billing/license", { key: "nope" })).status, 404); });
   console.log(`\n${n} billing checks passed`);
-} finally { server.close(); state.subStatus = "active"; state.subPrice = "price_test_host_month"; state.paidRef = null; }
+} finally { server.close(); state.subStatus = "active"; state.subPrice = "price_test_host_month"; }

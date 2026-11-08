@@ -2,8 +2,7 @@
 // Needs the local dev server with .dev.vars pointing at the fake Stripe: BASE=http://localhost:8790 node test/plans.e2e.mjs
 import { createRequire } from "node:module";
 import assert from "node:assert/strict";
-import { start, state } from "./fake-stripe.mjs";
-import { signIn, uniqueEmail, userIdFor } from "./signin.mjs";
+import { start } from "./fake-stripe.mjs";
 import { execSync } from "node:child_process";
 execSync(`npx wrangler d1 execute statemint --local --command "DELETE FROM licenses WHERE session_id LIKE 'cs_test_%'"`, { stdio: "ignore" });
 const { chromium } = createRequire(import.meta.url)("playwright");
@@ -15,7 +14,6 @@ const errors = [];
 let n = 0; const ok = name => { n++; console.log("ok -", name); };
 try {
   const ctx = await browser.newContext({ viewport: { width: 1360, height: 900 } });
-  const HOST = await signIn(ctx, BASE, uniqueEmail("plans"));
   // Stripe's hosted pages are stubbed so we can see the browser being sent there
   await ctx.route(/https:\/\/(checkout|billing)\.stripe\.com\/.*/, r => r.fulfill({ status: 200, contentType: "text/html", body: "<h1>stripe</h1>" }));
   const page = await ctx.newPage();
@@ -52,7 +50,7 @@ try {
   assert.ok((await page.textContent("#portfolio")).includes("Not on your Free plan")); await page.click(".tabs button[data-tab=statement]"); ok("all-properties view shows locked properties without numbers");
 
   // 4b. upgrade button really opens Stripe Checkout
-  const upCtx = await browser.newContext(); await signIn(upCtx, BASE); const up = await upCtx.newPage();
+  const up = await (await browser.newContext()).newPage();
   await up.context().route(/https:\/\/(checkout|billing)\.stripe\.com\/.*/, r => r.fulfill({ status: 200, contentType: "text/html", body: "<h1>stripe</h1>" }));
   await up.goto(BASE + "/app", { waitUntil: "load" }); await up.setInputFiles("#file", csvPath); await up.waitForSelector("#view .st");
   const lockedName = (await up.$$eval("#listing option", o => o.filter(x => x.textContent.startsWith("🔒")).map(x => x.value)))[0];
@@ -60,22 +58,18 @@ try {
   await Promise.all([up.waitForURL(/checkout\.stripe\.com/), up.click(".lock-card .up-card button")]);
   ok("Upgrade sends the browser to Stripe Checkout"); await up.close();
 
-  // 5. checkout return -> Host plan on the account, both properties unlocked, URL cleaned
-  state.paidRef = userIdFor(HOST);
+  // 5. checkout return -> Host plan, both properties unlocked, key shown, URL cleaned
   await page.goto(BASE + "/app?checkout=cs_test_paidhost1234", { waitUntil: "load" });
   await page.waitForFunction(() => document.getElementById("planBox").textContent.includes("Host plan"), null, { timeout: 15000 });
   assert.equal(new URL(page.url()).search, "");
-  assert.ok((await page.textContent("#planBox .notice")).includes("on your account"));
+  assert.match(await page.textContent("#planBox .lic code"), /^om_[A-Za-z0-9]{28}$/);
   assert.equal(await page.$$eval("#listing option", o => o.filter(x => x.textContent.startsWith("🔒")).length), 0);
-  ok("returning from checkout activates Host on the account: both properties unlocked, ?checkout removed");
-  const other = await browser.newContext(); await signIn(other, BASE, HOST); const op = await other.newPage();
-  await op.goto(BASE + "/dashboard", { waitUntil: "load" }); await op.waitForFunction(() => document.getElementById("planBody").textContent.includes("Host plan"));
-  ok("the plan follows the account: another browser signed in as the same host sees Host on the dashboard"); await other.close();
+  ok("returning from checkout activates Host: both properties unlocked, license key shown, ?checkout removed");
   const manage = page.locator("#planBox button", { hasText: "Manage subscription" });
   assert.equal(await manage.count(), 1);
   await Promise.all([page.waitForURL(/billing\.stripe\.com/), manage.click()]);
   ok("Manage subscription opens Stripe's billing portal");
-  await page.goBack({ waitUntil: "load" }); await page.waitForSelector("#planBox button >> text=Manage subscription");
+  await page.goBack({ waitUntil: "load" }); await page.waitForSelector("#planBox .lic");
   await page.screenshot({ path: OUT + "/host.png" });
 
   // 6. my own home report
@@ -90,7 +84,7 @@ try {
   assert.ok((await page.textContent(".st-big .who")).match(/Owner pays host|Host pays owner|Nothing to settle/)); ok("switching back gives an owner statement with 'host' wording");
 
   // 7. sample data is never limited
-  const p2c = await browser.newContext(); await signIn(p2c, BASE); const p2 = await p2c.newPage(); p2.on("pageerror", e => errors.push(e.message));
+  const p2 = await (await browser.newContext()).newPage(); p2.on("pageerror", e => errors.push(e.message));
   await p2.goto(BASE + "/app", { waitUntil: "load" }); await p2.click("#sample"); await p2.waitForSelector("#view .st");
   assert.equal(await p2.$$eval("#listing option", o => o.filter(x => x.textContent.startsWith("🔒")).length), 0); ok("sample data is not limited");
 
@@ -108,16 +102,8 @@ try {
   await lp.click(".bill-toggle button[data-int=month]");
   assert.equal((await lp.textContent("[data-buy=host]")).trim(), "Choose Host");
   assert.ok((await lp.textContent("h1")).includes("Airbnb statements")); assert.ok(!(await lp.textContent("body")).toLowerCase().includes("co-host"));
-  // signed out: Choose Pro asks you to sign in first, then goes straight on to Stripe Checkout
-  await Promise.all([lp.waitForURL(/\/login\?next=/), lp.click("[data-buy=pro]")]);
-  assert.equal(new URL(lp.url()).searchParams.get("next"), "/app?buy=pro&interval=month");
-  const hint = new URL(lp.url()).searchParams.get("next");
-  await Promise.all([lp.waitForURL(/checkout\.stripe\.com/, { timeout: 15000 }), lp.goto(`${BASE}/api/auth/login?login_hint=${encodeURIComponent(uniqueEmail("landing"))}&next=${encodeURIComponent(hint)}`)]);
-  assert.equal(state.lastCheckout["line_items[0][price]"], "price_test_pro_month");
-  ok("landing: hosts wording, yearly $4.17 / $12.50 per month, monthly ($5 / $15) shown first; signed out, Choose Pro signs you in and then opens Stripe Checkout for Pro monthly");
-  await lp.goto(BASE + "/", { waitUntil: "load" }); await lp.waitForFunction(() => document.getElementById("navAcct").textContent === "Dashboard");
-  await Promise.all([lp.waitForURL(/checkout\.stripe\.com/), lp.click("[data-buy=host]")]);
-  ok("signed in: the nav shows Dashboard and Choose Host goes straight to Stripe Checkout");
+  await Promise.all([lp.waitForURL(/checkout\.stripe\.com/), lp.click("[data-buy=pro]")]);
+  ok("landing: hosts wording, yearly $4.17 / $12.50 per month, monthly ($5 / $15) shown first, yearly on click, Choose Pro opens Stripe Checkout");
   // early click: settings still loading must not fall through to the app
   const early = await lpCtx.newPage();
   await early.route("**/api/billing/config", async r => { await new Promise(res => setTimeout(res, 1500)); await r.continue(); });
@@ -135,4 +121,4 @@ try {
 
   assert.equal(errors.length, 0, errors.join("\n")); ok("no JavaScript errors");
   console.log(`\n${n} plan checks passed`);
-} finally { await browser.close(); fake.close(); state.paidRef = null; }
+} finally { await browser.close(); fake.close(); }
