@@ -354,3 +354,27 @@ html { scroll-behavior: smooth; }
 .nf { min-height: 100vh; display: grid; place-content: center; justify-items: start; gap: 18px; padding: 24px; max-width: 640px; margin: 0 auto; }
 .nf h1 { font-size: clamp(36px, 6vw, 56px); } .nf p { color: var(--ink-2); font-size: 18px; line-height: 1.5; margin: 0; }
 .nf-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+/* dashboard */
+.dash-page { min-height: 100vh; background: radial-gradient(900px 500px at 50% -10%, #cdf5e6, transparent), var(--bg); padding-bottom: 60px; }
+.dash-wrap { width: min(1080px, 100% - 32px); margin: 0 auto; }
+.dash-bar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding: 18px 0; }
+.dash-bar .acct { margin: 0; gap: 14px; } .dash-bar .acct-who { flex-basis: auto; max-width: 260px; }
+.dash-h { font-size: clamp(30px, 5vw, 44px); margin: 18px 0 10px; }
+.dash-nav { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 18px; }
+.dash-nav a { padding: 8px 12px; border-radius: 10px; background: #fff; box-shadow: var(--shadow); font-size: 13px; font-weight: 600; text-decoration: none; color: var(--ink); }
+.dash-int { margin: 12px 0 8px; max-width: 360px; }
+.panel .up-card { margin-top: 8px; max-width: 560px; }
+.panel .plan-head { max-width: 560px; }
+.panel > div > .btn { margin-top: 12px; }
+.dash-sub { margin: 22px 0 4px; font-size: 16px; }
+.tbl td.acts { display: flex; gap: 6px; }
+.dash-dl { display: grid; grid-template-columns: max-content 1fr; gap: 6px 18px; margin: 4px 0 16px; font-size: 14px; }
+.dash-dl dt { color: var(--ink-3); } .dash-dl dd { margin: 0; overflow-wrap: anywhere; }
+.dash-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.dash-empty { font-size: 14px; color: var(--ink-2); }
+/* privacy page */
+.legal { max-width: 760px; padding-bottom: 40px; }
+.legal .panel { font-size: 15px; line-height: 1.6; }
+.legal h2 { font-size: 20px; margin: 26px 0 8px; }
+.legal ul { padding-left: 20px; margin: 0; } .legal li { margin: 6px 0; }
+.legal p { margin: 0 0 10px; }
