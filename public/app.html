@@ -12,10 +12,11 @@
 <div class="app">
   <aside class="side">
     <a class="logo" href="/"><i></i>Ownermint</a>
+    <div class="acct"><span class="acct-who" id="acctWho"></span><a href="/dashboard">Dashboard</a><button type="button" class="linkish" id="signOut">Sign out</button></div>
 
     <div class="step-h"><em>1</em>Your Airbnb report</div>
     <div class="drop" id="drop"><input type="file" id="file" accept=".csv,text/csv" aria-label="Upload Airbnb CSV">
-      <div style="font-size:30px" aria-hidden="true">📄</div><b id="dropTitle">Drop your Airbnb CSV here</b><small>Earnings → Transaction history → Export CSV.<br>Read inside your browser; the file is never uploaded.</small></div>
+      <div style="font-size:30px" aria-hidden="true">📄</div><b id="dropTitle">Drop your Airbnb CSV here</b><small>Earnings → Transaction history → Export CSV.<br>Saved to your account so it's on every device.</small></div>
     <div style="margin-top:8px"><button class="btn btn-ghost btn-sm" id="sample" type="button"><span>Try with sample data</span></button></div>
     <div id="warns" role="status"></div>
     <div id="parseOpts" style="display:none">
@@ -69,6 +70,7 @@
       <div class="step-h"><em>4</em>Branding</div>
       <div class="field"><label for="company">Your business name</label><input class="input" id="company" maxlength="60" placeholder="e.g. Lakeside Hosting"></div>
       <div class="field"><label for="owner" id="ownerL">Owner's name</label><input class="input" id="owner" maxlength="60" placeholder="e.g. Pat Morgan"></div>
+      <div class="field"><label for="ownerEmail" id="ownerEmailL">Owner's email</label><input class="input" id="ownerEmail" type="email" maxlength="254" autocomplete="off" placeholder="e.g. pat@example.com"><div class="field-err" id="ownerEmailErr" aria-live="polite"></div><div class="help" id="ownerEmailHelp">Only this person can open the owner link: they sign in with the Google account for this email. Saved for this property.</div></div>
       <div class="field"><label for="logo">Logo (optional)</label><input class="input" id="logo" type="file" accept="image/png,image/jpeg,image/webp,image/gif"><button class="btn btn-ghost btn-sm" id="logoClear" type="button" style="display:none;justify-self:start"><span>Remove logo</span></button></div>
       <div class="field"><label for="guestNames">Guest names on the statement</label><select class="input" id="guestNames"><option value="full">Full names</option><option value="first">First names only</option><option value="none">Hide names (show booking code)</option></select></div>
       <div class="field"><label for="note">Note to the owner (this month)</label><textarea class="input" id="note" rows="3" maxlength="600" placeholder="e.g. Busy month! Replaced the shower head; receipt attached."></textarea></div>
@@ -77,9 +79,9 @@
       <div id="planBox" class="plan-box" aria-live="polite"></div>
 
       <div class="step-h"><em>6</em>Your data</div>
-      <p class="help" style="margin-top:0">Your file, deals, expenses and branding are saved in this browser only, so they're here next time. Owner links are the only thing stored on our server.</p>
+      <p class="help" style="margin-top:0">Your file, deals, expenses, branding and saved statements are saved to your account, so they're there whenever you sign in.</p>
       <button class="btn btn-ghost btn-sm" id="openSaved" type="button"><span>Saved statements &amp; owner links →</span></button>
-      <div style="margin-top:14px"><button class="btn btn-sm btn-danger" id="clearData" type="button"><span>Clear my data from this browser</span></button></div>
+      <div style="margin-top:14px"><button class="btn btn-sm btn-danger" id="clearData" type="button"><span>Delete my saved data</span></button></div>
     </div>
   </aside>
 
@@ -103,7 +105,7 @@
         <button role="tab" type="button" data-tab="audit" aria-selected="false" aria-controls="audit">Audit trail</button>
       </div>
       <div id="shareOut" class="no-print" style="display:none;margin:-6px 0 18px"><div class="sharebox"><input class="input" id="shareLink" readonly aria-label="Owner link"><button class="btn btn-sm" id="copyLink" type="button"><span>Copy</span></button><a class="btn btn-ghost btn-sm" id="mailLink" href="#"><span>✉ Email</span></a></div>
-        <p class="help">Anyone with this link can view the statement (including guest names as shown and your note). Your CSV is not uploaded. "Email" opens your own email app with a ready-made message; Ownermint doesn't send email. You can delete the link any time in the Saved tab.</p></div>
+        <p class="help" id="shareHelp">Only <b id="shareWho"></b> can open this link, after signing in with Google (you can too). It shows the statement as you see it, including guest names as shown and your note. "Email" opens your own email app with a ready-made message; Ownermint doesn't send email. You can delete the link any time in the Saved tab or your dashboard.</p></div>
       <div id="stWarns" class="st-warns no-print" role="status"></div>
       <div id="view" role="tabpanel"></div>
       <div id="portfolio" role="tabpanel" style="display:none"></div>
@@ -119,6 +121,10 @@ import { parseCSV, toTransactions, detectColumns, listings, months, buildStateme
 import { renderStatement } from "/js/view.js";
 import { cursor, magnetic, toast, copy, store } from "/js/fx.js";
 import { PLANS, limitLabel, billingConfig, startCheckout, openPortal } from "/js/plans.js";
+import { ensureSession, fetchMe, signOut, deleteAllData } from "/js/account.js";
+// signed in, and this browser's data is in step with the account (must come before anything reads the store)
+let me = await ensureSession();
+document.getElementById("acctWho").textContent = me.user.email;
 cursor({ subtle: true }); magnetic();
 const $ = s => document.getElementById(s);
 const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
@@ -210,6 +216,9 @@ function loadSettingsUI(force = true) {
   const own = s.reportType === "own"; setSeg("typeSeg", own ? "own" : "managed"); $("dealFields").style.display = own ? "none" : "";
   $("typeHelp").textContent = own ? "An earnings report for your own home: payout, Airbnb fees, cleaning and expenses. No commission or settlement." : "An owner statement: your commission, who keeps cleaning fees, and who owes whom.";
   $("ownerL").textContent = own ? "Report for (optional, e.g. a co-owner or your accountant)" : "Owner's name";
+  $("ownerEmailL").textContent = own ? "Share with (email)" : "Owner's email";
+  $("ownerEmailHelp").textContent = own ? "Only this person can open the share link: they sign in with the Google account for this email. Saved for this property." : "Only this person can open the owner link: they sign in with the Google account for this email. Saved for this property.";
+  if (force || document.activeElement !== $("ownerEmail")) { $("ownerEmail").value = s.ownerEmail || ""; $("ownerEmailErr").textContent = ""; }
   $("share").querySelector("span").textContent = own ? "✦ Get share link" : "✦ Get owner link";
   setSeg("cleanSeg", s.cleaningTo); setSeg("recvSeg", s.payoutReceiver); setSeg("bySeg", s.monthBy);
   if (force || document.activeElement !== $("splitAmt")) { const v = store.get(splitKey()); $("splitAmt").value = v ? v : ""; setSplitError(""); }
@@ -388,6 +397,9 @@ function loadNote() { $("note").value = store.get(noteKey(), ""); }
 $("note").oninput = () => { store.set(noteKey(), $("note").value); update(); };
 const getBrand = () => ({ guestNames: "full", ...store.get("brand", brand) });
 const saveBrand = () => { const b = getBrand(); b.company = $("company").value.trim(); b.ownerName = $("owner").value.trim(); b.guestNames = $("guestNames").value; store.set("brand", b); update(); };
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+$("ownerEmail").oninput = () => { const v = $("ownerEmail").value.trim().toLowerCase(); $("ownerEmailErr").textContent = ""; saveSettingsQuiet({ ownerEmail: v }); };
+$("ownerEmail").onblur = () => { const v = $("ownerEmail").value.trim(); $("ownerEmailErr").textContent = v && !EMAIL_RE.test(v) ? "That doesn't look like an email address." : ""; };
 $("company").oninput = saveBrand; $("owner").oninput = saveBrand; $("guestNames").onchange = saveBrand;
 function showLogoClear() { $("logoClear").style.display = getBrand().logo ? "" : "none"; }
 $("logo").onchange = e => {
@@ -409,10 +421,9 @@ function presentable(st) {
 }
 
 /* ---------- plan limits ---------- */
-// Free = 1 property, Host = 5, Pro = unlimited. Enforced in this browser (the app runs here; the CSV never reaches the server).
+// Free = 1 property, Host = 5, Pro = unlimited. The plan comes from your account (your Stripe subscription).
 let billing = { enabled: false, links: {} }, interval = "month"; // monthly prices are shown first
-const getLicense = () => store.get("license", null);
-const currentPlan = () => { const l = getLicense(); return l && l.active && PLANS[l.plan] ? l.plan : "free"; };
+const currentPlan = () => (PLANS[me.plan] ? me.plan : "free");
 const isSample = () => rawText === SAMPLE_CSV; // the built-in demo file is never limited
 const DAY_MS = 86400000, SWITCH_DAYS = 30;
 // Properties on the plan, in the order they were added. Empty slots fill automatically; swapping one out is limited.
@@ -443,12 +454,12 @@ function upgradeButtons(container, rerender) {
     const P = PLANS[p], card = el("div", "up-card"), info = el("div");
     const price = interval === "year" ? `$${P.year}/year (≈ $${(P.year / 12).toFixed(2)}/mo)` : `$${P.month}/month`;
     info.append(el("b", "", P.name), el("small", "", `${limitLabel(p)} · ${price}`));
-    const lic = getLicense(), hasSub = !!(lic && lic.active);
+    const hasSub = !!me.hasSubscription;
     const btn = Object.assign(el("button", billing.enabled ? "btn btn-mint btn-sm" : "btn btn-sm"), { type: "button", disabled: !billing.enabled });
     const label = el("span", "", !billing.enabled ? "Opening soon" : hasSub ? "Change plan" : "Upgrade"); btn.appendChild(label);
     if (!billing.enabled) btn.title = "Paid plans open soon";
     // an existing subscriber changes plan in Stripe's portal (prorated), so nobody ends up paying for two plans
-    btn.onclick = async () => { btn.disabled = true; label.textContent = "Opening…"; try { if (hasSub) await openPortal(lic.key); else await startCheckout(p, interval); } catch (e) { toast(e.message); btn.disabled = false; label.textContent = hasSub ? "Change plan" : "Upgrade"; } };
+    btn.onclick = async () => { btn.disabled = true; label.textContent = "Opening…"; try { if (hasSub) await openPortal(); else await startCheckout(p, interval); } catch (e) { toast(e.message); btn.disabled = false; label.textContent = hasSub ? "Change plan" : "Upgrade"; } };
     card.append(info, btn); wrap.appendChild(card);
   });
   wrap.appendChild(el("p", "help", billing.enabled ? "Secure checkout by Stripe. Tax is added where it applies. Cancel anytime." : "Paid plans are opening soon. Everything works on the Free plan for 1 property."));
@@ -456,38 +467,24 @@ function upgradeButtons(container, rerender) {
 }
 function renderPlan() {
   const box = $("planBox"); if (!box) return; box.innerHTML = "";
-  const plan = currentPlan(), lic = getLicense(), P = PLANS[plan];
+  const plan = currentPlan(), P = PLANS[plan];
   const chosen = store.get("chosenProperties", []).slice(0, P.limit);
   const head = el("div", "plan-head"); head.append(el("b", "", `${P.name} plan`), el("small", "", P.limit === Infinity ? "Unlimited properties" : `${chosen.length} of ${P.limit} propert${P.limit === 1 ? "y" : "ies"} used`));
   box.appendChild(head);
-  if (lic && !lic.active) box.appendChild(el("div", "warn", `Your ${PLANS[lic.plan]?.name || "paid"} subscription is ${lic.status}. You're on the Free plan until it's active again.`));
+  if (me.subscriptionStatus && !me.hasSubscription && me.canManageBilling) box.appendChild(el("div", "warn", `Your subscription is ${me.subscriptionStatus.replace(/_/g, " ")}. You're on the Free plan until it's active again.`));
   if (chosen.length && P.limit !== Infinity) box.appendChild(el("p", "help", `On your plan: ${chosen.join(", ")}.` + (canSwitch() ? "" : ` You can swap a property again on ${nextSwitchDate().toLocaleDateString()}.`)));
   if (P.limit !== Infinity) upgradeButtons(box);
-  if (lic) {
-    const k = el("div", "lic"); k.append(el("small", "", "License key"), el("code", "", lic.key));
-    const cp = Object.assign(el("button", "mini", "Copy"), { type: "button", onclick: () => copy(lic.key) });
-    const rm = Object.assign(el("button", "mini danger", "Remove"), { type: "button", onclick: () => { if (confirm("Remove the license key from this browser? Your subscription isn't cancelled; you can enter the key again any time.")) { store.set("license", null); renderPlan(); refreshListingLabels(); update(); } } });
-    k.append(cp, rm); box.appendChild(k);
-    if (billing.enabled) { const mg = Object.assign(el("button", "btn btn-ghost btn-sm"), { type: "button" }); const ml = el("span", "", "Manage subscription"); mg.appendChild(ml);
-      mg.onclick = async () => { mg.disabled = true; ml.textContent = "Opening…"; try { await openPortal(lic.key); } catch (e) { toast(e.message); mg.disabled = false; ml.textContent = "Manage subscription"; } };
-      box.appendChild(mg); }
-    box.appendChild(el("p", "help", "Keep this key: it unlocks your plan in another browser. \"Manage subscription\" opens Stripe's secure billing page to change plan, cancel (you keep access until the end of the paid period), update your card or download invoices."));
-  } else {
-    const d = el("details", "lic-enter"); d.appendChild(el("summary", "", "Already subscribed? Enter your license key"));
-    const row = el("div", "sharebox"); const inp = Object.assign(el("input", "input"), { placeholder: "om_…", autocomplete: "off" }); inp.setAttribute("aria-label", "License key");
-    const go = Object.assign(el("button", "btn btn-sm"), { type: "button" }); go.appendChild(el("span", "", "Apply"));
-    go.onclick = async () => { const r = await checkLicense(inp.value.trim()); if (r) toast(r.active ? `${PLANS[r.plan].name} plan unlocked ✦` : `That subscription is ${r.status}`); };
-    row.append(inp, go); d.appendChild(row); box.appendChild(d);
+  if (me.canManageBilling && billing.enabled) {
+    const mg = Object.assign(el("button", "btn btn-ghost btn-sm"), { type: "button" }); const ml = el("span", "", "Manage subscription"); mg.appendChild(ml);
+    mg.onclick = async () => { mg.disabled = true; ml.textContent = "Opening…"; try { await openPortal(); } catch (e) { toast(e.message); mg.disabled = false; ml.textContent = "Manage subscription"; } };
+    box.appendChild(mg);
+    box.appendChild(el("p", "help", "\"Manage subscription\" opens Stripe's secure billing page to change plan, cancel (you keep access until the end of the paid period), update your card or download invoices."));
   }
 }
-async function checkLicense(key, quiet = false) {
-  try {
-    const r = await fetch("/api/billing/license", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ key }) });
-    const d = await r.json().catch(() => ({}));
-    if (!r.ok) { if (!quiet) toast(d.error || "Couldn't check that key."); if (r.status === 404 && quiet) store.set("license", null); if (quiet) { renderPlan(); refreshListingLabels(); update(); } return null; }
-    const lic = { key, plan: d.plan, status: d.status, active: d.active, checkedAt: Date.now() }; store.set("license", lic);
-    renderPlan(); refreshListingLabels(); update(); return lic;
-  } catch { if (!quiet) toast("Couldn't reach Ownermint. Check your connection."); return null; }
+// the plan lives on the account: re-read it after anything that may change it
+async function refreshPlan() {
+  try { const m = await fetchMe(); if (m) me = { ...me, ...m }; } catch {}
+  renderPlan(); refreshListingLabels(); update();
 }
 async function claimCheckout(sid) {
   const box = $("planBox");
@@ -495,10 +492,9 @@ async function claimCheckout(sid) {
     let r; try { r = await fetch("/api/billing/claim", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ session_id: sid }) }); } catch { throw new Error("Couldn't reach Ownermint to confirm your payment."); }
     const d = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(d.error || `Couldn't confirm your payment (error ${r.status}).`);
-    store.set("license", { key: d.key, plan: d.plan, status: d.status, active: d.active, checkedAt: Date.now() });
     history.replaceState(null, "", location.pathname);
-    renderPlan(); refreshListingLabels(); update();
-    const ok = el("div", "notice"); ok.append(el("b", "", `Welcome to ${PLANS[d.plan].name}! `), document.createTextNode("Your plan is active in this browser. Copy your license key below and keep it safe to use Ownermint on another computer."));
+    await refreshPlan();
+    const ok = el("div", "notice"); ok.append(el("b", "", `Welcome to ${PLANS[d.plan].name}! `), document.createTextNode("Your plan is on your account, so it works wherever you sign in."));
     box.prepend(ok); toast(`${PLANS[d.plan].name} plan active ✦`);
     if (!tx.length) $("cfg").style.display = "";
   } catch (e) {
@@ -660,20 +656,22 @@ $("exportCsv").onclick = () => {
 $("print").onclick = () => { if (tab !== "statement") setTab("statement"); setTimeout(() => print(), 50); };
 $("share").onclick = async () => {
   if (!current || isLocked(current.listing)) return; const btn = $("share"), label = btn.querySelector("span"), was = label.textContent;
+  const ownerEmail = (settingsFor(current.listing).ownerEmail || "").trim().toLowerCase();
+  if (!EMAIL_RE.test(ownerEmail)) { $("ownerEmailErr").textContent = ownerEmail ? "That doesn't look like an email address." : "Add the email of the person who should open this link."; $("ownerEmail").scrollIntoView({ block: "center" }); $("ownerEmail").focus(); return; }
   btn.disabled = true; btn.setAttribute("aria-busy", "true"); label.textContent = "Creating link…";
   try {
     let res;
-    try { res = await fetch("/api/statements", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ statement: presentable(current), brand: getBrand(), note: $("note").value, previous: currentPrev }) }); }
+    try { res = await fetch("/api/statements", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ statement: presentable(current), brand: getBrand(), note: $("note").value, previous: currentPrev, ownerEmail }) }); }
     catch { throw new Error("Couldn't reach Ownermint. Check your connection and try again."); }
     const d = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(d.error || `Couldn't create the link (error ${res.status}).`);
-    const links = store.get("links", []); links.push({ id: d.id, editKey: d.editKey, listing: current.listing, month: current.month, at: Date.now(), ownerNet: current.totals.ownerNet, currency: current.currency, own: current.settlement.direction === "none" }); store.set("links", links);
-    const url = `${location.origin}/s/${d.id}`; $("shareLink").value = url; $("shareOut").style.display = ""; copy(url);
+    const links = store.get("links", []); links.push({ id: d.id, editKey: d.editKey, listing: current.listing, month: current.month, at: Date.now(), ownerNet: current.totals.ownerNet, currency: current.currency, own: current.settlement.direction === "none", ownerEmail: d.ownerEmail || ownerEmail }); store.set("links", links);
+    const url = `${location.origin}/s/${d.id}`; $("shareLink").value = url; $("shareWho").textContent = d.ownerEmail || ownerEmail; $("shareOut").style.display = ""; copy(url);
     const b = getBrand(), first = (b.ownerName || "").split(/\s+/)[0];
     const own = current.settlement.direction === "none";
     const body = own ? `Hi${first ? " " + first : ""},\n\nThe earnings report for ${current.listing}, ${monthLabel(current.month)} is here:\n${url}\n\nNet earnings: ${money(current.totals.ownerNet, current.currency)}\n\n${b.company || ""}`.trim()
       : `Hi${first ? " " + first : ""},\n\nYour owner statement for ${current.listing}, ${monthLabel(current.month)} is ready:\n${url}\n\nOwner net: ${money(current.totals.ownerNet, current.currency)}\n${current.settlement.amount === 0 ? "Nothing to settle this month." : `${current.settlement.label}: ${money(current.settlement.amount, current.currency)}`}\n\n${b.company || ""}`.trim();
-    $("mailLink").href = `mailto:?subject=${encodeURIComponent(`${own ? "Earnings report" : "Owner statement"}: ${current.listing}, ${monthLabel(current.month)}`)}&body=${encodeURIComponent(body)}`;
+    $("mailLink").href = `mailto:${encodeURIComponent(ownerEmail)}?subject=${encodeURIComponent(`${own ? "Earnings report" : "Owner statement"}: ${current.listing}, ${monthLabel(current.month)}`)}&body=${encodeURIComponent(body)}`;
     renderLinks();
   } catch (e) { toast(e.message); }
   btn.disabled = false; btn.removeAttribute("aria-busy"); label.textContent = was;
@@ -742,7 +740,7 @@ function renderSaved(viewId = null) {
   const snaps = store.get("saved", []), links = store.get("links", []);
   const viewer = el("div", "saved-viewer"); root.appendChild(viewer);
   if (!snaps.length && !links.length) {
-    const p = el("section", "panel"); p.append(el("h3", "", "Saved statements"), el("p", "help", "Nothing saved yet. Press ☆ Save to keep a copy of a statement in this browser, or ✦ Get owner link to share one. They're listed here by property."));
+    const p = el("section", "panel"); p.append(el("h3", "", "Saved statements"), el("p", "help", "Nothing saved yet. Press ☆ Save to keep a copy of a statement in your account, or ✦ Get owner link to share one. They're listed here by property."));
     root.appendChild(p); return;
   }
   const items = [...snaps.map(x => ({ ...x, kind: "snap" })), ...links.map(x => ({ ...x, kind: "link" }))];
@@ -754,7 +752,7 @@ function renderSaved(viewId = null) {
     const box = el("div", "links-list");
     list.forEach(it => {
       const item = el("div", "link-item" + (it.kind === "snap" ? " snap" : "")), info = el("div");
-      info.append(el("b", "", monthLabel(it.month)), el("small", "", `${it.kind === "link" ? "Owner link" : "Saved copy"} · ${new Date(it.at).toLocaleDateString()}${it.ownerNet != null ? ` · ${it.own ? "Net" : "Owner net"} ${money(it.ownerNet, it.currency || "USD")}` : ""}`));
+      info.append(el("b", "", monthLabel(it.month)), el("small", "", `${it.kind === "link" ? (it.ownerEmail ? `Link for ${it.ownerEmail}` : "Owner link") : "Saved copy"} · ${new Date(it.at).toLocaleDateString()}${it.ownerNet != null ? ` · ${it.own ? "Net" : "Owner net"} ${money(it.ownerNet, it.currency || "USD")}` : ""}`));
       const acts = el("div", "acts");
       if (it.kind === "snap") {
         acts.append(Object.assign(el("button", "mini", "View"), { type: "button", onclick: () => showSnapshot(it.id) }),
@@ -798,13 +796,12 @@ async function deleteLink(l) {
   } catch (e) { toast(e.message); }
   renderLinks();
 }
-$("clearData").onclick = () => {
+$("clearData").onclick = async () => {
   const n = store.get("links", []).length;
-  const msg = "Remove everything Ownermint saved in this browser: your last CSV, settings, expenses, notes, branding and saved statements" + (n ? `, and your list of ${n} owner link${n === 1 ? "" : "s"}` : "") + (getLicense() ? ", and your license key (copy it first under \"Your plan\" to use it again; your subscription isn't cancelled)" : "") + "?" +
-    (n ? "\n\nThe owner links themselves stay online. To take them down, delete them first in the Saved tab; after clearing, this browser can no longer delete them." : "");
+  const msg = "Delete everything Ownermint saved to your account and this browser: your CSV, settings, expenses, notes, branding and saved statements" + (n ? `, and your list of ${n} owner link${n === 1 ? "" : "s"}` : "") + "?\n\nYour account and plan stay." +
+    (n ? " The owner links themselves stay online; to take them down, delete them first in the Saved tab (or later from your dashboard)." : "");
   if (!confirm(msg)) return;
-  try { Object.keys(localStorage).filter(k => k.startsWith("ownermint:")).forEach(k => localStorage.removeItem(k)); } catch {}
-  location.reload();
+  try { await deleteAllData(); location.reload(); } catch (e) { toast(e.message); }
 };
 $("openSaved").onclick = () => { setTab("saved"); $("out").scrollIntoView({ behavior: "smooth", block: "start" }); };
 $("fixCols").onclick = () => showMapper(rawRows);
@@ -824,9 +821,20 @@ billingConfig().then(c => { billing = c; renderPlan(); if (current && isLocked(c
 // coming back from Stripe with the Back button restores the page from cache: reset any "Opening…" buttons
 addEventListener("pageshow", e => { if (e.persisted) { renderPlan(); if (current && isLocked(current.listing)) renderLocked(current.listing); } });
 const checkoutId = new URLSearchParams(location.search).get("checkout");
-if (checkoutId === "cancelled") { history.replaceState(null, "", location.pathname); toast("Checkout cancelled. You haven't been charged."); if (getLicense()) checkLicense(getLicense().key, true); }
+if (checkoutId === "cancelled") { history.replaceState(null, "", location.pathname); toast("Checkout cancelled. You haven't been charged."); }
 else if (checkoutId) claimCheckout(checkoutId);
-else if (getLicense()) checkLicense(getLicense().key, true);
+// "Choose Host / Pro" on the homepage while signed out: after sign-in, carry on to checkout
+const buy = new URLSearchParams(location.search).get("buy"), buyInt = new URLSearchParams(location.search).get("interval") === "year" ? "year" : "month";
+if (buy && PLANS[buy] && buy !== "free") {
+  history.replaceState(null, "", location.pathname);
+  if (me.hasSubscription) toast(`You already have the ${PLANS[currentPlan()].name} plan. Use "Manage subscription" to change it.`);
+  else billingConfig().then(c => (c.enabled ? startCheckout(buy, buyInt) : null)).catch(e => toast(e.message));
+}
+if (me.imported) toast(`Signed in. We saved what this browser had to your account.`);
+if (me.syncFailed) toast("Couldn't reach your account just now, so this shows what this browser had saved. Changes will still be saved.");
+addEventListener("om-sync-error", e => toast(e.detail));
+$("signOut").onclick = () => signOut();
+if (location.hash === "#saved") { history.replaceState(null, "", location.pathname + location.search); $("out").style.display = ""; $("empty").style.display = "none"; setTab("saved"); }
 </script>
 </body>
 </html>

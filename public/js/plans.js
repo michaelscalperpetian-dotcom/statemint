@@ -18,9 +18,9 @@ export async function startCheckout(plan, interval) {
   if (!r.ok || !d.url) throw new Error(d.error || "Couldn't start checkout. Please try again.");
   location.href = d.url;
 }
-// Opens the Stripe customer portal for a license key.
-export async function openPortal(key) {
-  let r; try { r = await fetch("/api/billing/portal", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ key }) }); }
+// Opens the Stripe customer portal for the signed-in account.
+export async function openPortal() {
+  let r; try { r = await fetch("/api/billing/portal", { method: "POST", headers: { "content-type": "application/json" }, body: "{}" }); }
   catch { throw new Error("Couldn't reach Ownermint. Check your connection and try again."); }
   const d = await r.json().catch(() => ({}));
   if (!r.ok || !d.url) throw new Error(d.error || "Couldn't open the billing page. Please try again.");

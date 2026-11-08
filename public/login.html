@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sign in · Ownermint</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600..800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/app.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='44' fill='%232fd3a0'/></svg>">
+</head>
+<body class="auth-page">
+<main class="auth-card">
+  <a class="logo" href="/"><i></i>Ownermint</a>
+  <h1 id="title">Sign in to Ownermint</h1>
+  <p class="auth-lede" id="lede">Make owner statements and earnings reports for your Airbnb properties. Your files, settings and statements are saved to your account so they're on every device.</p>
+  <a class="btn btn-google" id="google" href="/api/auth/login"><span>Continue with Google</span></a>
+  <p class="help" id="note">We only get your name and email address from Google. New here? Continuing creates your free account.</p>
+  <p class="help"><a href="/">← Back to the homepage</a> · <a href="/privacy">Privacy</a></p>
+</main>
+<script type="module">
+const params = new URLSearchParams(location.search);
+const next = params.get("next") || "/dashboard";
+// only same-site paths (the server checks this too)
+const safe = /^\/(?!\/)/.test(next) ? next : "/dashboard";
+document.getElementById("google").href = "/api/auth/login?next=" + encodeURIComponent(safe);
+if (safe.startsWith("/s/")) {
+  document.getElementById("title").textContent = "Sign in to view your statement";
+  document.getElementById("lede").textContent = "Your host shared an owner statement with you. Sign in with the Google account for the email address they sent it to.";
+}
+// already signed in? go straight on
+fetch("/api/me", { cache: "no-store" }).then(r => { if (r.ok) location.replace(safe); }).catch(() => {});
+</script>
+</body>
+</html>

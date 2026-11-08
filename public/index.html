@@ -15,7 +15,7 @@
 <body>
 <nav class="nav dark" style="color:#fff"><div class="wrap">
   <a class="logo" href="/"><i></i>Ownermint</a>
-  <div class="nav-links"><a class="txt" href="#how">How it works</a><a class="txt" href="#pricing">Pricing</a><a class="txt" href="#faq">FAQ</a>
+  <div class="nav-links"><a class="txt" href="#how">How it works</a><a class="txt" href="#pricing">Pricing</a><a class="txt" href="#faq">FAQ</a><a class="txt" href="/login" id="navAcct">Sign in</a>
     <a class="btn btn-mint btn-sm" href="/app" data-magnetic=".25"><span>Make a statement</span></a></div>
 </div></nav>
 
@@ -29,7 +29,7 @@
       <a class="btn btn-mint btn-lg" href="/app" data-magnetic><span>Make my first statement →</span></a>
       <a class="btn btn-ghost btn-lg" href="#demo" data-magnetic style="color:#fff"><span>See an example</span></a>
     </div>
-    <div class="trust"><span>🔒 Your CSV never leaves your browser</span><span>⚡ No account needed</span><span>🧮 Every number traceable to Airbnb</span></div>
+    <div class="trust"><span>🔐 Sign in with Google</span><span>🔒 Owner links open only for your owner</span><span>🧮 Every number traceable to Airbnb</span></div>
   </div></div>
   <div class="hero-hint">drag a coin to throw it · click to mint more</div>
   <div class="scroll-cue"></div>
@@ -99,7 +99,7 @@
   <div class="eyebrow reveal">FAQ</div>
   <h2 class="h-sec reveal">Questions hosts ask</h2>
   <div class="feature-list">
-    <div class="feature reveal"><div><b>Is my data uploaded anywhere?</b><p>Your CSV is read inside your browser and is never uploaded; it is saved in your browser so it's there next time, and "Clear my data" removes it. If you create an owner link, we store that one statement (the figures, guest names as you chose to show them, your branding and note) so the owner can open it. You can delete a link at any time.</p></div></div>
+    <div class="feature reveal"><div><b>Where is my data saved?</b><p>Your CSV, settings, expenses and saved statements are saved to your Ownermint account so they're there on any device you sign in on. "Delete my saved data" removes them, and you can delete your whole account from your dashboard. If you create an owner link, we store that one statement (the figures, guest names as you chose to show them, your branding and note) and only the email you shared it with can open it, after signing in with Google. You can delete a link at any time.</p></div></div>
     <div class="feature reveal"><div><b>Where do I get the CSV?</b><p>On Airbnb: Menu → Earnings → Transaction history → filter by listing and dates → Export CSV.</p></div></div>
     <div class="feature reveal"><div><b>I host my own place. Is this for me?</b><p>Yes. Mark the property as "My own home" and you get an earnings report instead of an owner statement: no commission, no settlement, just what you made and where it went.</p></div></div>
     <div class="feature reveal"><div><b>What counts as a property?</b><p>One Airbnb listing. Free covers one, Host covers five, Pro is unlimited. If your file has more listings than your plan, you choose which ones are on it.</p></div></div>
@@ -115,6 +115,10 @@ import { cursor, magnetic, reveals, splitWords, tilt, toast } from "/js/fx.js";
 import { parseCSV, toTransactions, buildStatement, SAMPLE_CSV } from "/js/engine.js";
 import { renderStatement } from "/js/view.js";
 import { PLANS, billingConfig, startCheckout } from "/js/plans.js";
+import { fetchMe } from "/js/account.js";
+// signed in? the nav offers the dashboard instead of "Sign in"
+const meReady = fetchMe().catch(() => null);
+meReady.then(m => { if (m) { const a = document.getElementById("navAcct"); a.textContent = "Dashboard"; a.href = "/dashboard"; } });
 document.getElementById("yr").textContent = new Date().getFullYear();
 cursor(); magnetic(); splitWords(document.getElementById("title")); reveals();
 const nav = document.querySelector(".nav"); const onScroll = () => nav.classList.toggle("solid", scrollY > innerHeight - 90); onScroll(); addEventListener("scroll", onScroll, { passive: true });
@@ -155,6 +159,8 @@ document.querySelectorAll("[data-buy]").forEach(a => a.addEventListener("click",
   try {
     const cfg = await billingReady;
     if (!cfg.enabled) { location.href = "/app"; return; } // paid plans not switched on: the free plan is in the app
+    // a plan belongs to an account: sign in first, then checkout opens straight away
+    if (!(await meReady)) { location.href = "/login?next=" + encodeURIComponent(`/app?buy=${a.dataset.buy}&interval=${billInt}`); return; }
     await startCheckout(a.dataset.buy, billInt);
   } catch (err) { label.textContent = was; delete a.dataset.busy; toast(err.message || "Couldn't open checkout. Please try again."); }
 }));

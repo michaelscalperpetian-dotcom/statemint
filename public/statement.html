@@ -24,11 +24,21 @@ import { cursor, tilt } from "/js/fx.js";
 cursor({ subtle: true });
 document.getElementById("printBtn").addEventListener("click", () => print());
 const view = document.getElementById("view");
-const message = (title, text) => { view.innerHTML = ""; const box = document.createElement("div"); box.className = "st st-msg"; const h = document.createElement("h2"); h.textContent = title; const p = document.createElement("p"); p.textContent = text; box.append(h, p); view.appendChild(box); };
+const message = (title, text, action) => { view.innerHTML = ""; const box = document.createElement("div"); box.className = "st st-msg"; const h = document.createElement("h2"); h.textContent = title; const p = document.createElement("p"); p.textContent = text; box.append(h, p); if (action) box.appendChild(action); view.appendChild(box); return box; };
+const signInBtn = (label = "Sign in with Google") => { const a = document.createElement("a"); a.className = "btn btn-mint"; a.href = "/login?next=" + encodeURIComponent(location.pathname); const s = document.createElement("span"); s.textContent = label; a.appendChild(s); return a; };
 const id = location.pathname.split("/").filter(Boolean)[1] || "";
 try {
   const res = await fetch(`/api/statements/${encodeURIComponent(id)}`);
-  if (res.status === 404) message("Statement not found", "This link may have been mistyped, or the host may have deleted it. Ask them for a new link.");
+  if (res.status === 401) message("Sign in to view this statement", "Your host shared this statement with your email address. Sign in with the Google account for that email to open it.", signInBtn());
+  else if (res.status === 403) {
+    const d = await res.json().catch(() => ({}));
+    const out = document.createElement("div"); out.style.cssText = "display:flex;gap:10px;flex-wrap:wrap";
+    const sw = document.createElement("button"); sw.type = "button"; sw.className = "btn btn-mint"; sw.innerHTML = "<span>Use a different Google account</span>";
+    sw.onclick = async () => { await fetch("/api/auth/logout", { method: "POST" }).catch(() => {}); location.href = "/login?next=" + encodeURIComponent(location.pathname); };
+    out.appendChild(sw);
+    message("This statement was shared with someone else", `You're signed in as ${d.signedInAs || "a different account"}, but this statement was shared with a different email address. Sign in with the Google account for the email your host sent it to, or ask them to share it with this one.`, out);
+  }
+  else if (res.status === 404) message("Statement not found", "This link may have been mistyped, or the host may have deleted it. Ask them for a new link.");
   else if (!res.ok) message("Couldn't load this statement", `The server returned an error (${res.status}). Please try again in a minute.`);
   else { const data = await res.json(); renderStatement(view, data); document.title = `${data.statement.listing} · Owner statement`; tilt(view, document.body, 2.5); }
 } catch { message("Couldn't load this statement", "Check your internet connection and reload the page."); }
