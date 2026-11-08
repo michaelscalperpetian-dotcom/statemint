@@ -210,3 +210,29 @@ Planned with Stripe's implementation planner:
 **Tests.** `test/billing.test.mjs` has 15 checks against a fake Stripe: signature rules, form encoding, checkout parameters, the webhook flow, claiming, upgrades, failed payments, cancellation and the portal. `test/plans.e2e.mjs` has 12 browser checks, including real redirects to Stripe Checkout and the portal.
 
 **Not handled.** A customer who loses their license key can manage the subscription through Stripe's portal sign-in page, but can't recover the key without support.
+
+## 11. Security review (November 8, 2026)
+
+Checked: sign-in (Google OAuth state + PKCE, ID-token checks, session cookies), every API route (auth, origin checks,
+input validation, per-user data isolation), owner-link access rules, Stripe checkout/claim/portal/webhook, account
+deletion, HTML injection sinks, URL redirects, protected-page URL variants, CSV export (formula injection), headers.
+
+Fixed:
+- Open redirect on the sign-in page: `/login?next=/%5Cevil.com` (or a tab, or `/\\`) sent a signed-in visitor to another
+  site. The page now uses the same strict rule as the server.
+- Test-only Google URLs (`GOOGLE_AUTH_URL`, `GOOGLE_TOKEN_URL`) are now ignored unless the server runs on localhost, so a
+  stray setting can never make production trust an unsigned token from somewhere else.
+- The rate-limit IP hash is now an HMAC keyed with a server secret (`IP_SALT`, else the Google client secret), so it can't
+  be reversed by trying every IP address.
+- Removed the unused `/api/billing/license` endpoint (license keys were replaced by accounts).
+- Expired sessions are deleted whenever someone signs in.
+- Added `Cross-Origin-Opener-Policy: same-origin`.
+
+Added: owner links expire 30 days after they're made (410 + "This link has expired"; dashboard shows the date).
+
+No issue found: SQL is always parameterised; no untrusted HTML is inserted; protected pages can't be reached by URL
+variants; another account's data, links, plan or purchase can't be read or claimed; webhooks are signature-checked and
+re-read from Stripe; the CSV export neutralises spreadsheet formulas.
+
+Not done (not chosen): rate limits on saving/sign-in/deleting, session list + "sign out everywhere", moving inline
+scripts out so the CSP can drop 'unsafe-inline'.

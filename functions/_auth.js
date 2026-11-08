@@ -22,8 +22,10 @@ export const cookie = (name, value, { maxAge, path = "/" } = {}) =>
 // Only same-site relative paths are allowed as a post-login destination (no open redirects).
 export const safeNext = next => (typeof next === "string" && /^\/(?!\/)[\w\-./?=&%#]*$/.test(next) && !next.startsWith("/api/") ? next : "/dashboard");
 
-export const googleAuthUrl = env => env.GOOGLE_AUTH_URL || "https://accounts.google.com/o/oauth2/v2/auth";
-export const googleTokenUrl = env => env.GOOGLE_TOKEN_URL || "https://oauth2.googleapis.com/token";
+// The test overrides only ever apply on a local dev server, so a stray setting can't point production elsewhere.
+const isLocal = request => ["localhost", "127.0.0.1"].includes(new URL(request.url).hostname);
+export const googleAuthUrl = (env, request) => (isLocal(request) && env.GOOGLE_AUTH_URL) || "https://accounts.google.com/o/oauth2/v2/auth";
+export const googleTokenUrl = (env, request) => (isLocal(request) && env.GOOGLE_TOKEN_URL) || "https://oauth2.googleapis.com/token";
 export const callbackUrl = request => new URL("/api/auth/callback", request.url).toString();
 
 export async function pkcePair() { const verifier = randomToken(32); return { verifier, challenge: await sha256b64url(verifier) }; }
@@ -42,8 +44,10 @@ export function readIdToken(idToken, env, nowSec = Math.floor(Date.now() / 1000)
 
 export async function createSession(env, userId) {
   const token = randomToken(32), now = Date.now();
-  await env.DB.prepare("INSERT INTO sessions (token_hash, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)")
-    .bind(await sha256hex(token), userId, now, now + SESSION_DAYS * 86400000).run();
+  await env.DB.batch([
+    env.DB.prepare("INSERT INTO sessions (token_hash, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)").bind(await sha256hex(token), userId, now, now + SESSION_DAYS * 86400000),
+    env.DB.prepare("DELETE FROM sessions WHERE expires_at < ?").bind(now), // expired sessions are useless; don't keep them
+  ]);
   return cookie(SESSION_COOKIE, token, { maxAge: SESSION_DAYS * 86400 });
 }
 export const clearSessionCookie = () => cookie(SESSION_COOKIE, "", { maxAge: 0 });

@@ -105,7 +105,7 @@
         <button role="tab" type="button" data-tab="audit" aria-selected="false" aria-controls="audit">Audit trail</button>
       </div>
       <div id="shareOut" class="no-print" style="display:none;margin:-6px 0 18px"><div class="sharebox"><input class="input" id="shareLink" readonly aria-label="Owner link"><button class="btn btn-sm" id="copyLink" type="button"><span>Copy</span></button><a class="btn btn-ghost btn-sm" id="mailLink" href="#"><span>✉ Email</span></a></div>
-        <p class="help" id="shareHelp">Only <b id="shareWho"></b> can open this link, after signing in with Google (you can too). It shows the statement as you see it, including guest names as shown and your note. "Email" opens your own email app with a ready-made message; Ownermint doesn't send email. You can delete the link any time in the Saved tab or your dashboard.</p></div>
+        <p class="help" id="shareHelp">Only <b id="shareWho"></b> can open this link, after signing in with Google (you can too). It works for 30 days, until <b id="shareUntil"></b>; after that, make a new one. It shows the statement as you see it, including guest names as shown and your note. "Email" opens your own email app with a ready-made message; Ownermint doesn't send email. You can delete the link any time in the Saved tab or your dashboard.</p></div>
       <div id="stWarns" class="st-warns no-print" role="status"></div>
       <div id="view" role="tabpanel"></div>
       <div id="portfolio" role="tabpanel" style="display:none"></div>
@@ -665,8 +665,8 @@ $("share").onclick = async () => {
     catch { throw new Error("Couldn't reach Ownermint. Check your connection and try again."); }
     const d = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(d.error || `Couldn't create the link (error ${res.status}).`);
-    const links = store.get("links", []); links.push({ id: d.id, editKey: d.editKey, listing: current.listing, month: current.month, at: Date.now(), ownerNet: current.totals.ownerNet, currency: current.currency, own: current.settlement.direction === "none", ownerEmail: d.ownerEmail || ownerEmail }); store.set("links", links);
-    const url = `${location.origin}/s/${d.id}`; $("shareLink").value = url; $("shareWho").textContent = d.ownerEmail || ownerEmail; $("shareOut").style.display = ""; copy(url);
+    const links = store.get("links", []); links.push({ id: d.id, editKey: d.editKey, listing: current.listing, month: current.month, at: Date.now(), ownerNet: current.totals.ownerNet, currency: current.currency, own: current.settlement.direction === "none", ownerEmail: d.ownerEmail || ownerEmail, expiresAt: d.expiresAt }); store.set("links", links);
+    const url = `${location.origin}/s/${d.id}`; $("shareLink").value = url; $("shareWho").textContent = d.ownerEmail || ownerEmail; $("shareUntil").textContent = new Date(d.expiresAt || Date.now() + 30 * 86400000).toLocaleDateString(); $("shareOut").style.display = ""; copy(url);
     const b = getBrand(), first = (b.ownerName || "").split(/\s+/)[0];
     const own = current.settlement.direction === "none";
     const body = own ? `Hi${first ? " " + first : ""},\n\nThe earnings report for ${current.listing}, ${monthLabel(current.month)} is here:\n${url}\n\nNet earnings: ${money(current.totals.ownerNet, current.currency)}\n\n${b.company || ""}`.trim()
@@ -752,7 +752,7 @@ function renderSaved(viewId = null) {
     const box = el("div", "links-list");
     list.forEach(it => {
       const item = el("div", "link-item" + (it.kind === "snap" ? " snap" : "")), info = el("div");
-      info.append(el("b", "", monthLabel(it.month)), el("small", "", `${it.kind === "link" ? (it.ownerEmail ? `Link for ${it.ownerEmail}` : "Owner link") : "Saved copy"} · ${new Date(it.at).toLocaleDateString()}${it.ownerNet != null ? ` · ${it.own ? "Net" : "Owner net"} ${money(it.ownerNet, it.currency || "USD")}` : ""}`));
+      info.append(el("b", "", monthLabel(it.month)), el("small", "", `${it.kind === "link" ? (it.ownerEmail ? `Link for ${it.ownerEmail}` : "Owner link") + ((it.expiresAt || it.at + 30 * 86400000) <= Date.now() ? " (expired)" : "") : "Saved copy"} · ${new Date(it.at).toLocaleDateString()}${it.ownerNet != null ? ` · ${it.own ? "Net" : "Owner net"} ${money(it.ownerNet, it.currency || "USD")}` : ""}`));
       const acts = el("div", "acts");
       if (it.kind === "snap") {
         acts.append(Object.assign(el("button", "mini", "View"), { type: "button", onclick: () => showSnapshot(it.id) }),

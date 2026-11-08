@@ -9,11 +9,19 @@ export function randomId(len) {
   return s;
 }
 export function sameKey(a, b) { if (typeof a !== "string" || typeof b !== "string" || a.length !== b.length) return false; let d = 0; for (let i = 0; i < a.length; i++) d |= a.charCodeAt(i) ^ b.charCodeAt(i); return d === 0; }
+// Owner links stop working this long after they're made (the host makes a new one after that).
+export const LINK_DAYS = 30;
+export const linkExpiresAt = createdAt => createdAt + LINK_DAYS * 86400000;
 export const validId = id => /^[A-Za-z0-9]{8,20}$/.test(id || "");
+// A keyed hash (HMAC) of the visitor's IP for rate limiting. The key is a server secret, so the stored value can't
+// be turned back into an IP address by trying all of them. It changes daily and is cleared after 24 hours.
 export async function ipHash(request, env) {
   const ip = request.headers.get("cf-connecting-ip") || "unknown";
   const day = new Date().toISOString().slice(0, 10);
-  const bytes = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`${env.IP_SALT || "ownermint"}|${day}|${ip}`)));
+  const secret = env.IP_SALT || env.GOOGLE_CLIENT_SECRET || env.STRIPE_WEBHOOK_SECRET || "ownermint-local";
+  const enc = new TextEncoder();
+  const key = await crypto.subtle.importKey("raw", enc.encode("ip-hash|" + secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const bytes = new Uint8Array(await crypto.subtle.sign("HMAC", key, enc.encode(`${day}|${ip}`)));
   return [...bytes.slice(0, 8)].map(b => b.toString(16).padStart(2, "0")).join("");
 }
 

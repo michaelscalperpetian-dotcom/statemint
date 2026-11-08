@@ -6,7 +6,7 @@ export async function onRequestGet({ request, env }) {
   const url = new URL(request.url);
   const next = safeNext(url.searchParams.get("next"));
   const state = randomToken(24), { verifier, challenge } = await pkcePair();
-  const auth = new URL(googleAuthUrl(env));
+  const auth = new URL(googleAuthUrl(env, request));
   auth.search = new URLSearchParams({
     client_id: env.GOOGLE_CLIENT_ID, redirect_uri: callbackUrl(request), response_type: "code", scope: "openid email profile",
     state, code_challenge: challenge, code_challenge_method: "S256", prompt: "select_account",

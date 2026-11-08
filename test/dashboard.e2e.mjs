@@ -38,15 +38,27 @@ try {
   assert.equal(props.find(r => r[0] !== listing)[1], "🔒 Not on plan");
   ok("Properties: both listings from the CSV, which one is on the Free plan, the 18% deal and the owner's email");
   const links = await page.$$eval("#linksBody tbody tr", r => r.map(x => [...x.cells].map(c => c.textContent)));
-  assert.equal(links.length, 1); assert.equal(links[0][0], listing); assert.equal(links[0][2], OWNER); assert.equal(links[0][5], "0");
-  ok("Statements & owner links: the new link with property, month, who it's shared with and 0 views");
+  assert.equal(links.length, 1); assert.equal(links[0][0], listing); assert.equal(links[0][2], OWNER); assert.equal(links[0][6], "0");
+  assert.equal(links[0][5], new Date(Date.now() + 30 * 86400000).toLocaleDateString("en-US"));
+  ok("Statements & owner links: the new link with property, month, who it's shared with, expiry in 30 days and 0 views");
   await page.screenshot({ path: OUT + "/dashboard.png", fullPage: true });
 
   // 3. the owner opens it -> 1 view
   const oc = await browser.newContext(); await signIn(oc, BASE, OWNER); const op = await oc.newPage();
   const url = await page.getAttribute("#linksBody tbody a", "href"); await op.goto(url, { waitUntil: "load" }); await op.waitForSelector("#view .st"); await oc.close();
   await page.reload({ waitUntil: "load" }); await page.waitForSelector("#linksBody table");
-  assert.equal(await page.$eval("#linksBody tbody tr td:nth-child(6)", c => c.textContent), "1"); ok("a view by the owner is counted");
+  assert.equal(await page.$eval("#linksBody tbody tr td:nth-child(7)", c => c.textContent), "1"); ok("a view by the owner is counted");
+
+  // 3b. after 30 days the link stops working
+  const expId = url.split("/s/")[1];
+  execSync(`npx wrangler d1 execute statemint --local --command "UPDATE statements SET created_at = created_at - 31*86400000 WHERE id = '${expId}'"`, { stdio: "ignore" });
+  await page.reload({ waitUntil: "load" }); await page.waitForSelector("#linksBody table");
+  assert.equal(await page.$eval("#linksBody tbody tr td:nth-child(6)", c => c.textContent), "Expired");
+  assert.deepEqual(await page.$$eval("#linksBody tbody tr .acts > *", b => b.map(x => x.textContent)), ["Delete"]);
+  const oc2 = await browser.newContext(); await signIn(oc2, BASE, OWNER); const op2 = await oc2.newPage();
+  await op2.goto(url, { waitUntil: "load" }); await op2.waitForSelector(".st-msg");
+  assert.ok((await op2.textContent(".st-msg h2")).includes("expired")); assert.equal(await op2.$$eval(".tbl", x => x.length), 0); await oc2.close();
+  ok("after 30 days: the dashboard shows 'Expired' (only Delete left) and the owner sees 'This link has expired', no figures");
 
   // 4. Open in builder remembers the property
   const other = props.find(r => r[0] !== listing)[0];
@@ -92,6 +104,11 @@ try {
   await mp.goto(BASE + "/dashboard", { waitUntil: "load" }); await mp.waitForSelector("#linksBody p");
   assert.ok(await mp.evaluate(() => document.documentElement.scrollWidth <= innerWidth)); await mp.screenshot({ path: OUT + "/dashboard-mobile.png", fullPage: true });
   await mp.goto(BASE + "/login", { waitUntil: "load" }); await mp.waitForURL(/\/dashboard$/); ok("mobile: no sideways scrolling; /login sends a signed-in user straight on");
+  await mc.route(/^https?:\/\/example\.com/, r => r.fulfill({ status: 200, body: "EXTERNAL" }));
+  for (const trick of ["/%5Cexample.com", "/%09/example.com", "//example.com", "/%5C%5Cexample.com", "/api/me"]) {
+    await mp.goto(BASE + "/login?next=" + trick, { waitUntil: "load" }); await mp.waitForURL(/\/dashboard$/);
+  }
+  ok("sign-in page never sends you to another website (backslash, tab and // tricks all land on the dashboard)");
   const lc = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 }); const lpg = await lc.newPage();
   await lpg.goto(BASE + "/login?next=/s/AAAAAAAAAAAA", { waitUntil: "load" }); assert.ok((await lpg.textContent("h1")).includes("view your statement"));
   assert.equal(await lpg.getAttribute("#google", "href"), "/api/auth/login?next=%2Fs%2FAAAAAAAAAAAA"); await lpg.screenshot({ path: OUT + "/login-mobile.png" });

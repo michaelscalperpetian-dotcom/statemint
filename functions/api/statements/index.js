@@ -1,4 +1,4 @@
-import { json, bad, randomId, ipHash, cleanSubmission } from "../../_lib.js";
+import { json, bad, randomId, ipHash, cleanSubmission, linkExpiresAt } from "../../_lib.js";
 import { requireUser } from "../../_auth.js";
 const EMAIL_RE = /^[^\s@]{1,64}@[^\s@]{1,190}\.[^\s@]{2,24}$/;
 const LIMIT_PER_HOUR = 30;
@@ -22,7 +22,7 @@ export async function onRequestPost({ request, env }) {
     // keep rate-limit hashes for 24 hours only
     env.DB.prepare("UPDATE statements SET ip_hash = NULL WHERE ip_hash IS NOT NULL AND created_at < ?").bind(now - 86400000),
   ]);
-  return json({ id, editKey, ownerEmail }, 201);
+  return json({ id, editKey, ownerEmail, expiresAt: linkExpiresAt(now) }, 201);
 }
 // The signed-in host's owner links, newest first (for the dashboard).
 export async function onRequestGet({ request, env }) {
@@ -30,5 +30,5 @@ export async function onRequestGet({ request, env }) {
   const { results } = await env.DB.prepare(
     "SELECT id, created_at, owner_email, views, json_extract(data, '$.statement.listing') AS listing, json_extract(data, '$.statement.month') AS month, json_extract(data, '$.statement.totals.ownerNet') AS owner_net, json_extract(data, '$.statement.currency') AS currency FROM statements WHERE user_id = ? ORDER BY created_at DESC LIMIT 500"
   ).bind(user.id).all();
-  return json({ links: (results || []).map(r => ({ id: r.id, createdAt: r.created_at, ownerEmail: r.owner_email, views: r.views || 0, listing: r.listing, month: r.month, ownerNet: r.owner_net, currency: r.currency || "USD" })) });
+  return json({ links: (results || []).map(r => ({ id: r.id, createdAt: r.created_at, expiresAt: linkExpiresAt(r.created_at), expired: Date.now() >= linkExpiresAt(r.created_at), ownerEmail: r.owner_email, views: r.views || 0, listing: r.listing, month: r.month, ownerNet: r.owner_net, currency: r.currency || "USD" })) });
 }

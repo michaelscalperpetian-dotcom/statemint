@@ -9,7 +9,7 @@ export async function onRequestGet({ request, env }) {
   if (!state || !verifier || url.searchParams.get("state") !== state) return page("Sign-in expired", "That sign-in link is too old or was opened in a different browser. Please start again.");
   let tokens;
   try {
-    const r = await fetch(googleTokenUrl(env), { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" },
+    const r = await fetch(googleTokenUrl(env, request), { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({ code: url.searchParams.get("code") || "", client_id: env.GOOGLE_CLIENT_ID, client_secret: env.GOOGLE_CLIENT_SECRET, redirect_uri: callbackUrl(request), grant_type: "authorization_code", code_verifier: verifier }).toString() });
     tokens = await r.json(); if (!r.ok) throw new Error("token");
   } catch { return page("Couldn't sign you in", "Google didn't confirm the sign-in. Please try again."); }

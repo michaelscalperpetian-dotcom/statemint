@@ -391,3 +391,4 @@ html { scroll-behavior: smooth; }
 .legal h2 { font-size: 20px; margin: 26px 0 8px; }
 .legal ul { padding-left: 20px; margin: 0; } .legal li { margin: 6px 0; }
 .legal p { margin: 0 0 10px; }
+.tbl tr.is-expired td { color: var(--ink-3); } .tbl td.expired { font-weight: 650; color: #b5452c; }

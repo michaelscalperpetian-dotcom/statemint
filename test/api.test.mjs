@@ -1,5 +1,6 @@
 // API tests against a running server (with .dev.vars pointing at the fakes): BASE=http://localhost:8790 node test/api.test.mjs
 import assert from "node:assert/strict";
+import { execSync } from "node:child_process";
 import { parseCSV, toTransactions, buildStatement, SAMPLE_CSV } from "../public/js/engine.js";
 import { start } from "./fake-stripe.mjs";
 import { apiSignIn, uniqueEmail } from "./signin.mjs";
@@ -10,7 +11,7 @@ let n = 0; const ok = async (name, fn) => { await fn(); n++; console.log("ok -",
 const PNG = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
 try {
   const host = await apiSignIn(BASE, uniqueEmail("host")), owner = await apiSignIn(BASE, uniqueEmail("owner")), stranger = await apiSignIn(BASE, uniqueEmail("stranger"));
-  const req = (who, path, opts = {}) => fetch(BASE + path, { ...opts, headers: { "content-type": "application/json", ...(who ? { cookie: who.cookie } : {}), ...(opts.headers || {}) } });
+  const req = (who, path, opts = {}) => fetch(BASE + path, { ...opts, headers: { "content-type": "application/json", connection: "close", ...(who ? { cookie: who.cookie } : {}), ...(opts.headers || {}) } });
   const post = (body, who = host) => req(who, "/api/statements", { method: "POST", body: typeof body === "string" ? body : JSON.stringify(body) });
   const get = (id, who) => req(who, `/api/statements/${id}`);
   const withEmail = (b = {}) => ({ statement: st, ownerEmail: owner.email, ...b });
@@ -46,6 +47,9 @@ try {
   await ok("valid statement -> 201 with id, editKey and the owner's email (lower-cased)", async () => {
     const r = await post(withEmail({ ownerEmail: owner.email.toUpperCase(), statement: { ...st, evil: "<script>", totals: { ...st.totals, injected: 1 } }, brand: { company: "Co", ownerName: "Pat", logo: PNG, extra: "x" }, note: "n".repeat(900), previous: { ownerNet: 5, nights: 2, month: "2026-09", junk: 1 } }));
     assert.equal(r.status, 201); created = await r.json(); assert.match(created.id, /^[A-Za-z0-9]{12}$/); assert.match(created.editKey, /^[A-Za-z0-9]{24}$/); assert.equal(created.ownerEmail, owner.email); });
+  await ok("a new link expires 30 days after it's made", async () => {
+    const d = await (await get(created.id, host)).json(); assert.equal(d.expiresAt - d.createdAt, 30 * 86400000);
+    assert.ok(Math.abs(created.expiresAt - (Date.now() + 30 * 86400000)) < 60000); });
   await ok("opening a link: signed out 401, someone else 403 (told who they're signed in as), the owner and the host 200", async () => {
     assert.equal((await get(created.id, null)).status, 401);
     const r = await get(created.id, stranger); assert.equal(r.status, 403); assert.equal((await r.json()).signedInAs, stranger.email);
@@ -75,6 +79,13 @@ try {
     assert.equal((await req(host, `/api/statements/${created.id}`, { method: "DELETE" })).status, 200); assert.equal((await get(created.id, owner)).status, 404);
     const b = await (await post(withEmail())).json();
     assert.equal((await req(null, `/api/statements/${b.id}`, { method: "DELETE", headers: { "x-edit-key": b.editKey } })).status, 200); });
+
+  await ok("an expired link answers 410 for everyone (even the host) but can still be deleted by the host", async () => {
+    const e = await (await post(withEmail())).json();
+    execSync(`npx wrangler d1 execute statemint --local --command "UPDATE statements SET created_at = created_at - 30*86400000 - 1000 WHERE id = '${e.id}'"`, { stdio: "ignore" });
+    for (const who of [owner, host, null]) { const r = await get(e.id, who); assert.equal(r.status, 410); const d = await r.json(); assert.equal(d.expired, true); assert.equal(d.statement, undefined); }
+    const l = (await (await req(host, "/api/statements")).json()).links.find(x => x.id === e.id); assert.equal(l.expired, true);
+    assert.equal((await req(host, `/api/statements/${e.id}`, { method: "DELETE" })).status, 200); });
 
   /* ---------- synced data ---------- */
   await ok("data: signed out 401; save, read back, remove a key; other accounts can't see it", async () => {

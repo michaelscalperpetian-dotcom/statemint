@@ -21,8 +21,9 @@
 <script type="module">
 const params = new URLSearchParams(location.search);
 const next = params.get("next") || "/dashboard";
-// only same-site paths (the server checks this too)
-const safe = /^\/(?!\/)/.test(next) ? next : "/dashboard";
+// only plain same-site paths, the same rule the server uses (no "//", backslashes, tabs or other tricks
+// that browsers would turn into a link to another site)
+const safe = /^\/(?!\/)[\w\-./?=&%#]*$/.test(next) && !next.startsWith("/api/") ? next : "/dashboard";
 document.getElementById("google").href = "/api/auth/login?next=" + encodeURIComponent(safe);
 if (safe.startsWith("/s/")) {
   document.getElementById("title").textContent = "Sign in to view your statement";

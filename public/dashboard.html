@@ -105,18 +105,21 @@ async function renderLinks() {
   const ids = new Set(server.map(l => l.id));
   const older = store.get("links", []).filter(l => !ids.has(l.id) && l.editKey);
   const saved = store.get("saved", []);
-  box.append(el("p", "help", "Only the email a link was shared with (and you) can open it, after signing in with Google."));
+  box.append(el("p", "help", "Only the email a link was shared with (and you) can open it, after signing in with Google. Links stop working 30 days after they're made; make a new one when you need it."));
   if (!server.length && !older.length) box.append(el("p", "dash-empty", "No owner links yet. Make one with \"Get owner link\" in the statement builder."));
   const table = (rows, older) => {
     const wrap = el("div", "tbl-wrap"), t = el("table", "tbl"), head = el("tr");
-    ["Property", "Month", older ? "Who can open it" : "Shared with", "Owner net", "Created", older ? "" : "Views", ""].forEach(h => head.appendChild(el("th", "", h)));
+    ["Property", "Month", older ? "Who can open it" : "Shared with", "Owner net", "Created", "Expires", older ? "" : "Views", ""].forEach(h => head.appendChild(el("th", "", h)));
     t.appendChild(el("thead")).appendChild(head); const tb = el("tbody");
     for (const l of rows) {
       const tr = el("tr"), url = `${location.origin}/s/${l.id}`, when = l.createdAt || l.at;
       tr.append(el("td", "l", l.listing || "–"), el("td", "", l.month ? monthLabel(l.month) : "–"), el("td", "", older ? "Anyone signed in with the link" : l.ownerEmail),
-        el("td", "r", l.ownerNet != null ? money(l.ownerNet, l.currency || "USD") : "–"), el("td", "", when ? new Date(when).toLocaleDateString() : "–"), el("td", "r", older ? "" : String(l.views)));
+        el("td", "r", l.ownerNet != null ? money(l.ownerNet, l.currency || "USD") : "–"), el("td", "", when ? new Date(when).toLocaleDateString() : "–"));
+      const exp = l.expiresAt || (when ? when + 30 * 86400000 : 0), gone = exp && exp <= Date.now();
+      tr.append(el("td", gone ? "expired" : "", exp ? (gone ? "Expired" : new Date(exp).toLocaleDateString()) : "–"), el("td", "r", older ? "" : String(l.views)));
+      if (gone) tr.classList.add("is-expired");
       const act = el("td", "acts");
-      act.append(Object.assign(el("a", "mini", "Open"), { href: url, target: "_blank", rel: "noopener" }), Object.assign(el("button", "mini", "Copy link"), { type: "button", onclick: () => copy(url) }));
+      if (!gone) act.append(Object.assign(el("a", "mini", "Open"), { href: url, target: "_blank", rel: "noopener" }), Object.assign(el("button", "mini", "Copy link"), { type: "button", onclick: () => copy(url) }));
       const del = Object.assign(el("button", "mini danger", "Delete"), { type: "button" }); del.onclick = busy(del, "Deleting…", () => deleteLink(l)); act.appendChild(del);
       tr.appendChild(act); tb.appendChild(tr);
     }
