@@ -22,7 +22,7 @@ export const plans = env => {
   const PRICE_PLAN = {}; for (const [plan, byInt] of Object.entries(cfg.PRICES)) for (const id of Object.values(byInt)) PRICE_PLAN[id] = plan;
   return { ...cfg, PRICE_PLAN };
 };
-export const SITE = "https://statemint-994.pages.dev";
+export const SITE = "https://mintstatements.com";
 // Addresses the site is served from. Stripe sends buyers back to the one they came from (anything else: SITE).
 const ORIGINS = ["https://mintstatements.com", "https://www.mintstatements.com", "https://statemint-994.pages.dev"];
 export const siteOrigin = (request, env) => {
