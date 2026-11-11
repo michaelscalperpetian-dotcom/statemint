@@ -1,7 +1,8 @@
 # Usage: python3 scripts/build-legal.py public   (regenerates terms, privacy, refunds and cookies pages)
 # Builds the legal pages from one layout so header, footer and placeholders stay identical.
 import sys
-COMPANY = "[Company legal name]"   # fill in once the company name is known
+COMPANY = "Mint Statements"   # the business's legal name (add "LLC" / "Inc." here if the registered name has one)
+RUN_BY = "" if COMPANY == "Mint Statements" else f", operated by {COMPANY},"   # only said when the legal name differs from the brand
 EMAIL = "support@mintstatements.com"
 UPDATED = "November 8, 2026"
 def page(slug, title, desc, body):
@@ -38,7 +39,7 @@ C, E = COMPANY, f'<a href="mailto:{EMAIL}">{EMAIL}</a>'
 pages = {}
 
 pages["privacy"] = ("Privacy policy", "What Mint Statements collects, why, who it's shared with, and how to delete it.", f'''
-    <p>Mint Statements (mintstatements.com) is run by {C}, based in California, USA ("we", "us"). It turns your Airbnb transaction report into owner statements and earnings reports. This policy explains what we collect, why, who we share it with and the choices you have. Questions or requests: {E}.</p>
+    <p>Mint Statements (mintstatements.com){RUN_BY} is a business based in California, USA ("we", "us"). It turns your Airbnb transaction report into owner statements and earnings reports. This policy explains what we collect, why, who we share it with and the choices you have. Questions or requests: {E}.</p>
 
     <h2>What we collect</h2>
     <ul>
@@ -104,7 +105,7 @@ pages["privacy"] = ("Privacy policy", "What Mint Statements collects, why, who i
 ''')
 
 pages["terms"] = ("Terms of service", "The terms for using Mint Statements.", f'''
-    <p>These terms are an agreement between you and {C} ("we", "us"), based in California, USA, which runs Mint Statements at mintstatements.com. By creating an account or using Mint Statements you agree to them. If you use it for a business, you agree on that business's behalf.</p>
+    <p>These terms are an agreement between you and {C} ("we", "us"), a business based in California, USA, which runs mintstatements.com. By creating an account or using Mint Statements you agree to them. If you use it for a business, you agree on that business's behalf.</p>
 
     <h2>1. Who can use it</h2>
     <p>You must be at least 18 and able to enter a contract. You sign in with a Google account and are responsible for what happens under your account.</p>
@@ -164,7 +165,7 @@ pages["terms"] = ("Terms of service", "The terms for using Mint Statements.", f'
 ''')
 
 pages["refunds"] = ("Refund policy", "How cancelling and refunds work for Mint Statements subscriptions.", f'''
-    <p>This policy covers Host and Pro subscriptions to Mint Statements, run by {C}.</p>
+    <p>This policy covers Host and Pro subscriptions to Mint Statements{RUN_BY.rstrip(",")}.</p>
 
     <h2>Free trial</h2>
     <p>New subscribers get a 7-day free trial, once per account. Cancel before it ends and you won't be charged.</p>
