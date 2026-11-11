@@ -39,7 +39,8 @@ export function readIdToken(idToken, env, nowSec = Math.floor(Date.now() / 1000)
   let claims; try { claims = JSON.parse(fromB64url(parts[1])); } catch { return null; }
   const issOk = claims.iss === "https://accounts.google.com" || claims.iss === "accounts.google.com";
   if (!issOk || claims.aud !== env.GOOGLE_CLIENT_ID || !(claims.exp > nowSec) || !claims.sub || !claims.email || claims.email_verified !== true) return null;
-  return { sub: String(claims.sub), email: String(claims.email).toLowerCase(), name: claims.name ? String(claims.name).slice(0, 120) : null };
+  // Only what's needed: Google's account id and the verified email (no name or photo is requested or kept).
+  return { sub: String(claims.sub), email: String(claims.email).toLowerCase(), name: null };
 }
 
 export async function createSession(env, userId) {

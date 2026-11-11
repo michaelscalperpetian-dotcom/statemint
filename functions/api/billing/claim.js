@@ -20,6 +20,6 @@ export async function onRequestPost({ request, env }) {
     if (r.error) return bad(r.error, r.status);
     row = r;
   }
-  if (row.user_id !== user.id) return bad("This purchase was made from a different Ownermint account. Sign in with the Google account you used at checkout.", 403);
+  if (row.user_id !== user.id) return bad("This purchase was made from a different Mint Statements account. Sign in with the Google account you used at checkout.", 403);
   return json({ plan: row.plan, status: row.status, active: ACTIVE.includes(row.status) });
 }

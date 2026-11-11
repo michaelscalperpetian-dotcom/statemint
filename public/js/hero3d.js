@@ -1,4 +1,4 @@
-// Ownermint hero: a floating island at dusk with real rigid-body physics (cannon-es).
+// Mint Statements hero: a floating island at dusk with real rigid-body physics (cannon-es).
 // Coins are physical bodies: they tumble, bounce, slide off the roof, stack, roll off the edge and sink in the pond.
 // Mouse: hover nudges coins, drag a coin to pick it up and throw it, click anywhere to mint a burst from the chimney.
 import * as THREE from "three";

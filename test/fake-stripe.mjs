@@ -1,4 +1,4 @@
-// A small stand-in for the Stripe endpoints Ownermint uses, for local tests only.
+// A small stand-in for the Stripe endpoints Mint Statements uses, for local tests only.
 import http from "node:http";
 export const state = { subStatus: "active", subPrice: "price_test_host_month", lastCheckout: null, lastPortal: null, sessions: {} };
 const SUB = () => ({ id: "sub_test_1", object: "subscription", customer: "cus_test_1", status: state.subStatus, items: { data: [{ price: { id: state.subPrice } }] } });

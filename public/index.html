@@ -2,19 +2,19 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Ownermint: monthly statements for Airbnb hosts</title>
-<meta name="description" content="For Airbnb hosts: turn your transaction CSV into a beautiful monthly statement in 30 seconds. Owner statements for homes you manage, earnings reports for your own. Free for 1 property.">
-<meta property="og:title" content="Ownermint: monthly statements for Airbnb hosts">
-<meta property="og:description" content="Monthly Airbnb statements in 30 seconds: for homes you manage and homes you own.">
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600..800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<title>Mint Statements: monthly statements for Airbnb hosts</title>
+<meta name="description" content="For Airbnb hosts: turn your Airbnb transaction CSV into a monthly statement. Owner statements for homes you manage, earnings reports for your own place.">
+<meta property="og:title" content="Mint Statements: monthly statements for Airbnb hosts">
+<meta property="og:description" content="Monthly Airbnb statements from your transaction CSV: for homes you manage and homes you own.">
+<link rel="stylesheet" href="/fonts/fonts.css">
 <link rel="stylesheet" href="/css/app.css">
 <script type="importmap">{"imports":{"three":"/vendor/three.module.min.js","three/addons/":"/vendor/addons/","cannon-es":"/vendor/cannon-es.min.js"}}</script>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='44' fill='%232fd3a0'/></svg>">
 </head>
 <body>
+<a class="skip" href="#main">Skip to content</a>
 <nav class="nav dark" style="color:#fff"><div class="wrap">
-  <a class="logo" href="/"><i></i>Ownermint</a>
+  <a class="logo" href="/"><i aria-hidden="true"></i>Mint Statements</a>
   <div class="nav-links"><a class="txt" href="#how">How it works</a><a class="txt" href="#pricing">Pricing</a><a class="txt" href="#faq">FAQ</a><a class="txt" href="/login" id="navAcct">Sign in</a>
     <a class="btn btn-mint btn-sm" href="/app" data-magnetic=".25"><span>Make a statement</span></a></div>
 </div></nav>
@@ -23,13 +23,13 @@
   <canvas id="scene" aria-hidden="true"></canvas>
   <div class="hero-copy"><div class="wrap">
     <span class="kicker"><b>NEW</b> Built for Airbnb hosts</span>
-    <h1 class="h-hero" id="title">Airbnb statements, <span class="grad">minted</span> in 30&nbsp;seconds.</h1>
+    <h1 class="h-hero" id="title">Airbnb statements, <span class="grad">minted</span> from your CSV.</h1>
     <p class="hero-lede">Drop in your Airbnb transaction CSV. Get a beautiful monthly statement: an owner statement with the commission math done for homes you manage, or a clean earnings report for your own place.</p>
     <div class="hero-cta">
       <a class="btn btn-mint btn-lg" href="/app" data-magnetic><span>Make my first statement →</span></a>
       <a class="btn btn-ghost btn-lg" href="#demo" data-magnetic style="color:#fff"><span>See an example</span></a>
     </div>
-    <div class="trust"><span>🔐 Sign in with Google</span><span>🔒 Owner links open only for your owner</span><span>🧮 Every number traceable to Airbnb</span></div>
+    <div class="trust"><span>🔐 Sign in with Google</span><span>🔒 Owner links open only for your owner</span><span>🧮 Each Airbnb line traced to its row in your file</span></div>
   </div></div>
   <div class="hero-hint">drag a coin to throw it · click to mint more</div>
   <div class="scroll-cue"></div>
@@ -40,15 +40,16 @@
   <span>Owner statements</span><span>Earnings reports</span><span>Commission splits</span><span>Cleaning fees</span><span>Expenses &amp; credits</span><span>Branded PDFs</span>
 </div></div>
 
+<main id="main">
 <section class="sec" id="how"><div class="wrap split">
   <div>
     <div class="eyebrow reveal">The problem</div>
     <h2 class="h-sec reveal">Airbnb moves the money. It doesn't explain it.</h2>
     <p class="lede reveal">Payouts arrive net of fees, cleaning is mixed in, stays straddle months, and every month you rebuild the same spreadsheet to explain where the money went: to an owner, a co-owner, or yourself at tax time.</p>
     <div class="feature-list">
-      <div class="feature reveal"><div class="ic">📄</div><div><b>Drop in the CSV</b><p>Export your transaction history from Airbnb and drop it in. Bank-transfer rows are skipped so nothing is counted twice, and every skipped row is listed in the audit trail.</p></div></div>
-      <div class="feature reveal"><div class="ic">🧮</div><div><b>Your own home or one you manage</b><p>For your own place: payout, fees, cleaning and expenses, done. For a home you manage: commission on payout, payout minus cleaning, or gross, who keeps cleaning fees, and who owes whom. Saved per property.</p></div></div>
-      <div class="feature reveal"><div class="ic">✦</div><div><b>Send a statement that impresses</b><p>A branded, animated web statement, a clean PDF, or a CSV for your accountant, down to the cent, with every line traceable to its row in your Airbnb file.</p></div></div>
+      <div class="feature reveal"><div class="ic" aria-hidden="true">📄</div><div><b>Drop in the CSV</b><p>Export your transaction history from Airbnb and drop it in. Bank-transfer rows are skipped so nothing is counted twice, and every skipped row is listed in the audit trail.</p></div></div>
+      <div class="feature reveal"><div class="ic" aria-hidden="true">🧮</div><div><b>Your own home or one you manage</b><p>For your own place: payout, fees, cleaning and expenses, done. For a home you manage: commission on payout, payout minus cleaning, or gross, who keeps cleaning fees, and who owes whom. Saved per property.</p></div></div>
+      <div class="feature reveal"><div class="ic" aria-hidden="true">✦</div><div><b>Send a statement that impresses</b><p>A branded, animated web statement, a clean PDF, or a CSV for your accountant, down to the cent, with every Airbnb line traced to its row in your file.</p></div></div>
     </div>
   </div>
   <div class="reveal" id="demo"><div class="demo-controls"><div><label for="dPct">Your commission <b id="dPctV">20%</b></label><input type="range" id="dPct" min="5" max="40" step="1" value="20"></div><div class="seg" id="dClean" role="group" aria-label="Who keeps cleaning fees"><button data-v="owner" type="button" aria-pressed="false">Cleaning → owner</button><button data-v="cohost" type="button" class="on" aria-pressed="true">Cleaning → you</button></div></div><div class="tilt-wrap"><div class="stack-demo" id="stack"><div id="demoView"></div></div></div><p class="demo-note">Live demo with sample data. Drag the slider and the statement recalculates.</p></div>
@@ -58,19 +59,17 @@
   <div class="eyebrow reveal">Who it's for</div>
   <h2 class="h-sec reveal">Every kind of Airbnb host.</h2>
   <div class="uses">
-    <div class="use reveal"><div class="ic">🏡</div><b>You host your own place</b><p>A monthly earnings report: what Airbnb paid, its fees, cleaning, your expenses and what you actually made. Share it with a co-owner or keep it for tax time.</p></div>
-    <div class="use reveal"><div class="ic">🗝️</div><b>You host homes for owners</b><p>An owner statement with your commission, cleaning fees, expenses and Airbnb split payouts reconciled, plus a live link your owner will actually enjoy opening.</p></div>
+    <div class="use reveal"><div class="ic" aria-hidden="true">🏡</div><b>You host your own place</b><p>A monthly earnings report: what Airbnb paid, its fees, cleaning, your expenses and what you actually made. Share it with a co-owner or keep it for tax time.</p></div>
+    <div class="use reveal"><div class="ic" aria-hidden="true">🗝️</div><b>You host homes for owners</b><p>An owner statement with your commission, cleaning fees, expenses and Airbnb split payouts reconciled, plus a live link your owner will actually enjoy opening.</p></div>
   </div>
 </div></section>
 
 <section class="sec" style="padding-top:0"><div class="wrap">
-  <div class="eyebrow reveal">Why Ownermint</div>
+  <div class="eyebrow reveal">Why Mint Statements</div>
   <h2 class="h-sec reveal">Everything you need. Nothing you don't.</h2>
-  <div class="reveal" style="overflow-x:auto"><table class="compare">
-    <thead><tr><th></th><th>Spreadsheet</th><th>Full property-management software</th><th>Ownermint</th></tr></thead>
+  <div class="reveal scroll-x" tabindex="0" role="region" aria-label="Comparison table"><table class="compare">
+    <thead><tr><th scope="col"><span class="sr-only">Feature</span></th><th>Spreadsheet</th><th>Full property-management software</th><th>Mint Statements</th></tr></thead>
     <tbody>
-      <tr><td>Monthly cost for 1 property</td><td>$0</td><td>Often $30–$100+ (owner statements usually on higher tiers)</td><td class="us">$0</td></tr>
-      <tr><td>Time per statement</td><td>30–60 min</td><td>Setup-heavy</td><td class="us">~30 seconds</td></tr>
       <tr><td>Handles Airbnb split payouts</td><td>Manual</td><td>Varies</td><td class="us">Built in</td></tr>
       <tr><td>Owner gets a live, branded statement</td><td>No</td><td>Sometimes</td><td class="us">Yes</td></tr>
       <tr><td>Learn a whole new system</td><td>No</td><td>Yes</td><td class="us">No</td></tr>
@@ -80,35 +79,42 @@
 <section class="sec" id="pricing" style="padding-top:0"><div class="wrap">
   <div class="eyebrow reveal">Pricing</div>
   <h2 class="h-sec reveal">Free for your first property.</h2>
-  <div class="bill-toggle reveal" role="group" aria-label="Billing period"><button type="button" data-int="month" aria-pressed="true">Monthly</button><button type="button" data-int="year" aria-pressed="false">Yearly · 2 months free</button></div>
+  <div class="bill-toggle reveal" role="group" aria-label="Billing period"><button type="button" data-int="month" aria-pressed="true">Monthly</button><button type="button" data-int="year" aria-pressed="false">Yearly</button></div>
   <div class="price-grid three">
-    <div class="pcard reveal"><b>Free</b><div class="price">$0</div><div class="per">forever</div><p style="color:var(--ink-3)">Everything Ownermint does, for one property.</p>
-      <ul><li>1 property</li><li>Owner statements &amp; earnings reports</li><li>PDF, CSV &amp; live share links</li><li>Audit trail for every number</li><li>Your logo &amp; business name</li></ul>
+    <div class="pcard reveal"><b>Free</b><div class="price">$0</div><div class="per">forever</div><p style="color:var(--ink-3)">Everything Mint Statements does, for one property.</p>
+      <ul><li>1 property</li><li>Owner statements &amp; earnings reports</li><li>PDF, CSV &amp; live share links</li><li>Audit trail of your Airbnb rows</li><li>Your logo &amp; business name</li></ul>
       <a class="btn" style="width:100%" href="/app"><span>Start free</span></a></div>
-    <div class="pcard reveal"><b>Host</b><div class="price" data-plan="host">$5<small>/month</small></div><div class="per" data-per="host">billed monthly</div><p style="color:var(--ink-3)">For hosts with a few listings.</p>
+    <div class="pcard reveal"><b>Host</b><div class="price" data-plan="host">$5<small>/month</small></div><div class="per" data-per="host">billed monthly</div><div class="trial-tag">7-day free trial</div><p style="color:var(--ink-3)">For hosts with a few listings.</p>
       <ul><li>Up to 5 properties</li><li>Everything in Free</li><li>All-properties dashboard</li><li>Month-by-month history</li></ul>
-      <a class="btn btn-mint" style="width:100%" href="/app" data-buy="host"><span>Choose Host</span></a></div>
-    <div class="pcard pro reveal"><b>Pro <span class="tag">For managers</span></b><div class="price" data-plan="pro">$15<small>/month</small></div><div class="per" data-per="pro">billed monthly</div><p style="opacity:.6">For hosts running a portfolio for owners.</p>
+      <a class="btn btn-mint" style="width:100%" href="/app" data-buy="host"><span>Start free trial</span></a></div>
+    <div class="pcard pro reveal"><b>Pro <span class="tag">For managers</span></b><div class="price" data-plan="pro">$15<small>/month</small></div><div class="per" data-per="pro">billed monthly</div><div class="trial-tag">7-day free trial</div><p style="opacity:.6">For hosts running a portfolio for owners.</p>
       <ul><li>Unlimited properties</li><li>Everything in Host</li><li>Branded owner links for every home</li></ul>
-      <a class="btn btn-mint" style="width:100%" href="/app" data-buy="pro"><span>Choose Pro</span></a></div>
+      <a class="btn btn-mint" style="width:100%" href="/app" data-buy="pro"><span>Start free trial</span></a></div>
   </div>
-  <p class="price-note">Prices in USD. Tax is added at checkout where it applies. Cancel anytime.</p>
+  <p class="price-note">New subscribers get a 7-day free trial (once per account). Your card is charged when the trial ends unless you cancel before. Plans renew automatically every month or year at the price shown until you cancel. Cancel anytime under Manage subscription; you keep access until the end of the period you paid for. No refunds for partial periods (see the <a href="/refunds">refund policy</a> and <a href="/terms">terms</a>). Prices in USD; tax is added at checkout where it applies.</p>
 </div></section>
 
 <section class="sec" id="faq" style="padding-top:0"><div class="wrap" style="max-width:820px">
   <div class="eyebrow reveal">FAQ</div>
   <h2 class="h-sec reveal">Questions hosts ask</h2>
-  <div class="feature-list">
-    <div class="feature reveal"><div><b>Where is my data saved?</b><p>Your CSV, settings, expenses and saved statements are saved to your Ownermint account so they're there on any device you sign in on. "Delete my saved data" removes them, and you can delete your whole account from your dashboard. If you create an owner link, we store that one statement (the figures, guest names as you chose to show them, your branding and note) and only the email you shared it with can open it, after signing in with Google. You can delete a link at any time.</p></div></div>
-    <div class="feature reveal"><div><b>Where do I get the CSV?</b><p>On Airbnb: Menu → Earnings → Transaction history → filter by listing and dates → Export CSV.</p></div></div>
-    <div class="feature reveal"><div><b>I host my own place. Is this for me?</b><p>Yes. Mark the property as "My own home" and you get an earnings report instead of an owner statement: no commission, no settlement, just what you made and where it went.</p></div></div>
-    <div class="feature reveal"><div><b>What counts as a property?</b><p>One Airbnb listing. Free covers one, Host covers five, Pro is unlimited. If your file has more listings than your plan, you choose which ones are on it.</p></div></div>
-    <div class="feature reveal"><div><b>Airbnb already splits payouts between me and the owner. Does it still help?</b><p>Yes. Pick "Airbnb split", enter what Airbnb paid you, and Ownermint shows whether anyone owes a difference against your agreed deal.</p></div></div>
-    <div class="feature reveal"><div><b>Is this accounting or tax advice?</b><p>No. Ownermint organizes the numbers in your Airbnb report. Check anything tax-related with your accountant.</p></div></div>
+  <div class="faq">
+    <details class="faq-item reveal"><summary>Where is my data saved?</summary><p>Your CSV, settings, expenses and saved statements are saved to your Mint Statements account so they're there on any device you sign in on. "Delete my saved data" removes them, and you can delete your whole account from your dashboard. If you create an owner link, we store that one statement (the figures, guest names as you chose to show them, your branding and note) and only the email you shared it with can open it, after signing in with Google. You can delete a link at any time.</p></details>
+    <details class="faq-item reveal"><summary>Where do I get the CSV?</summary><p>On Airbnb: Menu → Earnings → Transaction history → filter by listing and dates → Export CSV.</p></details>
+    <details class="faq-item reveal"><summary>I host my own place. Is this for me?</summary><p>Yes. Mark the property as "My own home" and you get an earnings report instead of an owner statement: no commission, no settlement, just what you made and where it went.</p></details>
+    <details class="faq-item reveal"><summary>What counts as a property?</summary><p>One Airbnb listing. Free covers one, Host covers five, Pro is unlimited. If your file has more listings than your plan, you choose which ones are on it.</p></details>
+    <details class="faq-item reveal"><summary>How does the free trial work?</summary><p>New Host and Pro subscribers get 7 days free, once per account. You enter a card at checkout and nothing is charged during the trial. If you don't cancel before it ends, the plan starts and renews automatically every month or year until you cancel.</p></details>
+    <details class="faq-item reveal"><summary>How do I cancel?</summary><p>Go to your dashboard or the statement builder and press Manage subscription, then Cancel. You keep your plan until the end of the period you've paid for, and you won't be charged again. We don't give refunds for partial periods; see the <a href="/refunds">refund policy</a>.</p></details>
+    <details class="faq-item reveal"><summary>Airbnb already splits payouts between me and the owner. Does it still help?</summary><p>Yes. Pick "Airbnb split", enter what Airbnb paid you, and Mint Statements shows whether anyone owes a difference against your agreed deal.</p></details>
+    <details class="faq-item reveal"><summary>Is this accounting or tax advice?</summary><p>No. Mint Statements organizes the numbers in your Airbnb report. Check anything tax-related with your accountant.</p></details>
   </div>
 </div></section>
 
-<footer><div class="wrap"><span>© <span id="yr"></span> Ownermint · Not affiliated with Airbnb</span><span><a href="/privacy">Privacy</a> · <a href="/app">Make a statement</a></span></div></footer>
+</main>
+
+<footer class="site-foot"><div class="wrap">
+  <nav aria-label="Legal"><a href="/terms">Terms</a><a href="/privacy">Privacy</a><a href="/refunds">Refunds</a><a href="/cookies">Cookies</a><a href="mailto:support@mintstatements.com">support@mintstatements.com</a></nav>
+  <p>© <span id="yr"></span> [Company legal name], California, USA. Mint Statements is not affiliated with, endorsed or sponsored by Airbnb. Airbnb is a trademark of Airbnb, Inc.</p>
+</div></footer>
 
 <script type="module">
 import { cursor, magnetic, reveals, splitWords, tilt, toast } from "/js/fx.js";
@@ -118,7 +124,7 @@ import { PLANS, billingConfig, startCheckout } from "/js/plans.js";
 import { fetchMe } from "/js/account.js";
 // signed in? the nav offers the dashboard instead of "Sign in"
 const meReady = fetchMe().catch(() => null);
-meReady.then(m => { if (m) { const a = document.getElementById("navAcct"); a.textContent = "Dashboard"; a.href = "/dashboard"; } });
+meReady.then(m => { if (m) { const a = document.getElementById("navAcct"); a.textContent = "Dashboard"; a.href = "/dashboard"; if (!m.trialAvailable) { trialOK = false; document.querySelectorAll(".trial-tag").forEach(t => t.hidden = true); if (typeof drawPrices === "function") drawPrices(); } } });
 document.getElementById("yr").textContent = new Date().getFullYear();
 cursor(); magnetic(); splitWords(document.getElementById("title")); reveals();
 const nav = document.querySelector(".nav"); const onScroll = () => nav.classList.toggle("solid", scrollY > innerHeight - 90); onScroll(); addEventListener("scroll", onScroll, { passive: true });
@@ -137,7 +143,7 @@ document.getElementById("dPct").addEventListener("input", e => { dState.pct = Nu
 document.querySelectorAll("#dClean button").forEach(b => b.addEventListener("click", () => { dState.clean = b.dataset.v; document.querySelectorAll("#dClean button").forEach(x => { x.classList.toggle("on", x === b); x.setAttribute("aria-pressed", String(x === b)); }); drawDemo(false); }));
 tilt(document.getElementById("stack"), document.getElementById("demo"), 6);
 // Pricing: monthly / yearly toggle. Checkout buttons go live once payments are switched on.
-let billInt = "month", billing = { enabled: false, links: {} };
+let billInt = "month", billing = { enabled: false, links: {} }, trialOK = true; // signed-in accounts that already used the trial see "Choose Host/Pro"
 function drawPrices() {
   document.querySelectorAll(".bill-toggle button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.int === billInt)));
   for (const p of ["host", "pro"]) {
@@ -145,7 +151,7 @@ function drawPrices() {
     const price = document.querySelector(`[data-plan=${p}]`); price.textContent = "$" + per.replace(/\.00$/, ""); price.appendChild(Object.assign(document.createElement("small"), { textContent: "/month" }));
     document.querySelector(`[data-per=${p}]`).textContent = billInt === "year" ? `$${P.year} billed yearly` : "billed monthly";
     const a = document.querySelector(`[data-buy=${p}]`);
-    a.href = "/app"; a.firstElementChild.textContent = billing.enabled ? `Choose ${P.name}` : "Opening soon · start free";
+    a.href = "/app"; a.firstElementChild.textContent = billing.enabled ? (trialOK ? "Start free trial" : `Choose ${P.name}`) : "Opening soon · start free";
   }
 }
 document.querySelectorAll(".bill-toggle button").forEach(b => b.addEventListener("click", () => { billInt = b.dataset.int; drawPrices(); }));

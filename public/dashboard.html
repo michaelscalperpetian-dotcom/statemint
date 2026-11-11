@@ -2,17 +2,16 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Dashboard · Ownermint</title>
+<title>Dashboard · Mint Statements</title>
 <meta name="robots" content="noindex">
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600..800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/fonts/fonts.css">
 <link rel="stylesheet" href="/css/app.css">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='44' fill='%232fd3a0'/></svg>">
 </head>
 <body class="dash-page">
 <header class="dash-top">
   <div class="dash-wrap dash-bar">
-    <a class="logo" href="/"><i></i>Ownermint</a>
+    <a class="logo" href="/"><i></i>Mint Statements</a>
     <div class="acct"><span class="acct-who" id="acctWho"></span><a class="btn btn-mint btn-sm" href="/app"><span>Open statement builder</span></a><button type="button" class="linkish" id="signOut">Sign out</button></div>
   </div>
 </header>
@@ -20,25 +19,28 @@
   <h1 class="dash-h" id="hello">Your dashboard</h1>
   <nav class="dash-nav" aria-label="Sections"><a href="#properties">Properties</a><a href="#links">Statements &amp; owner links</a><a href="#plan">Plan &amp; billing</a><a href="#account">Account</a></nav>
 
-  <section class="panel" id="properties" aria-labelledby="propH"><h3 id="propH">Properties</h3><div id="propBody"></div></section>
-  <section class="panel" id="links" aria-labelledby="linksH"><h3 id="linksH">Statements &amp; owner links</h3><div id="linksBody"><div class="st-loading"><span class="spinner" aria-hidden="true"></span>Loading…</div></div></section>
-  <section class="panel" id="plan" aria-labelledby="planH"><h3 id="planH">Plan &amp; billing</h3><div id="planBody"></div></section>
-  <section class="panel" id="account" aria-labelledby="acctH"><h3 id="acctH">Account</h3><div id="acctBody"></div></section>
-  <p class="help" style="text-align:center"><a href="/privacy">Privacy</a></p>
+  <section class="panel" id="properties" aria-labelledby="propH"><h2 id="propH">Properties</h2><div id="propBody"></div></section>
+  <section class="panel" id="links" aria-labelledby="linksH"><h2 id="linksH">Statements &amp; owner links</h2><div id="linksBody"><div class="st-loading"><span class="spinner" aria-hidden="true"></span>Loading…</div></div></section>
+  <section class="panel" id="plan" aria-labelledby="planH"><h2 id="planH">Plan &amp; billing</h2><div id="planBody"></div></section>
+  <section class="panel" id="account" aria-labelledby="acctH"><h2 id="acctH">Account</h2><div id="acctBody"></div></section>
+  <p class="help" style="text-align:center"><a href="/terms">Terms</a> · <a href="/privacy">Privacy</a> · <a href="/refunds">Refunds</a> · <a href="/cookies">Cookies</a> · <a href="mailto:support@mintstatements.com">support@mintstatements.com</a></p>
 </main>
 <script type="module">
 import { parseCSV, toTransactions, listings, months, monthLabel, money, SAMPLE_CSV } from "/js/engine.js";
 import { toast, copy, store } from "/js/fx.js";
-import { PLANS, limitLabel, billingConfig, startCheckout, openPortal } from "/js/plans.js";
+import { PLANS, limitLabel, billingConfig, startCheckout, openPortal, renewalNote } from "/js/plans.js";
 import { ensureSession, fetchMe, signOut, deleteAllData } from "/js/account.js";
 let me = await ensureSession();
 const $ = s => document.getElementById(s);
 const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+// a table that can scroll sideways on small screens: reachable and scrollable from the keyboard
+const scrollTable = label => { const w = el("div", "tbl-wrap"); w.tabIndex = 0; w.setAttribute("role", "region"); w.setAttribute("aria-label", label); return w; };
+// column header; an empty one (the buttons column) still gets a name for screen readers
+const th = text => { const c = el("th"); c.scope = "col"; if (text) c.textContent = text; else c.appendChild(el("span", "sr-only", "Actions")); return c; };
 const button = (text, cls, onclick) => { const b = Object.assign(el("button", cls), { type: "button" }); b.appendChild(el("span", "", text)); b.onclick = onclick; return b; };
 // runs an async action on a button: "Working…" while it runs, the error as a toast if it fails
 const busy = (b, text, fn) => async () => { const s = b.querySelector("span") || b, was = s.textContent; b.disabled = true; s.textContent = text; try { await fn(); } catch (e) { toast(e.message); } b.disabled = false; s.textContent = was; };
 $("acctWho").textContent = me.user.email;
-$("hello").textContent = me.user.name ? `Hi, ${me.user.name.split(/\s+/)[0]}` : "Your dashboard";
 $("signOut").onclick = () => signOut();
 if (me.imported) toast("Signed in. We saved what this browser had to your account.");
 if (me.syncFailed) toast("Couldn't reach your account just now, so this shows what this browser had saved. Reload to try again.");
@@ -70,8 +72,8 @@ function renderProperties() {
   const names = listings(csv.tx), P = PLANS[plan()];
   const chosen = new Set(csv.sample ? names : store.get("chosenProperties", []).slice(0, P.limit));
   box.append(el("p", "help", `From ${csv.name}${csv.sample ? " (sample data)" : ""} · ${names.length} propert${names.length === 1 ? "y" : "ies"}` + (csv.sample || P.limit === Infinity ? "" : ` · ${Math.min(chosen.size, P.limit)} of ${P.limit} on your ${P.name} plan`)));
-  const wrap = el("div", "tbl-wrap"), t = el("table", "tbl"), head = el("tr");
-  ["Property", "Plan", "Report", "Owner's email", "Months in file", ""].forEach(h => head.appendChild(el("th", "", h)));
+  const wrap = scrollTable("Your properties"), t = el("table", "tbl"), head = el("tr");
+  ["Property", "Plan", "Report", "Owner's email", "Months in file", ""].forEach(h => head.appendChild(th(h)));
   t.appendChild(el("thead")).appendChild(head); const tb = el("tbody");
   for (const name of names) {
     const s = store.get("settings:" + name, {}), own = s.reportType === "own";
@@ -90,7 +92,7 @@ function renderProperties() {
 async function deleteLink(l) {
   if (!confirm(`Delete the owner link for ${l.listing || "this statement"}${l.month ? ", " + monthLabel(l.month) : ""}? Anyone who opens it will see "Statement not found".`)) return;
   const headers = l.editKey ? { "x-edit-key": l.editKey } : {};
-  let r; try { r = await fetch(`/api/statements/${encodeURIComponent(l.id)}`, { method: "DELETE", headers }); } catch { throw new Error("Couldn't reach Ownermint. Check your connection."); }
+  let r; try { r = await fetch(`/api/statements/${encodeURIComponent(l.id)}`, { method: "DELETE", headers }); } catch { throw new Error("Couldn't reach Mint Statements. Check your connection."); }
   if (!r.ok && r.status !== 404) { const d = await r.json().catch(() => ({})); throw new Error(d.error || `Couldn't delete the link (error ${r.status}).`); }
   store.set("links", store.get("links", []).filter(x => x.id !== l.id));
   toast(r.ok ? "Link deleted" : "That link was already gone."); renderLinks();
@@ -108,15 +110,15 @@ async function renderLinks() {
   box.append(el("p", "help", "Only the email a link was shared with (and you) can open it, after signing in with Google. Links stop working 30 days after they're made; make a new one when you need it."));
   if (!server.length && !older.length) box.append(el("p", "dash-empty", "No owner links yet. Make one with \"Get owner link\" in the statement builder."));
   const table = (rows, older) => {
-    const wrap = el("div", "tbl-wrap"), t = el("table", "tbl"), head = el("tr");
-    ["Property", "Month", older ? "Who can open it" : "Shared with", "Owner net", "Created", "Expires", older ? "" : "Views", ""].forEach(h => head.appendChild(el("th", "", h)));
+    const wrap = scrollTable(older ? "Older owner links" : "Your owner links"), t = el("table", "tbl"), head = el("tr");
+    ["Property", "Month", older ? "Who can open it" : "Shared with", "Owner net", "Created", "Expires", "Views", ""].forEach(h => head.appendChild(th(h)));
     t.appendChild(el("thead")).appendChild(head); const tb = el("tbody");
     for (const l of rows) {
       const tr = el("tr"), url = `${location.origin}/s/${l.id}`, when = l.createdAt || l.at;
       tr.append(el("td", "l", l.listing || "–"), el("td", "", l.month ? monthLabel(l.month) : "–"), el("td", "", older ? "Anyone signed in with the link" : l.ownerEmail),
         el("td", "r", l.ownerNet != null ? money(l.ownerNet, l.currency || "USD") : "–"), el("td", "", when ? new Date(when).toLocaleDateString() : "–"));
       const exp = l.expiresAt || (when ? when + 30 * 86400000 : 0), gone = exp && exp <= Date.now();
-      tr.append(el("td", gone ? "expired" : "", exp ? (gone ? "Expired" : new Date(exp).toLocaleDateString()) : "–"), el("td", "r", older ? "" : String(l.views)));
+      tr.append(el("td", gone ? "expired" : "", exp ? (gone ? "Expired" : new Date(exp).toLocaleDateString()) : "–"), el("td", "r", older ? "–" : String(l.views)));
       if (gone) tr.classList.add("is-expired");
       const act = el("td", "acts");
       if (!gone) act.append(Object.assign(el("a", "mini", "Open"), { href: url, target: "_blank", rel: "noopener" }), Object.assign(el("button", "mini", "Copy link"), { type: "button", onclick: () => copy(url) }));
@@ -126,7 +128,7 @@ async function renderLinks() {
     t.appendChild(tb); wrap.appendChild(t); return wrap;
   };
   if (server.length) box.appendChild(table(server, false));
-  if (older.length) { box.append(el("h4", "dash-sub", "Older links"), el("p", "help", "Made before sign-in existed, so they aren't tied to an owner's email: anyone signed in who has the link can open them. To limit one to your owner, make a new link and delete the old one.")); box.appendChild(table(older, true)); }
+  if (older.length) { box.append(el("h3", "dash-sub", "Older links"), el("p", "help", "Made before sign-in existed, so they aren't tied to an owner's email: anyone signed in who has the link can open them. To limit one to your owner, make a new link and delete the old one.")); box.appendChild(table(older, true)); }
   const s = el("p", "help"); s.append(document.createTextNode(`Saved copies: ${saved.length}. `));
   const a = Object.assign(el("a", "", "See them in the Saved tab →"), { href: "/app#saved" }); s.appendChild(a); box.appendChild(s);
 }
@@ -140,17 +142,17 @@ function renderPlan() {
   if (me.subscriptionStatus === "past_due") box.appendChild(el("div", "warn", "Your last payment didn't go through. Stripe will try your card again; update it under Manage subscription to keep your plan."));
   if (P.limit !== Infinity) {
     const seg = el("div", "seg up-int dash-int"); seg.setAttribute("role", "group"); seg.setAttribute("aria-label", "Billing period");
-    [["month", "Monthly"], ["year", "Yearly · 2 months free"]].forEach(([v, t]) => { const b = Object.assign(el("button", interval === v ? "on" : "", t), { type: "button" }); b.setAttribute("aria-pressed", String(interval === v)); b.onclick = () => { interval = v; renderPlan(); }; seg.appendChild(b); });
+    [["month", "Monthly"], ["year", "Yearly"]].forEach(([v, t]) => { const b = Object.assign(el("button", interval === v ? "on" : "", t), { type: "button" }); b.setAttribute("aria-pressed", String(interval === v)); b.onclick = () => { interval = v; renderPlan(); }; seg.appendChild(b); });
     box.appendChild(seg);
     ["host", "pro"].filter(x => PLANS[x].limit > P.limit).forEach(x => {
       const X = PLANS[x], card = el("div", "up-card"), info = el("div");
       info.append(el("b", "", X.name), el("small", "", `${limitLabel(x)} · ${interval === "year" ? `$${X.year}/year (≈ $${(X.year / 12).toFixed(2)}/mo)` : `$${X.month}/month`}`));
-      const label = !billing.enabled ? "Opening soon" : me.hasSubscription ? "Change plan" : "Upgrade";
+      const label = !billing.enabled ? "Opening soon" : me.hasSubscription ? "Change plan" : me.trialAvailable ? "Start free trial" : "Upgrade";
       const b = button(label, billing.enabled ? "btn btn-mint btn-sm" : "btn btn-sm"); b.disabled = !billing.enabled;
       b.onclick = busy(b, "Opening…", () => (me.hasSubscription ? openPortal() : startCheckout(x, interval)));
       card.append(info, b); box.appendChild(card);
     });
-    box.appendChild(el("p", "help", billing.enabled ? "Secure checkout by Stripe. Tax is added where it applies. Cancel anytime." : "Paid plans are opening soon. Everything works on the Free plan for 1 property."));
+    box.appendChild(el("p", "help", billing.enabled ? "Secure checkout by Stripe. " + renewalNote(me.trialAvailable && !me.hasSubscription) : "Paid plans are opening soon. Everything works on the Free plan for 1 property."));
   }
   if (me.canManageBilling && billing.enabled) {
     const b = button("Manage subscription", "btn btn-ghost btn-sm"); b.onclick = busy(b, "Opening…", () => openPortal());
@@ -162,7 +164,7 @@ function renderPlan() {
 function renderAccount() {
   const box = $("acctBody"); box.innerHTML = "";
   const dl = el("dl", "dash-dl");
-  dl.append(el("dt", "", "Name"), el("dd", "", me.user.name || "–"), el("dt", "", "Email"), el("dd", "", me.user.email), el("dt", "", "Sign-in"), el("dd", "", "Google"));
+  dl.append(el("dt", "", "Email"), el("dd", "", me.user.email), el("dt", "", "Sign-in"), el("dd", "", "Google"));
   box.appendChild(dl);
   const row = el("div", "dash-actions");
   row.appendChild(button("Sign out", "btn btn-ghost btn-sm", () => signOut()));
@@ -174,8 +176,8 @@ function renderAccount() {
   const del = button("Delete my account", "btn btn-sm btn-danger");
   del.onclick = busy(del, "Deleting…", async () => {
     if (me.hasSubscription) { showCancelFirst(); return; }
-    if (!confirm("Delete your Ownermint account?\n\nThis removes everything saved to it, and every owner link you made stops working. This can't be undone.")) return;
-    let r; try { r = await fetch("/api/account", { method: "DELETE" }); } catch { throw new Error("Couldn't reach Ownermint. Check your connection."); }
+    if (!confirm("Delete your Mint Statements account?\n\nThis removes everything saved to it, and every owner link you made stops working. This can't be undone.")) return;
+    let r; try { r = await fetch("/api/account", { method: "DELETE" }); } catch { throw new Error("Couldn't reach Mint Statements. Check your connection."); }
     const d = await r.json().catch(() => ({}));
     if (r.status === 409) { me = { ...me, ...(await fetchMe().catch(() => null) || {}) }; showCancelFirst(); return; }
     if (!r.ok) throw new Error(d.error || `Couldn't delete your account (error ${r.status}).`);

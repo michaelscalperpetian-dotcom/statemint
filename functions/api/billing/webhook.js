@@ -1,6 +1,6 @@
 import { json, bad, randomId } from "../../_lib.js";
 import { verifySignature, refreshSubscription, licenseForSession, stripeGet } from "../../_billing.js";
-// Stripe → Ownermint events. Every event is verified with the endpoint's signing secret, then our records are
+// Stripe → Mint Statements events. Every event is verified with the endpoint's signing secret, then our records are
 // refreshed from Stripe's current state (so out-of-order or repeated deliveries are harmless).
 // A non-2xx reply makes Stripe retry, so we only return 500 when Stripe itself couldn't be reached.
 export async function onRequestPost({ request, env }) {

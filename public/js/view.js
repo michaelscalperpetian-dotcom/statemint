@@ -121,6 +121,7 @@ export function renderStatement(root, data, opts = {}) {
   // reservations table. Expenses entered in the builder are listed here too, with their own Expenses column.
   const tSec = h("section", "st-sec"); tSec.appendChild(h("h3", "", st.expenses.length ? "Reservations, adjustments & expenses" : "Reservations & adjustments"));
   const wrap = h("div", "tbl-wrap"); const tbl = h("table", "tbl");
+  wrap.tabIndex = 0; wrap.setAttribute("role", "region"); wrap.setAttribute("aria-label", "Reservations and adjustments");
   const thead = h("thead"); const hr = h("tr");
   const showExp = st.expenses.length > 0;
   const heads = ["Guest", "Check-in", "Nights", "Gross", "Airbnb fee", "Cleaning", "Payout"];
@@ -178,7 +179,7 @@ export function renderStatement(root, data, opts = {}) {
 
   const foot = h("footer", "st-foot");
   foot.appendChild(h("span", "", `Figures from the Airbnb transaction report${data.createdAt ? " · generated " + new Date(data.createdAt).toLocaleDateString() : ""}.`));
-  const made = h("a", "", "Made with Ownermint ✦"); made.href = "/"; foot.appendChild(made);
+  const made = h("a", "", "Made with Mint Statements ✦"); made.href = "/"; foot.appendChild(made);
   card.appendChild(foot);
   root.appendChild(card);
 

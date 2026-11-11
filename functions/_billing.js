@@ -1,4 +1,4 @@
-// Stripe billing for Ownermint (separate Ownermint Stripe account, acct_1UZ5JxRVql5OGuqT).
+// Stripe billing for Mint Statements (separate Mint Statements Stripe account, acct_1UZ5JxRVql5OGuqT).
 // Secrets (Cloudflare Pages → Settings → Variables and Secrets):
 //   STRIPE_SECRET_KEY      restricted key: Checkout Sessions write, Subscriptions read, Customers read, Customer portal write
 //   STRIPE_WEBHOOK_SECRET  signing secret of the webhook endpoint /api/billing/webhook
@@ -23,6 +23,12 @@ export const plans = env => {
   return { ...cfg, PRICE_PLAN };
 };
 export const SITE = "https://statemint-994.pages.dev";
+// Addresses the site is served from. Stripe sends buyers back to the one they came from (anything else: SITE).
+const ORIGINS = ["https://mintstatements.com", "https://www.mintstatements.com", "https://statemint-994.pages.dev"];
+export const siteOrigin = (request, env) => {
+  const o = new URL(request.url).origin;
+  return env.TEST_BILLING === "1" || ORIGINS.includes(o) ? o : SITE;
+};
 // Subscriptions in these states keep paid features. past_due keeps them while Stripe retries the card.
 export const ACTIVE = ["active", "trialing", "past_due"];
 
@@ -69,7 +75,7 @@ export async function licenseForSession(env, session, randomKey) {
   if (session.status !== "complete" || session.mode !== "subscription" || !subId) return { error: "This checkout isn't complete yet.", status: 409 };
   const sub = typeof session.subscription === "object" && session.subscription.items ? session.subscription : await stripeGet(env, `subscriptions/${encodeURIComponent(subId)}`);
   const plan = planOf(sub, env);
-  if (!plan) return { error: "This checkout isn't for an Ownermint plan.", status: 400 };
+  if (!plan) return { error: "This checkout isn't for an Mint Statements plan.", status: 400 };
   const key = randomKey(), now = Date.now();
   // INSERT OR IGNORE: if the webhook and the browser race, the first insert wins and both read the same row back
   // the checkout was started by a signed-in user (client_reference_id); the plan belongs to that account

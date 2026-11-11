@@ -35,10 +35,11 @@ try {
   assert.ok((await page.textContent(".lock-card h3")).includes("isn't on your Free plan"));
   for (const id of ["share", "exportCsv", "print"]) assert.equal(await page.isDisabled("#" + id), true);
   const btns = await page.$$eval(".lock-card .up-card button", b => b.map(x => [x.textContent, x.disabled]));
-  assert.deepEqual(btns, [["Upgrade", false], ["Upgrade", false]]);
+  assert.deepEqual(btns, [["Start free trial", false], ["Start free trial", false]]);
+  assert.ok((await page.textContent(".lock-card")).includes("7-day free trial") && (await page.textContent(".lock-card")).includes("renew automatically"));
   const upPrices = await page.$$eval(".lock-card .up-card small", x => x.map(e => e.textContent));
   assert.ok(upPrices[0].includes("$5/month") && upPrices[1].includes("$15/month"), upPrices.join(" | "));
-  ok("locked property: no figures, actions disabled, Host and Pro upgrade buttons shown with monthly prices first");
+  ok("locked property: no figures, actions disabled, Host and Pro 'Start free trial' buttons with monthly prices first and the renewal terms next to them");
   await page.screenshot({ path: OUT + "/locked.png" });
 
   // 3. swap: first swap allowed, then locked for 30 days
@@ -106,15 +107,20 @@ try {
   assert.equal((await lp.textContent("[data-plan=host]")).trim(), "$4.17/month"); assert.equal((await lp.textContent("[data-plan=pro]")).trim(), "$12.50/month");
   assert.equal((await lp.textContent("[data-per=host]")).trim(), "$50 billed yearly");
   await lp.click(".bill-toggle button[data-int=month]");
-  assert.equal((await lp.textContent("[data-buy=host]")).trim(), "Choose Host");
+  assert.equal((await lp.textContent("[data-buy=host]")).trim(), "Start free trial");
+  const note = await lp.textContent(".price-note"); for (const t of ["7-day free trial", "charged when the trial ends", "renew automatically", "Cancel anytime", "No refunds for partial periods"]) assert.ok(note.includes(t), t);
+  assert.ok(!(await lp.textContent("body")).includes("2 months free")); assert.ok(!(await lp.textContent("body")).includes("30 seconds"));
+  assert.equal(await lp.$$eval("#faq details.faq-item", d => d.length), 8); assert.equal(await lp.isVisible("#faq details.faq-item p"), false);
+  await lp.click("#faq details.faq-item summary"); assert.equal(await lp.isVisible("#faq details.faq-item p"), true);
+  for (const href of ["/terms", "/privacy", "/refunds", "/cookies"]) assert.equal(await lp.$$eval(`footer a[href="${href}"]`, a => a.length), 1);
   assert.ok((await lp.textContent("h1")).includes("Airbnb statements")); assert.ok(!(await lp.textContent("body")).toLowerCase().includes("co-host"));
   // signed out: Choose Pro asks you to sign in first, then goes straight on to Stripe Checkout
   await Promise.all([lp.waitForURL(/\/login\?next=/), lp.click("[data-buy=pro]")]);
   assert.equal(new URL(lp.url()).searchParams.get("next"), "/app?buy=pro&interval=month");
   const hint = new URL(lp.url()).searchParams.get("next");
   await Promise.all([lp.waitForURL(/checkout\.stripe\.com/, { timeout: 15000 }), lp.goto(`${BASE}/api/auth/login?login_hint=${encodeURIComponent(uniqueEmail("landing"))}&next=${encodeURIComponent(hint)}`)]);
-  assert.equal(state.lastCheckout["line_items[0][price]"], "price_test_pro_month");
-  ok("landing: hosts wording, yearly $4.17 / $12.50 per month, monthly ($5 / $15) shown first; signed out, Choose Pro signs you in and then opens Stripe Checkout for Pro monthly");
+  assert.equal(state.lastCheckout["line_items[0][price]"], "price_test_pro_month"); assert.equal(state.lastCheckout["subscription_data[trial_period_days]"], "7");
+  ok("landing: trial and renewal terms by the buttons, FAQ drop-downs, legal links, no unsupported claims; signed out, Start free trial signs you in and opens Stripe Checkout for Pro monthly with a 7-day trial");
   await lp.goto(BASE + "/", { waitUntil: "load" }); await lp.waitForFunction(() => document.getElementById("navAcct").textContent === "Dashboard");
   await Promise.all([lp.waitForURL(/checkout\.stripe\.com/), lp.click("[data-buy=host]")]);
   ok("signed in: the nav shows Dashboard and Choose Host goes straight to Stripe Checkout");
@@ -130,7 +136,7 @@ try {
   await fail.goto(BASE + "/", { waitUntil: "load" }); await fail.waitForTimeout(500);
   await fail.click("[data-buy=pro]"); await fail.waitForTimeout(800);
   assert.equal(new URL(fail.url()).pathname, "/"); assert.ok((await fail.textContent(".toast")).includes("Couldn't start checkout"));
-  assert.equal((await fail.textContent("[data-buy=pro]")).trim(), "Choose Pro");
+  assert.equal((await fail.textContent("[data-buy=pro]")).trim(), "Start free trial");
   ok("if checkout can't start, the homepage shows the reason and stays put");
 
   assert.equal(errors.length, 0, errors.join("\n")); ok("no JavaScript errors");

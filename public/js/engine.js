@@ -1,4 +1,4 @@
-// Ownermint statement engine. Pure functions, used in the browser and in Node tests.
+// Mint Statements statement engine. Pure functions, used in the browser and in Node tests.
 
 /* ---------- CSV ---------- */
 export function parseCSV(text) {

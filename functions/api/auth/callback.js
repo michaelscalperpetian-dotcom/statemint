@@ -1,5 +1,5 @@
 import { googleTokenUrl, callbackUrl, cookies, cookie, OAUTH_COOKIE, readIdToken, createSession, newUserId, safeNext } from "../../_auth.js";
-const page = (title, text) => new Response(`<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title} · Ownermint</title><link rel="stylesheet" href="/css/app.css"><main class="nf"><a class="logo" href="/"><i></i>Ownermint</a><h1>${title}</h1><p>${text}</p><div class="nf-actions"><a class="btn btn-mint" href="/login"><span>Try again</span></a></div></main>`,
+const page = (title, text) => new Response(`<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title} · Mint Statements</title><link rel="stylesheet" href="/fonts/fonts.css"><link rel="stylesheet" href="/css/app.css"><main class="nf"><a class="logo" href="/"><i></i>Mint Statements</a><h1>${title}</h1><p>${text}</p><div class="nf-actions"><a class="btn btn-mint" href="/login"><span>Try again</span></a></div></main>`,
   { status: 400, headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "set-cookie": cookie(OAUTH_COOKIE, "", { maxAge: 0, path: "/api/auth" }) } });
 // Google sends the browser back here with ?code&state. Verifies state + PKCE, exchanges the code, signs the user in.
 export async function onRequestGet({ request, env }) {
@@ -14,7 +14,7 @@ export async function onRequestGet({ request, env }) {
     tokens = await r.json(); if (!r.ok) throw new Error("token");
   } catch { return page("Couldn't sign you in", "Google didn't confirm the sign-in. Please try again."); }
   const g = readIdToken(tokens.id_token, env);
-  if (!g) return page("Couldn't sign you in", "Your Google account needs a verified email address to use Ownermint.");
+  if (!g) return page("Couldn't sign you in", "Your Google account needs a verified email address to use Mint Statements.");
   const now = Date.now();
   let user = await env.DB.prepare("SELECT id FROM users WHERE google_sub = ?").bind(g.sub).first();
   if (user) await env.DB.prepare("UPDATE users SET email = ?, name = ?, last_login_at = ? WHERE id = ?").bind(g.email, g.name, now, user.id).run();

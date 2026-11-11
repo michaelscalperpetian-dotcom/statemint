@@ -46,7 +46,7 @@ export function splitWords(el) {
   });
 }
 export function toast(msg) {
-  let t = document.querySelector(".toast"); if (!t) { t = Object.assign(document.createElement("div"), { className: "toast" }); document.body.appendChild(t); }
+  let t = document.querySelector(".toast"); if (!t) { t = Object.assign(document.createElement("div"), { className: "toast" }); t.setAttribute("role", "status"); t.setAttribute("aria-live", "polite"); document.body.appendChild(t); }
   t.textContent = msg; t.classList.add("in"); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("in"), 2400);
 }
 export async function copy(text) { try { await navigator.clipboard.writeText(text); toast("Link copied ✦"); } catch { prompt("Copy this link:", text); } }

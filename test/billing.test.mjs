@@ -33,13 +33,14 @@ try {
     assert.equal((await post("/api/billing/checkout", { plan: "pro", interval: "year" })).status, 401);
     assert.equal((await post("/api/billing/checkout", { plan: "pro", interval: "year" }, { ...as(A), origin: "https://evil.example" })).status, 403);
     assert.equal((await post("/api/billing/checkout", { plan: "gold", interval: "month" }, as(A))).status, 400); });
-  await ok("checkout: Pro yearly -> Stripe URL; Managed Payments, flexible billing, the server's price, tied to the account", async () => {
+  await ok("checkout: Pro yearly -> Stripe URL; Managed Payments, flexible billing, the server's price, tied to the account, with the 7-day trial", async () => {
     const r = await post("/api/billing/checkout", { plan: "pro", interval: "year", price: "price_attacker" }, as(A)); assert.equal(r.status, 200);
     assert.match((await r.json()).url, /^https:\/\/checkout\.stripe\.com\//);
     const f = state.lastCheckout;
     assert.equal(f["line_items[0][price]"], "price_test_pro_year"); assert.equal(f["managed_payments[enabled]"], "true");
     assert.equal(f["subscription_data[billing_mode][type]"], "flexible"); assert.equal(f.mode, "subscription");
     assert.deepEqual([f.client_reference_id, f.customer_email], [aId, A.email]);
+    assert.equal(f["subscription_data[trial_period_days]"], "7"); assert.equal((await me(A)).trialAvailable, true);
     assert.match(f.success_url, /\/app\?checkout=\{CHECKOUT_SESSION_ID\}$/); assert.match(f.cancel_url, /\/app\?checkout=cancelled$/); });
   await ok("webhook: missing or forged signature -> 400, nothing recorded", async () => {
     assert.equal((await hook({ type: "checkout.session.completed", data: { object: { id: "cs_test_paidhost1234", mode: "subscription", status: "complete" } } }, "")).status, 400);
@@ -81,6 +82,10 @@ try {
     await hook({ type: "customer.subscription.deleted", data: { object: { id: "sub_test_1", status: "canceled" } } });
     const m = await me(A); assert.deepEqual([m.plan, m.hasSubscription, m.subscriptionStatus], ["free", false, "canceled"]); });
   await ok("webhook: unrelated event types are acknowledged (200) and ignored", async () => assert.equal((await hook({ type: "customer.created", data: { object: {} } })).status, 200));
+  await ok("the free trial is once per account: after a plan has existed, checkout has no trial", async () => {
+    assert.equal((await me(A)).trialAvailable, false);
+    const r = await post("/api/billing/checkout", { plan: "host", interval: "month" }, as(A)); assert.equal(r.status, 200);
+    assert.equal(state.lastCheckout["subscription_data[trial_period_days]"], undefined); assert.equal((await me(B)).trialAvailable, true); });
   await ok("after cancelling, the account can be deleted", async () => {
     assert.equal((await fetch(BASE + "/api/account", { method: "DELETE", headers: as(A) })).status, 200); assert.equal((await fetch(BASE + "/api/me", { headers: as(A) })).status, 401); });
   console.log(`\n${n} billing checks passed`);

@@ -2,16 +2,15 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Make a statement · Ownermint</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600..800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<title>Make a statement · Mint Statements</title>
+<link rel="stylesheet" href="/fonts/fonts.css">
 <link rel="stylesheet" href="/css/app.css">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='44' fill='%232fd3a0'/></svg>">
 </head>
 <body>
 <div class="app">
   <aside class="side">
-    <a class="logo" href="/"><i></i>Ownermint</a>
+    <a class="logo" href="/"><i></i>Mint Statements</a>
     <div class="acct"><span class="acct-who" id="acctWho"></span><a href="/dashboard">Dashboard</a><button type="button" class="linkish" id="signOut">Sign out</button></div>
 
     <div class="step-h"><em>1</em>Your Airbnb report</div>
@@ -82,11 +81,13 @@
       <p class="help" style="margin-top:0">Your file, deals, expenses, branding and saved statements are saved to your account, so they're there whenever you sign in.</p>
       <button class="btn btn-ghost btn-sm" id="openSaved" type="button"><span>Saved statements &amp; owner links →</span></button>
       <div style="margin-top:14px"><button class="btn btn-sm btn-danger" id="clearData" type="button"><span>Delete my saved data</span></button></div>
+      <p class="help side-legal"><a href="/terms">Terms</a> · <a href="/privacy">Privacy</a> · <a href="/refunds">Refunds</a> · <a href="/cookies">Cookies</a> · <a href="mailto:support@mintstatements.com">Support</a></p>
     </div>
   </aside>
 
-  <main class="main">
-    <div class="empty" id="empty"><div><h2>Owner statements in 30 seconds.</h2><p>Upload your Airbnb transaction CSV, set your commission,<br>and get a statement your owner will actually enjoy reading.</p></div></div>
+  <main class="main" id="main">
+    <h1 class="sr-only">Statement builder</h1>
+    <div class="empty" id="empty"><div><h2>Owner statements from your Airbnb CSV.</h2><p>Upload your Airbnb transaction CSV, set your commission,<br>and get a clear monthly statement for your owner.</p></div></div>
     <div id="out" style="display:none">
       <div class="toolbar">
         <div><b id="outTitle" style="font-family:var(--display);font-size:22px;letter-spacing:-.02em"></b></div>
@@ -105,7 +106,7 @@
         <button role="tab" type="button" data-tab="audit" aria-selected="false" aria-controls="audit">Audit trail</button>
       </div>
       <div id="shareOut" class="no-print" style="display:none;margin:-6px 0 18px"><div class="sharebox"><input class="input" id="shareLink" readonly aria-label="Owner link"><button class="btn btn-sm" id="copyLink" type="button"><span>Copy</span></button><a class="btn btn-ghost btn-sm" id="mailLink" href="#"><span>✉ Email</span></a></div>
-        <p class="help" id="shareHelp">Only <b id="shareWho"></b> can open this link, after signing in with Google (you can too). It works for 30 days, until <b id="shareUntil"></b>; after that, make a new one. It shows the statement as you see it, including guest names as shown and your note. "Email" opens your own email app with a ready-made message; Ownermint doesn't send email. You can delete the link any time in the Saved tab or your dashboard.</p></div>
+        <p class="help" id="shareHelp">Only <b id="shareWho"></b> can open this link, after signing in with Google (you can too). It works for 30 days, until <b id="shareUntil"></b>; after that, make a new one. It shows the statement as you see it, including guest names as shown and your note. "Email" opens your own email app with a ready-made message; Mint Statements doesn't send email. You can delete the link any time in the Saved tab or your dashboard.</p></div>
       <div id="stWarns" class="st-warns no-print" role="status"></div>
       <div id="view" role="tabpanel"></div>
       <div id="portfolio" role="tabpanel" style="display:none"></div>
@@ -120,7 +121,7 @@
 import { parseCSV, toTransactions, detectColumns, listings, months, buildStatement, monthLabel, DEFAULT_SETTINGS, SAMPLE_CSV, money, parseMoney, allocateShared, occupiedNights, guestIndex } from "/js/engine.js";
 import { renderStatement } from "/js/view.js";
 import { cursor, magnetic, toast, copy, store } from "/js/fx.js";
-import { PLANS, limitLabel, billingConfig, startCheckout, openPortal } from "/js/plans.js";
+import { PLANS, limitLabel, billingConfig, startCheckout, openPortal, renewalNote } from "/js/plans.js";
 import { ensureSession, fetchMe, signOut, deleteAllData } from "/js/account.js";
 // signed in, and this browser's data is in step with the account (must come before anything reads the store)
 let me = await ensureSession();
@@ -448,7 +449,7 @@ function refreshListingLabels() { const set = allowedSet(); [...$("listing").opt
 function upgradeButtons(container, rerender) {
   const cur = currentPlan(), wrap = el("div", "up-wrap");
   const seg = el("div", "seg up-int"); seg.setAttribute("role", "group"); seg.setAttribute("aria-label", "Billing period");
-  [["month", "Monthly"], ["year", "Yearly · 2 months free"]].forEach(([v, t]) => { const b = Object.assign(el("button", interval === v ? "on" : "", t), { type: "button" }); b.setAttribute("aria-pressed", String(interval === v)); b.onclick = () => { interval = v; renderPlan(); if (rerender) rerender(); }; seg.appendChild(b); });
+  [["month", "Monthly"], ["year", "Yearly"]].forEach(([v, t]) => { const b = Object.assign(el("button", interval === v ? "on" : "", t), { type: "button" }); b.setAttribute("aria-pressed", String(interval === v)); b.onclick = () => { interval = v; renderPlan(); if (rerender) rerender(); }; seg.appendChild(b); });
   wrap.appendChild(seg);
   ["host", "pro"].filter(p => PLANS[p].limit > PLANS[cur].limit).forEach(p => {
     const P = PLANS[p], card = el("div", "up-card"), info = el("div");
@@ -456,13 +457,14 @@ function upgradeButtons(container, rerender) {
     info.append(el("b", "", P.name), el("small", "", `${limitLabel(p)} · ${price}`));
     const hasSub = !!me.hasSubscription;
     const btn = Object.assign(el("button", billing.enabled ? "btn btn-mint btn-sm" : "btn btn-sm"), { type: "button", disabled: !billing.enabled });
-    const label = el("span", "", !billing.enabled ? "Opening soon" : hasSub ? "Change plan" : "Upgrade"); btn.appendChild(label);
+    const buyLabel = me.trialAvailable ? "Start free trial" : "Upgrade";
+    const label = el("span", "", !billing.enabled ? "Opening soon" : hasSub ? "Change plan" : buyLabel); btn.appendChild(label);
     if (!billing.enabled) btn.title = "Paid plans open soon";
     // an existing subscriber changes plan in Stripe's portal (prorated), so nobody ends up paying for two plans
-    btn.onclick = async () => { btn.disabled = true; label.textContent = "Opening…"; try { if (hasSub) await openPortal(); else await startCheckout(p, interval); } catch (e) { toast(e.message); btn.disabled = false; label.textContent = hasSub ? "Change plan" : "Upgrade"; } };
+    btn.onclick = async () => { btn.disabled = true; label.textContent = "Opening…"; try { if (hasSub) await openPortal(); else await startCheckout(p, interval); } catch (e) { toast(e.message); btn.disabled = false; label.textContent = hasSub ? "Change plan" : buyLabel; } };
     card.append(info, btn); wrap.appendChild(card);
   });
-  wrap.appendChild(el("p", "help", billing.enabled ? "Secure checkout by Stripe. Tax is added where it applies. Cancel anytime." : "Paid plans are opening soon. Everything works on the Free plan for 1 property."));
+  wrap.appendChild(el("p", "help", billing.enabled ? "Secure checkout by Stripe. " + renewalNote(me.trialAvailable && !me.hasSubscription) : "Paid plans are opening soon. Everything works on the Free plan for 1 property."));
   container.appendChild(wrap);
 }
 function renderPlan() {
@@ -489,7 +491,7 @@ async function refreshPlan() {
 async function claimCheckout(sid) {
   const box = $("planBox");
   try {
-    let r; try { r = await fetch("/api/billing/claim", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ session_id: sid }) }); } catch { throw new Error("Couldn't reach Ownermint to confirm your payment."); }
+    let r; try { r = await fetch("/api/billing/claim", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ session_id: sid }) }); } catch { throw new Error("Couldn't reach Mint Statements to confirm your payment."); }
     const d = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(d.error || `Couldn't confirm your payment (error ${r.status}).`);
     history.replaceState(null, "", location.pathname);
@@ -507,7 +509,7 @@ async function claimCheckout(sid) {
 function renderLocked(listing) {
   const root = $("view"); root.innerHTML = ""; const plan = currentPlan(), P = PLANS[plan];
   const card = el("section", "panel lock-card");
-  card.append(el("div", "lock-ic", "🔒"), el("h3", "", `${listing} isn't on your ${P.name} plan`));
+  card.append(el("div", "lock-ic", "🔒"), title(`${listing} isn't on your ${P.name} plan`));
   const chosen = store.get("chosenProperties", []).slice(0, P.limit);
   card.appendChild(el("p", "", `The ${P.name} plan includes ${limitLabel(plan).toLowerCase()}${chosen.length ? " (" + chosen.join(", ") + ")" : ""}. Upgrade to make statements for more properties, or swap this one in.`));
   upgradeButtons(card, () => renderLocked(listing));
@@ -554,8 +556,10 @@ function setTab(t) {
   if (t === "portfolio") renderPortfolio(); if (t === "audit") renderAudit(); if (t === "guests") renderGuests(); if (t === "saved") renderSaved();
 }
 document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => setTab(b.dataset.tab));
+const title = text => { const t = el("h3", "", text); t.setAttribute("aria-level", "2"); return t; };
 const table = (heads, rows, rightFrom = 1) => {
   const wrap = el("div", "tbl-wrap"), t = el("table", "tbl"), hr = el("tr");
+  wrap.tabIndex = 0; wrap.setAttribute("role", "region"); wrap.setAttribute("aria-label", "Table: " + heads.filter(Boolean).join(", "));
   heads.forEach((c, i) => hr.appendChild(el("th", i >= rightFrom ? "r" : "", c))); t.appendChild(el("thead")).appendChild(hr);
   const tb = el("tbody"); rows.forEach(r => { const tr = el("tr", r.cls || ""); if (r.onclick) { tr.onclick = r.onclick; tr.classList.add("click"); tr.tabIndex = 0; tr.onkeydown = e => { if (e.key === "Enter") r.onclick(); }; }
     r.cells.forEach((v, i) => tr.appendChild(el("td", (i >= rightFrom ? "r num" : "l"), String(v)))); tb.appendChild(tr); });
@@ -567,7 +571,7 @@ function renderPortfolio() {
   const allowed = allowedSet(), lockedNames = listings(tx).filter(l => !allowed.has(l));
   const all = listings(tx).filter(l => allowed.has(l)).map(l => ({ l, st: statementFor(l, month), prevSt: null }));
   all.forEach(x => { const pk = prevMonthKey(month); if (months(tx.filter(t => t.listing === x.l), settingsFor(x.l).monthBy).includes(pk)) x.prevSt = statementFor(x.l, pk); });
-  const p1 = el("section", "panel"); p1.append(el("h3", "", `All properties · ${monthLabel(month)}`), el("p", "help", "Each property uses its own settings, expenses and split amount for this month. Click a row to open its statement."));
+  const p1 = el("section", "panel"); p1.append(title(`All properties · ${monthLabel(month)}`), el("p", "help", "Each property uses its own settings, expenses and split amount for this month. Click a row to open its statement."));
   const curs = [...new Set(all.flatMap(x => x.st.lines.map(l => l.currency)))];
   const single = curs.length <= 1, cur = curs[0] || "USD";
   const sum = f => all.reduce((a, x) => a + f(x.st.totals), 0);
@@ -585,7 +589,7 @@ function renderPortfolio() {
   if (isLocked($("listing").value)) return;
   const listing = $("listing").value, ms = months(tx.filter(t => t.listing === listing), getSettings().monthBy).slice().reverse();
   const hist = ms.map(m => ({ m, st: statementFor(listing, m) }));
-  const p2 = el("section", "panel"); p2.append(el("h3", "", `${listing} · month by month`), el("p", "help", "Owner net for every month in your file, using this property's deal and each month's expenses."));
+  const p2 = el("section", "panel"); p2.append(title(`${listing} · month by month`), el("p", "help", "Owner net for every month in your file, using this property's deal and each month's expenses."));
   const max = Math.max(1, ...hist.map(x => Math.abs(x.st.totals.ownerNet)));
   const bars = el("div", "bars"); bars.setAttribute("aria-hidden", "true");
   hist.forEach(({ m, st }) => { const b = el("div", m === month ? "cur" : ""); const i = el("i", st.totals.ownerNet < 0 ? "neg" : ""); i.style.height = Math.max(2, Math.abs(st.totals.ownerNet) / max * 100) + "%"; i.title = `${monthLabel(m)}: ${money(st.totals.ownerNet, st.currency)}`; b.append(i, el("span", "", monthLabel(m).slice(0, 3))); bars.appendChild(b); });
@@ -596,7 +600,7 @@ function renderPortfolio() {
 }
 function renderAudit() {
   const root = $("audit"); root.innerHTML = ""; if (!parsed || !current) return; const A = parsed.audit, cur = current.currency, s = current.settings;
-  const p1 = el("section", "panel"); p1.append(el("h3", "", "How your file was read"), el("p", "help", "Row numbers match the rows in your CSV when opened in a spreadsheet."));
+  const p1 = el("section", "panel"); p1.append(title("How your file was read"), el("p", "help", "Row numbers match the rows in your CSV when opened in a spreadsheet."));
   const dfName = { mdy: "Month/Day/Year", dmy: "Day/Month/Year" }[parsed.dateFormat?.format] || "n/a";
   const dfHow = { detected: "detected from the dates", assumed: "assumed (every date was ambiguous)", chosen: "chosen by you", conflict: "dates were inconsistent", none: "" }[parsed.dateFormat?.status] || "";
   const kv = el("dl", "kv");
@@ -611,7 +615,7 @@ function renderAudit() {
   root.appendChild(p1);
   if (isLocked(current.listing)) return;
   const T = current.totals, pct = s.commissionPct;
-  const p2 = el("section", "panel"); p2.append(el("h3", "", `Every line on this statement · ${monthLabel(current.month)}`), el("p", "help", `Commission = ${pct}% × commission base. Base = ${s.commissionBase === "gross" ? "gross booking" : s.commissionBase === "payout_ex_cleaning" ? "payout minus cleaning fee" : "payout"}${s.commissionOnAdjustments === false ? "; adjustments are not charged" : ""}.`));
+  const p2 = el("section", "panel"); p2.append(title(`Every line on this statement · ${monthLabel(current.month)}`), el("p", "help", `Commission = ${pct}% × commission base. Base = ${s.commissionBase === "gross" ? "gross booking" : s.commissionBase === "payout_ex_cleaning" ? "payout minus cleaning fee" : "payout"}${s.commissionOnAdjustments === false ? "; adjustments are not charged" : ""}.`));
   const rows = current.lines.map(l => ({ cells: [l.row ?? "–", l.type, l.guest || l.code || "–", l.start || l.date || "–", money(l.gross, cur), money(l.serviceFee, cur), money(l.cleaningFee, cur), money(l.payout, cur), money(l.commissionBase, cur), money(l.commission, cur)] }));
   rows.foot = ["", "Total", "", "", money(T.grossRevenue, cur), money(T.airbnbFees, cur), money(T.cleaning, cur), money(T.payout, cur), "", money(T.commission, cur)];
   p2.appendChild(table(["Row", "Type", "Guest / code", "Date", "Gross", "Airbnb fee", "Cleaning", "Payout", "Base", "Commission"], rows, 4));
@@ -662,7 +666,7 @@ $("share").onclick = async () => {
   try {
     let res;
     try { res = await fetch("/api/statements", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ statement: presentable(current), brand: getBrand(), note: $("note").value, previous: currentPrev, ownerEmail }) }); }
-    catch { throw new Error("Couldn't reach Ownermint. Check your connection and try again."); }
+    catch { throw new Error("Couldn't reach Mint Statements. Check your connection and try again."); }
     const d = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(d.error || `Couldn't create the link (error ${res.status}).`);
     const links = store.get("links", []); links.push({ id: d.id, editKey: d.editKey, listing: current.listing, month: current.month, at: Date.now(), ownerNet: current.totals.ownerNet, currency: current.currency, own: current.settlement.direction === "none", ownerEmail: d.ownerEmail || ownerEmail, expiresAt: d.expiresAt }); store.set("links", links);
@@ -685,7 +689,7 @@ let guestQuery = "", guestScope = "property", openGuest = null;
 function renderGuests() {
   const root = $("guests"); root.innerHTML = "";
   const p = el("section", "panel");
-  p.append(el("h3", "", "Guests"), el("p", "help", "Find one guest and see every stay, fee and adjustment for them. Adjustments are matched to the guest by confirmation code."));
+  p.append(title("Guests"), el("p", "help", "Find one guest and see every stay, fee and adjustment for them. Adjustments are matched to the guest by confirmation code."));
   const bar = el("div", "guest-bar");
   const q = Object.assign(el("input", "input"), { type: "search", placeholder: "Search guests…", value: guestQuery }); q.setAttribute("aria-label", "Search guests");
   const scope = el("div", "seg"); scope.setAttribute("role", "group"); scope.setAttribute("aria-label", "Which properties");
@@ -740,7 +744,7 @@ function renderSaved(viewId = null) {
   const snaps = store.get("saved", []), links = store.get("links", []);
   const viewer = el("div", "saved-viewer"); root.appendChild(viewer);
   if (!snaps.length && !links.length) {
-    const p = el("section", "panel"); p.append(el("h3", "", "Saved statements"), el("p", "help", "Nothing saved yet. Press ☆ Save to keep a copy of a statement in your account, or ✦ Get owner link to share one. They're listed here by property."));
+    const p = el("section", "panel"); p.append(title("Saved statements"), el("p", "help", "Nothing saved yet. Press ☆ Save to keep a copy of a statement in your account, or ✦ Get owner link to share one. They're listed here by property."));
     root.appendChild(p); return;
   }
   const items = [...snaps.map(x => ({ ...x, kind: "snap" })), ...links.map(x => ({ ...x, kind: "link" }))];
@@ -748,7 +752,7 @@ function renderSaved(viewId = null) {
   [...byListing.keys()].sort().forEach(listing => {
     const list = byListing.get(listing).sort((a, b) => (b.month || "").localeCompare(a.month || "") || b.at - a.at);
     const sec = el("section", "panel saved-sec");
-    sec.append(el("h3", "", listing), el("p", "help", `${list.filter(x => x.kind === "snap").length} saved · ${list.filter(x => x.kind === "link").length} owner link${list.filter(x => x.kind === "link").length === 1 ? "" : "s"}`));
+    sec.append(title(listing), el("p", "help", `${list.filter(x => x.kind === "snap").length} saved · ${list.filter(x => x.kind === "link").length} owner link${list.filter(x => x.kind === "link").length === 1 ? "" : "s"}`));
     const box = el("div", "links-list");
     list.forEach(it => {
       const item = el("div", "link-item" + (it.kind === "snap" ? " snap" : "")), info = el("div");
@@ -790,7 +794,7 @@ $("saveSnap").onclick = () => {
 async function deleteLink(l) {
   if (!confirm(`Delete the owner link for ${l.listing}, ${monthLabel(l.month)}?\n\nAnyone who opens it afterwards will see "Statement not found". This can't be undone.`)) return;
   try {
-    let r; try { r = await fetch(`/api/statements/${encodeURIComponent(l.id)}`, { method: "DELETE", headers: { "x-edit-key": l.editKey } }); } catch { throw new Error("Couldn't reach Ownermint. Check your connection and try again."); }
+    let r; try { r = await fetch(`/api/statements/${encodeURIComponent(l.id)}`, { method: "DELETE", headers: { "x-edit-key": l.editKey } }); } catch { throw new Error("Couldn't reach Mint Statements. Check your connection and try again."); }
     if (r.ok || r.status === 404) { store.set("links", store.get("links", []).filter(x => x.id !== l.id)); toast(r.ok ? "Link deleted" : "That link was already gone. Removed it from your list."); }
     else { const d = await r.json().catch(() => ({})); throw new Error(d.error || `Couldn't delete the link (error ${r.status}).`); }
   } catch (e) { toast(e.message); }
@@ -798,7 +802,7 @@ async function deleteLink(l) {
 }
 $("clearData").onclick = async () => {
   const n = store.get("links", []).length;
-  const msg = "Delete everything Ownermint saved to your account and this browser: your CSV, settings, expenses, notes, branding and saved statements" + (n ? `, and your list of ${n} owner link${n === 1 ? "" : "s"}` : "") + "?\n\nYour account and plan stay." +
+  const msg = "Delete everything Mint Statements saved to your account and this browser: your CSV, settings, expenses, notes, branding and saved statements" + (n ? `, and your list of ${n} owner link${n === 1 ? "" : "s"}` : "") + "?\n\nYour account and plan stay." +
     (n ? " The owner links themselves stay online; to take them down, delete them first in the Saved tab (or later from your dashboard)." : "");
   if (!confirm(msg)) return;
   try { await deleteAllData(); location.reload(); } catch (e) { toast(e.message); }

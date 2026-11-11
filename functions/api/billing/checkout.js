@@ -1,6 +1,7 @@
 import { json, bad } from "../../_lib.js";
-import { plans, stripePost, SITE } from "../../_billing.js";
+import { plans, stripePost, siteOrigin } from "../../_billing.js";
 import { requireUser, planFor } from "../../_auth.js";
+const TRIAL_DAYS = 7;
 // Starts a Stripe-hosted Checkout (Managed Payments) for a plan, for the signed-in user.
 // Prices come from the server only; the browser just names the plan and billing period.
 export async function onRequestPost({ request, env }) {
@@ -12,7 +13,10 @@ export async function onRequestPost({ request, env }) {
   if (!price) return bad("Unknown plan.");
   const current = await planFor(env, user.id);
   if (current.hasSubscription) return bad(`You already have the ${current.plan === "pro" ? "Pro" : "Host"} plan. Use "Manage subscription" to change it.`, 409);
-  const origin = env.TEST_BILLING === "1" ? new URL(request.url).origin : SITE;
+  const origin = siteOrigin(request, env);
+  // 7-day free trial, once per account: only for accounts that have never had a paid plan or trial.
+  // The card is taken at checkout and first charged when the trial ends, unless they cancel before.
+  const before = await env.DB.prepare("SELECT 1 FROM licenses WHERE user_id = ? LIMIT 1").bind(user.id).first();
   try {
     const session = await stripePost(env, "checkout/sessions", {
       mode: "subscription",
@@ -20,7 +24,7 @@ export async function onRequestPost({ request, env }) {
       managed_payments: { enabled: true },
       client_reference_id: user.id,
       customer_email: user.email,
-      subscription_data: { billing_mode: { type: "flexible" }, metadata: { app: "ownermint", plan, user_id: user.id } },
+      subscription_data: { billing_mode: { type: "flexible" }, metadata: { app: "ownermint", plan, user_id: user.id }, ...(before ? {} : { trial_period_days: TRIAL_DAYS }) },
       metadata: { app: "ownermint", plan, interval, user_id: user.id },
       success_url: `${origin}/app?checkout={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/app?checkout=cancelled`,

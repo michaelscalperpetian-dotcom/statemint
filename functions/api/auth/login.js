@@ -8,7 +8,7 @@ export async function onRequestGet({ request, env }) {
   const state = randomToken(24), { verifier, challenge } = await pkcePair();
   const auth = new URL(googleAuthUrl(env, request));
   auth.search = new URLSearchParams({
-    client_id: env.GOOGLE_CLIENT_ID, redirect_uri: callbackUrl(request), response_type: "code", scope: "openid email profile",
+    client_id: env.GOOGLE_CLIENT_ID, redirect_uri: callbackUrl(request), response_type: "code", scope: "openid email",
     state, code_challenge: challenge, code_challenge_method: "S256", prompt: "select_account",
     ...(url.searchParams.get("login_hint") ? { login_hint: url.searchParams.get("login_hint") } : {}),
   }).toString();

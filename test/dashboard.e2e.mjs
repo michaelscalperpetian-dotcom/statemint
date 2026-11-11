@@ -76,6 +76,7 @@ try {
   state.paidRef = userIdFor(HOST); state.subStatus = "active"; state.subPrice = "price_test_host_month";
   await page.goto(BASE + "/app?checkout=cs_test_paidhost1234", { waitUntil: "load" }); await page.waitForFunction(() => document.getElementById("planBox").textContent.includes("Host plan"));
   await page.goto(BASE + "/dashboard", { waitUntil: "load" }); await page.waitForFunction(() => document.getElementById("planBody").textContent.includes("Host plan"));
+  await page.waitForFunction(() => document.querySelector("#planBody .up-card button")?.textContent === "Change plan");
   assert.deepEqual(await page.$$eval("#planBody .up-card button", b => b.map(x => x.textContent)), ["Change plan"]);
   await page.click("#acctBody button:has-text('Delete my account')"); await page.waitForSelector("#cancelFirst .warn");
   assert.ok((await page.textContent("#cancelFirst")).includes("Cancel your subscription first")); assert.equal((await page.request.get(BASE + "/api/me")).status(), 200);
