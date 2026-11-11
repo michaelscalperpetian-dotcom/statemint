@@ -1,0 +1,7 @@
+User-agent: *
+Disallow: /app
+Disallow: /dashboard
+Disallow: /s/
+Disallow: /api/
+
+Sitemap: https://mintstatements.com/sitemap.xml

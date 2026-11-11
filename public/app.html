@@ -130,7 +130,7 @@ cursor({ subtle: true }); magnetic();
 const $ = s => document.getElementById(s);
 const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
 let tx = [], current = null, currentPrev = null, parsed = null, firstRender = true, tab = "statement";
-let rawRows = [], rawName = "", rawText = "", parseOpts = { dateFormat: "", excludeDuplicates: false };
+let csvTooBig = false, rawRows = [], rawName = "", rawText = "", parseOpts = { dateFormat: "", excludeDuplicates: false };
 const brand = store.get("brand", { company: "", ownerName: "", logo: "", guestNames: "full" });
 $("company").value = brand.company || ""; $("owner").value = brand.ownerName || ""; $("guestNames").value = brand.guestNames || "full";
 
@@ -170,7 +170,8 @@ function loadCSV(text, name, manualMap = null, keepOpts = false) {
   if (!parsed.transactions.length) { showMapper(rawRows); return; }
   $("mapPanel").style.display = "none";
   tx = parsed.transactions; firstRender = true; nightsCache.clear();
-  try { if (text.length < 1500000) store.set("lastCSV", { name, text }); } catch {}
+  csvTooBig = text.length >= 1500000;
+  try { if (!csvTooBig) store.set("lastCSV", { name, text }); } catch {}
   $("dropTitle").textContent = `✓ ${name} · ${tx.length} line${tx.length === 1 ? "" : "s"}`;
   fillSelect($("listing"), listings(tx).map(l => [l, l]), $("listing").value || store.get("lastListing"));
   refreshListingLabels(); renderPlan();
@@ -182,6 +183,7 @@ function renderParseMessages() {
   $("warns").innerHTML = "";
   parsed.warnings.forEach(w => $("warns").appendChild(el("div", "warn", w)));
   parsed.notices.forEach(w => $("warns").appendChild(el("div", "notice", w)));
+  if (csvTooBig) $("warns").appendChild(el("div", "notice", "This file is too big to save to your account, so it won't be here next time you sign in. Your settings, expenses and saved statements are still saved. Tip: export a shorter date range from Airbnb (for example one year)."));
   const hasDates = parsed.dateFormat && parsed.dateFormat.status !== "none";
   const dups = parsed.audit.duplicates.length;
   $("parseOpts").style.display = hasDates || dups ? "" : "none";

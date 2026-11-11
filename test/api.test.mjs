@@ -55,6 +55,13 @@ try {
     const r = await get(created.id, stranger); assert.equal(r.status, 403); assert.equal((await r.json()).signedInAs, stranger.email);
     const o = await (await get(created.id, owner)).json(); assert.equal(o.isCreator, false); assert.equal(o.sharedWith, owner.email);
     assert.equal((await (await get(created.id, host)).json()).isCreator, true); });
+  await ok("Gmail spellings of the same inbox match (dots, +tag, googlemail.com); a different address still doesn't", async () => {
+    const tag = Math.random().toString(36).slice(2, 8);
+    const g = await apiSignIn(BASE, `jo.${tag}.doe@gmail.com`);
+    const l = await (await post({ statement: st, ownerEmail: `JO${tag}DOE+owner@googlemail.com` })).json();
+    assert.equal((await get(l.id, g)).status, 200);
+    assert.equal((await get(l.id, stranger)).status, 403);
+    await req(host, `/api/statements/${l.id}`, { method: "DELETE" }); });
   await ok("stored data is whitelisted: unknown keys dropped, note capped at 600, PNG logo kept", async () => {
     const d = await (await get(created.id, owner)).json();
     assert.equal(d.statement.evil, undefined); assert.equal(d.statement.totals.injected, undefined); assert.equal(d.brand.extra, undefined); assert.equal(d.previous.junk, undefined);

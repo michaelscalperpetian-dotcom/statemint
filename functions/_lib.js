@@ -12,6 +12,14 @@ export function sameKey(a, b) { if (typeof a !== "string" || typeof b !== "strin
 // Owner links stop working this long after they're made (the host makes a new one after that).
 export const LINK_DAYS = 30;
 export const linkExpiresAt = createdAt => createdAt + LINK_DAYS * 86400000;
+// Two spellings of the same Gmail inbox (dots, +tags, googlemail.com) count as the same address.
+export function sameInbox(a, b) {
+  const norm = e => { let [local = "", domain = ""] = String(e || "").trim().toLowerCase().split("@");
+    if (domain === "googlemail.com") domain = "gmail.com";
+    if (domain === "gmail.com") local = local.split("+")[0].replace(/\./g, "");
+    return local + "@" + domain; };
+  return !!a && !!b && norm(a) === norm(b);
+}
 export const validId = id => /^[A-Za-z0-9]{8,20}$/.test(id || "");
 // A keyed hash (HMAC) of the visitor's IP for rate limiting. The key is a server secret, so the stored value can't
 // be turned back into an IP address by trying all of them. It changes daily and is cleared after 24 hours.

@@ -116,4 +116,9 @@ ok("G1 guest index joins adjustments by confirmation code: Bo = 507 + 80 = 587.0
   const g = guestIndex(tx([...BASE, "10/25/2026,Resolution Adjustment,R1,,,,L,USD,25.00,,,25.00"]).transactions);
   const bo = g.find(x => x.name === "Bo"), ann = g.find(x => x.name === "Ann");
   assert.deepEqual([bo.stays, bo.nights, bo.payout], [1, 2, 587]); assert.deepEqual([ann.lines.length, ann.payout], [2, 870]); });
+ok("T1 occupancy tax (Pass Through TOT) is never commissioned: R1 845 + tax 36 -> payout 881, commission 20% x 845 = 169.00", () => {
+  const st = buildStatement(tx([BASE[0], "10/06/2026,Pass Through Tot,R1,10/05/2026,,Ann,L,USD,36.00,,,36.00"]).transactions, { listing: "L", month: "2026-10", settings: { commissionPct: 20, commissionOnAdjustments: true } });
+  assert.deepEqual([st.totals.payout, st.totals.commission], [881, 169]);
+  assert.equal(st.lines.find(l => /pass through/i.test(l.type)).commission, 0);
+  assert.ok(st.warnings.some(w => /Pass Through TOT/.test(w) && w.includes("36.00"))); });
 console.log(`\n${n} financial checks passed`);

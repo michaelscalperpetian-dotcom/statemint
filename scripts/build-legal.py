@@ -12,6 +12,7 @@ def page(slug, title, desc, body):
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{title} · Mint Statements</title>
 <meta name="description" content="{desc}">
+<link rel="canonical" href="https://mintstatements.com/{slug}">
 <link rel="stylesheet" href="/fonts/fonts.css">
 <link rel="stylesheet" href="/css/app.css">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='44' fill='%232fd3a0'/></svg>">

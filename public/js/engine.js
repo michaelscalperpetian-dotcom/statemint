@@ -132,10 +132,13 @@ export function toTransactions(rows, map = null, opts = {}) {
     const nights = parseInt(get(r, "nights"), 10) || 0;
     const code = String(get(r, "code") || "").trim();
     const isReservation = t ? t.includes("reservation") : (!!code && nights > 0);
+    // Occupancy tax Airbnb collected from the guest and passed to the host to pay to the city ("Pass Through TOT").
+    // It's tax money, not rental income: it is never commissionable.
+    const isTax = /pass\s*through\s*t\.?o\.?t|occupancy\s*tax|lodging\s*tax/.test(t);
     types[type || "(no type)"] = (types[type || "(no type)"] || 0) + 1;
     tx.push({
       row: rowNo, duplicate: !!isDup,
-      kind: isReservation ? "reservation" : "adjustment",
+      kind: isReservation ? "reservation" : "adjustment", tax: isTax,
       type: type || (isReservation ? "Reservation" : "Adjustment"),
       date: parseDate(get(r, "date"), df.format), start: parseDate(get(r, "start"), df.format), end: parseDate(get(r, "end"), df.format),
       nights, code, guest: String(get(r, "guest") || "").trim(), listing: String(get(r, "listing") || "").trim() || "Listing",
@@ -198,7 +201,7 @@ export function buildStatement(tx, { listing, month, settings = {}, expenses = [
   const warnings = [];
   const rows = lines.map(t => {
     const base = s.commissionBase === "gross" ? t.gross : s.commissionBase === "payout_ex_cleaning" ? t.payout - t.cleaningFee : t.payout;
-    const charge = t.kind === "reservation" || s.commissionOnAdjustments !== false;
+    const charge = !t.tax && (t.kind === "reservation" || s.commissionOnAdjustments !== false);
     return { ...t, commissionBase: r2(base), commission: charge ? r2(base * pct) : 0, ...discountInfo(t, s) };
   });
   const currencies = [...new Set(rows.map(t => t.currency))];
@@ -207,6 +210,8 @@ export function buildStatement(tx, { listing, month, settings = {}, expenses = [
   const fellBack = rows.filter(t => t.kind === "reservation" && !t.start).length;
   if (s.monthBy === "checkin" && fellBack) warnings.push(`${fellBack} reservation${fellBack === 1 ? " has" : "s have"} no check-in date and ${fellBack === 1 ? "was" : "were"} placed by payout date instead.`);
   if (rows.some(t => t.duplicate)) warnings.push("This statement includes rows that are exact duplicates of other rows in your file.");
+  const taxRows = rows.filter(t => t.tax);
+  if (taxRows.length) warnings.push(`This month includes ${taxRows.length} occupancy tax (Pass Through TOT) line${taxRows.length === 1 ? "" : "s"} totalling ${r2(taxRows.reduce((a, t) => a + t.payout, 0)).toFixed(2)}. No commission is charged on tax. It's included in the payout because Airbnb paid it to you; it still has to be paid to the tax authority.`);
   const sum = f => r2(rows.reduce((a, t) => a + (t[f] || 0), 0));
   const res = rows.filter(t => t.kind === "reservation");
   const nights = res.reduce((a, t) => a + t.nights, 0);
