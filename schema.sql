@@ -59,4 +59,6 @@ CREATE TABLE IF NOT EXISTS user_data (
 --   ALTER TABLE statements ADD COLUMN user_id TEXT;
 --   ALTER TABLE statements ADD COLUMN owner_email TEXT;
 CREATE INDEX IF NOT EXISTS licenses_user ON licenses (user_id);
+-- Google accounts that have had a plan or free trial (scrambled code only), so the 7-day trial is once per Google account.
+CREATE TABLE IF NOT EXISTS trial_uses (code TEXT PRIMARY KEY, used_at INTEGER NOT NULL);
 CREATE INDEX IF NOT EXISTS statements_user ON statements (user_id, created_at);

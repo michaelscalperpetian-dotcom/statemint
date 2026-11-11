@@ -67,7 +67,7 @@ export function cleanSubmission(body) {
   if (s.settlement.alreadyPaid != null) statement.settlement.alreadyPaid = num(s.settlement.alreadyPaid);
   const b = body.brand || {};
   const logo = typeof b.logo === "string" && b.logo.length <= 120000 && LOGO_RE.test(b.logo) ? b.logo : "";
-  const brand = { company: str(b.company, 60), ownerName: str(b.ownerName, 60), logo };
+  const brand = { company: str(b.company, 60), ownerName: str(b.ownerName, 60), contact: str(b.contact, 80), logo };
   const p = body.previous;
   const previous = p && typeof p === "object" ? { ownerNet: num(p.ownerNet), nights: num(p.nights), month: /^\d{4}-\d{2}$/.test(p.month || "") ? p.month : "" } : null;
   return { data: { statement, brand, note: str(body.note, 600), previous } };

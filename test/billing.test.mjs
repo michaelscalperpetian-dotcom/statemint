@@ -88,5 +88,9 @@ try {
     assert.equal(state.lastCheckout["subscription_data[trial_period_days]"], undefined); assert.equal((await me(B)).trialAvailable, true); });
   await ok("after cancelling, the account can be deleted", async () => {
     assert.equal((await fetch(BASE + "/api/account", { method: "DELETE", headers: as(A) })).status, 200); assert.equal((await fetch(BASE + "/api/me", { headers: as(A) })).status, 401); });
+  await ok("signing up again with the same Google account after deleting gives no second free trial", async () => {
+    const A2 = await apiSignIn(BASE, A.email); assert.equal((await me(A2)).trialAvailable, false);
+    assert.equal((await post("/api/billing/checkout", { plan: "host", interval: "month" }, as(A2))).status, 200);
+    assert.equal(state.lastCheckout["subscription_data[trial_period_days]"], undefined); });
   console.log(`\n${n} billing checks passed`);
 } finally { server.close(); state.subStatus = "active"; state.subPrice = "price_test_host_month"; state.paidRef = null; }

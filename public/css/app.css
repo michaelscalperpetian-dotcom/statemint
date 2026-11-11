@@ -431,3 +431,5 @@ html { scroll-behavior: smooth; }
 .compare tbody th { font-weight: 650; font-size: 15px; text-transform: none; letter-spacing: 0; color: var(--ink); white-space: normal; min-width: 170px; }
 .compare td { vertical-align: top; } .compare { min-width: 760px; }
 .compare tbody th { vertical-align: top; }
+.year-bar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 4px 0 10px; } .year-bar select.input { width: auto; min-width: 110px; }
+.st-foot .st-contact { flex-basis: 100%; color: var(--ink-2); font-size: 13px; }

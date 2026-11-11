@@ -4,6 +4,7 @@
 //   STRIPE_WEBHOOK_SECRET  signing secret of the webhook endpoint /api/billing/webhook
 // STRIPE_API_BASE and TEST_BILLING exist only so local tests can use a fake Stripe; they are never set in production.
 
+import { markTrialUsed } from "./_auth.js";
 // Live prices (Managed Payments; Stripe is the merchant of record and handles tax).
 const LIVE = {
   PRICES: {
@@ -83,6 +84,7 @@ export async function licenseForSession(env, session, randomKey) {
   await env.DB.prepare("INSERT OR IGNORE INTO licenses (key, session_id, subscription_id, customer_id, plan, status, created_at, checked_at, user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
     .bind(key, session.id, sub.id, idOf(session.customer) || idOf(sub.customer), plan, sub.status, now, now, ref).run();
   const row = await env.DB.prepare("SELECT key, plan, status, user_id FROM licenses WHERE session_id = ?").bind(session.id).first();
+  if (row.user_id) await markTrialUsed(env, row.user_id);
   return { ...row, created: row.key === key };
 }
 

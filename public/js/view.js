@@ -178,6 +178,7 @@ export function renderStatement(root, data, opts = {}) {
   card.appendChild(sSec);
 
   const foot = h("footer", "st-foot");
+  if (brand.contact) foot.appendChild(h("span", "st-contact", `Questions about this statement? Contact ${brand.company || "your host"}: ${brand.contact}`));
   foot.appendChild(h("span", "", `Figures from the Airbnb transaction report${data.createdAt ? " · generated " + new Date(data.createdAt).toLocaleDateString() : ""}.`));
   const made = h("a", "", "Made with Mint Statements ✦"); made.href = "/"; foot.appendChild(made);
   card.appendChild(foot);

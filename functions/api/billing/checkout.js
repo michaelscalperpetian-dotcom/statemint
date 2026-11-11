@@ -1,6 +1,6 @@
 import { json, bad } from "../../_lib.js";
 import { plans, stripePost, siteOrigin } from "../../_billing.js";
-import { requireUser, planFor } from "../../_auth.js";
+import { requireUser, planFor, trialAvailable } from "../../_auth.js";
 const TRIAL_DAYS = 7;
 // Starts a Stripe-hosted Checkout (Managed Payments) for a plan, for the signed-in user.
 // Prices come from the server only; the browser just names the plan and billing period.
@@ -16,7 +16,7 @@ export async function onRequestPost({ request, env }) {
   const origin = siteOrigin(request, env);
   // 7-day free trial, once per account: only for accounts that have never had a paid plan or trial.
   // The card is taken at checkout and first charged when the trial ends, unless they cancel before.
-  const before = await env.DB.prepare("SELECT 1 FROM licenses WHERE user_id = ? LIMIT 1").bind(user.id).first();
+  const before = !(await trialAvailable(env, user.id));
   try {
     const session = await stripePost(env, "checkout/sessions", {
       mode: "subscription",

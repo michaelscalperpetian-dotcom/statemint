@@ -48,6 +48,7 @@ pages["privacy"] = ("Privacy policy", "What Mint Statements collects, why, who i
       <li><b>What you put into the app.</b> The Airbnb CSV you upload and what you enter: deals, expenses, notes, branding (including a logo), owners' email addresses and saved statements. This can include guest names and booking details from your Airbnb report. We keep it in your account so it's there on every device you sign in on.</li>
       <li><b>Owner links.</b> When you create an owner link we store that one statement (the figures, guest names in the form you chose to show, your branding and note), the owner's email address, and how many times it was opened.</li>
       <li><b>Your plan.</b> If you subscribe we store your plan, its status and the IDs Stripe gives your customer record and subscription. We never receive or store card details.</li>
+      <li><b>Free-trial record.</b> If you start a plan or free trial, we keep a scrambled code made from your Google account ID, even after you delete your account, only so the free trial can't be claimed twice. It can't be turned back into your email or name.</li>
       <li><b>Abuse protection.</b> To limit how many owner links can be created from one network, we keep a scrambled (keyed hash) form of your IP address for 24 hours, then delete it.</li>
       <li><b>Technical data.</b> Our host, Cloudflare, processes your IP address and basic request details to deliver the site and protect it from attacks.</li>
     </ul>
@@ -76,6 +77,7 @@ pages["privacy"] = ("Privacy policy", "What Mint Statements collects, why, who i
       <li>Owner links: until you delete them or your account. They stop opening 30 days after they're made.</li>
       <li>Sign-in sessions: up to 30 days. The scrambled IP address: 24 hours.</li>
       <li>Plan records: while your account exists. Stripe keeps its own payment records as the law requires.</li>
+      <li>The free-trial record: kept after your account is deleted, so the trial can only be used once.</li>
     </ul>
 
     <h2>Your choices and rights</h2>

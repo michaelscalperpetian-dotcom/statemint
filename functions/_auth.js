@@ -81,4 +81,16 @@ export async function planFor(env, userId) {
   return { plan, status: active[0]?.status || latest?.status || null, hasSubscription: active.length > 0, customerId: (active[0] || latest || {}).customer_id || null };
 }
 export const newUserId = () => "u_" + randomId(20);
+// The free trial is once per Google account. Starting a plan stores a scrambled code made from the Google account id
+// (kept after account deletion, only for this check), so deleting the account and signing up again gives no new trial.
+const trialCode = sub => sha256hex("trial|" + sub);
+export async function markTrialUsed(env, userId) {
+  const u = await env.DB.prepare("SELECT google_sub FROM users WHERE id = ?").bind(userId).first();
+  if (u) await env.DB.prepare("INSERT OR IGNORE INTO trial_uses (code, used_at) VALUES (?, ?)").bind(await trialCode(u.google_sub), Date.now()).run();
+}
+export async function trialAvailable(env, userId) {
+  if (await env.DB.prepare("SELECT 1 FROM licenses WHERE user_id = ? LIMIT 1").bind(userId).first()) return false;
+  const u = await env.DB.prepare("SELECT google_sub FROM users WHERE id = ?").bind(userId).first();
+  return !(u && await env.DB.prepare("SELECT 1 FROM trial_uses WHERE code = ?").bind(await trialCode(u.google_sub)).first());
+}
 export { json, bad };

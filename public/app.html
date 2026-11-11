@@ -68,6 +68,7 @@
 
       <div class="step-h"><em>4</em>Branding</div>
       <div class="field"><label for="company">Your business name</label><input class="input" id="company" maxlength="60" placeholder="e.g. Lakeside Hosting"></div>
+      <div class="field"><label for="contact">Your contact on statements (optional)</label><input class="input" id="contact" maxlength="80" autocomplete="off" placeholder="e.g. hello@lakesidehosting.com or (555) 010-2030"><div class="help">Shown at the bottom of every statement so your owner knows who to ask about a charge.</div></div>
       <div class="field"><label for="owner" id="ownerL">Owner's name</label><input class="input" id="owner" maxlength="60" placeholder="e.g. Pat Morgan"></div>
       <div class="field"><label for="ownerEmail" id="ownerEmailL">Owner's email</label><input class="input" id="ownerEmail" type="email" maxlength="254" autocomplete="off" placeholder="e.g. pat@example.com"><div class="field-err" id="ownerEmailErr" aria-live="polite"></div><div class="help" id="ownerEmailHelp">Only this person can open the owner link: they sign in with the Google account for this email. Saved for this property.</div></div>
       <div class="field"><label for="logo">Logo (optional)</label><input class="input" id="logo" type="file" accept="image/png,image/jpeg,image/webp,image/gif"><button class="btn btn-ghost btn-sm" id="logoClear" type="button" style="display:none;justify-self:start"><span>Remove logo</span></button></div>
@@ -101,6 +102,7 @@
       <div class="tabs no-print" role="tablist" aria-label="View" style="margin-bottom:18px">
         <button role="tab" type="button" data-tab="statement" aria-selected="true" aria-controls="view">Statement</button>
         <button role="tab" type="button" data-tab="portfolio" aria-selected="false" aria-controls="portfolio">All properties</button>
+        <button role="tab" type="button" data-tab="year" aria-selected="false" aria-controls="year">Year</button>
         <button role="tab" type="button" data-tab="guests" aria-selected="false" aria-controls="guests">Guests</button>
         <button role="tab" type="button" data-tab="saved" aria-selected="false" aria-controls="saved">Saved</button>
         <button role="tab" type="button" data-tab="audit" aria-selected="false" aria-controls="audit">Audit trail</button>
@@ -112,6 +114,7 @@
       <div id="portfolio" role="tabpanel" style="display:none"></div>
       <div id="audit" role="tabpanel" style="display:none"></div>
       <div id="guests" role="tabpanel" style="display:none"></div>
+      <div id="year" role="tabpanel" style="display:none"></div>
       <div id="saved" role="tabpanel" style="display:none"></div>
     </div>
     <a class="btn btn-mint btn-sm jump no-print" id="jump" href="#out" style="display:none"><span>View statement ↓</span></a>
@@ -132,7 +135,7 @@ const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls)
 let tx = [], current = null, currentPrev = null, parsed = null, firstRender = true, tab = "statement";
 let csvTooBig = false, rawRows = [], rawName = "", rawText = "", parseOpts = { dateFormat: "", excludeDuplicates: false };
 const brand = store.get("brand", { company: "", ownerName: "", logo: "", guestNames: "full" });
-$("company").value = brand.company || ""; $("owner").value = brand.ownerName || ""; $("guestNames").value = brand.guestNames || "full";
+$("company").value = brand.company || ""; $("contact").value = brand.contact || ""; $("owner").value = brand.ownerName || ""; $("guestNames").value = brand.guestNames || "full";
 
 /* ---------- reading the file ---------- */
 const MAP_FIELDS = [["date", "Date (payout/transaction)"], ["type", "Type"], ["start", "Check-in / start date"], ["nights", "Nights"], ["guest", "Guest"], ["listing", "Listing"],
@@ -399,11 +402,11 @@ function noteKey() { return `note:${$("listing").value}:${$("month").value}`; }
 function loadNote() { $("note").value = store.get(noteKey(), ""); }
 $("note").oninput = () => { store.set(noteKey(), $("note").value); update(); };
 const getBrand = () => ({ guestNames: "full", ...store.get("brand", brand) });
-const saveBrand = () => { const b = getBrand(); b.company = $("company").value.trim(); b.ownerName = $("owner").value.trim(); b.guestNames = $("guestNames").value; store.set("brand", b); update(); };
+const saveBrand = () => { const b = getBrand(); b.company = $("company").value.trim(); b.contact = $("contact").value.trim(); b.ownerName = $("owner").value.trim(); b.guestNames = $("guestNames").value; store.set("brand", b); update(); };
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 $("ownerEmail").oninput = () => { const v = $("ownerEmail").value.trim().toLowerCase(); $("ownerEmailErr").textContent = ""; saveSettingsQuiet({ ownerEmail: v }); };
 $("ownerEmail").onblur = () => { const v = $("ownerEmail").value.trim(); $("ownerEmailErr").textContent = v && !EMAIL_RE.test(v) ? "That doesn't look like an email address." : ""; };
-$("company").oninput = saveBrand; $("owner").oninput = saveBrand; $("guestNames").onchange = saveBrand;
+$("company").oninput = saveBrand; $("contact").oninput = saveBrand; $("owner").oninput = saveBrand; $("guestNames").onchange = saveBrand;
 function showLogoClear() { $("logoClear").style.display = getBrand().logo ? "" : "none"; }
 $("logo").onchange = e => {
   const f = e.target.files[0]; if (!f) return;
@@ -549,13 +552,14 @@ function update() {
   if (tab === "portfolio") renderPortfolio();
   if (tab === "audit") renderAudit();
   if (tab === "guests") renderGuests();
+  if (tab === "year") renderYear();
 }
 function setTab(t) {
   tab = t;
   document.querySelectorAll(".tabs button").forEach(b => b.setAttribute("aria-selected", String(b.dataset.tab === t)));
-  for (const id of ["view", "portfolio", "audit", "guests", "saved"]) $(id).style.display = (id === "view" ? "statement" : id) === t ? "" : "none";
+  for (const id of ["view", "portfolio", "audit", "guests", "saved", "year"]) $(id).style.display = (id === "view" ? "statement" : id) === t ? "" : "none";
   $("stWarns").style.display = t === "statement" ? "" : "none";
-  if (t === "portfolio") renderPortfolio(); if (t === "audit") renderAudit(); if (t === "guests") renderGuests(); if (t === "saved") renderSaved();
+  if (t === "portfolio") renderPortfolio(); if (t === "audit") renderAudit(); if (t === "guests") renderGuests(); if (t === "saved") renderSaved(); if (t === "year") renderYear();
 }
 document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => setTab(b.dataset.tab));
 const title = text => { const t = el("h3", "", text); t.setAttribute("aria-level", "2"); return t; };
@@ -599,6 +603,58 @@ function renderPortfolio() {
   p2.appendChild(table(["Month", "Stays", "Nights", "Payout", "Host earned", "Net"], hist.slice().reverse().map(({ m, st }) => ({ cls: m === month ? "current" : "", onclick: () => { $("month").value = m; $("month").onchange(); setTab("statement"); },
     cells: [monthLabel(m), st.totals.reservations, st.totals.nights, money(st.totals.payout, st.currency), money(st.totals.cohostEarned, st.currency), money(st.totals.ownerNet, st.currency)] }))));
   root.appendChild(p2);
+}
+/* ---------- Year tab: one property's whole year, for owners and tax time ---------- */
+let yearSel = "";
+const YEAR_FIELDS = ["reservations", "nights", "grossRevenue", "airbnbFees", "cleaning", "payout", "commission", "cleaningToCohost", "expensesTotal", "cohostEarned", "ownerNet"];
+function yearData(listing, year) {
+  const ms = months(tx.filter(t => t.listing === listing), settingsFor(listing).monthBy).filter(m => m.startsWith(year)).sort();
+  const hist = ms.map(m => ({ m, st: statementFor(listing, m) }));
+  const T = Object.fromEntries(YEAR_FIELDS.map(f => [f, Math.round(hist.reduce((a, x) => a + (x.st.totals[f] || 0), 0) * 100) / 100]));
+  const cats = {}; hist.forEach(({ st }) => st.expenses.forEach(e => { const k = e.category || "Uncategorized"; cats[k] = Math.round(((cats[k] || 0) + e.amount) * 100) / 100; }));
+  const curs = [...new Set(hist.flatMap(x => x.st.lines.map(l => l.currency)))];
+  return { hist, T, cats, curs, cur: curs[0] || "USD" };
+}
+function renderYear() {
+  const root = $("year"); root.innerHTML = ""; const listing = $("listing").value; if (!listing) return;
+  const p = el("section", "panel");
+  if (isLocked(listing)) { p.append(title("Year summary"), el("p", "help", `${listing} isn't on your ${PLANS[currentPlan()].name} plan.`)); root.appendChild(p); return; }
+  const s = settingsFor(listing), own = s.reportType === "own";
+  const years = [...new Set(months(tx.filter(t => t.listing === listing), s.monthBy).map(m => m.slice(0, 4)))].sort().reverse();
+  if (!years.includes(yearSel)) yearSel = years.includes(($("month").value || "").slice(0, 4)) ? $("month").value.slice(0, 4) : years[0];
+  const { hist, T, cats, curs, cur } = yearData(listing, yearSel);
+  p.append(title(`${listing} · ${yearSel} summary`));
+  const bar = el("div", "year-bar");
+  const sel = el("select", "input"); sel.setAttribute("aria-label", "Year"); years.forEach(y => sel.appendChild(Object.assign(el("option", "", y), { value: y, selected: y === yearSel })));
+  sel.onchange = () => { yearSel = sel.value; renderYear(); };
+  const csvB = Object.assign(el("button", "btn btn-ghost btn-sm"), { type: "button" }); csvB.appendChild(el("span", "", "⤓ CSV")); csvB.onclick = () => yearCsv(listing);
+  const prB = Object.assign(el("button", "btn btn-ghost btn-sm"), { type: "button" }); prB.appendChild(el("span", "", "⤓ PDF / Print")); prB.onclick = () => print();
+  bar.append(sel, csvB, prB); p.appendChild(bar);
+  const first = hist[0]?.m, last = hist[hist.length - 1]?.m;
+  p.appendChild(el("p", "help", `Covers ${hist.length} month${hist.length === 1 ? "" : "s"} of your file (${monthLabel(first)}${first !== last ? " to " + monthLabel(last) : ""}), counted by ${s.monthBy === "checkin" ? "check-in date" : "payout date"} with this property's settings and each month's expenses.` + (hist.length < 12 ? " Months not in your file aren't included: upload a full-year Airbnb export for a complete year." : "")));
+  if (curs.length > 1) { p.appendChild(el("div", "warn", `This year mixes currencies (${curs.join(", ")}). Amounts aren't converted, so the totals aren't meaningful.`)); }
+  const sr = el("div", "stat-row");
+  [["Gross (Airbnb)", money(T.grossRevenue, cur)], ["Airbnb fees", money(T.airbnbFees, cur)], ["Airbnb payout", money(T.payout, cur)], ...(own ? [["Expenses", money(T.expensesTotal, cur)]] : [["Host earned", money(T.cohostEarned, cur)]]), [own ? "Net earnings" : "Net to owner", money(T.ownerNet, cur)]]
+    .forEach(([k, v]) => { const d = el("div"); d.append(el("b", "num", v), el("span", "", k)); sr.appendChild(d); }); p.appendChild(sr);
+  const heads = own ? ["Month", "Stays", "Nights", "Gross", "Airbnb fees", "Payout", "Expenses", "Net"] : ["Month", "Stays", "Nights", "Gross", "Airbnb fees", "Payout", "Commission", "Cleaning to you", "Expenses", "Net to owner"];
+  const row = (label, t, c) => own ? [label, t.reservations, t.nights, money(t.grossRevenue, c), money(t.airbnbFees, c), money(t.payout, c), money(t.expensesTotal, c), money(t.ownerNet, c)]
+    : [label, t.reservations, t.nights, money(t.grossRevenue, c), money(t.airbnbFees, c), money(t.payout, c), money(t.commission, c), money(t.cleaningToCohost, c), money(t.expensesTotal, c), money(t.ownerNet, c)];
+  const rows = hist.map(({ m, st }) => ({ onclick: () => { $("month").value = m; $("month").onchange(); setTab("statement"); }, cells: row(monthLabel(m), st.totals, st.currency) }));
+  rows.foot = row("Total", T, cur); p.appendChild(table(heads, rows));
+  const catRows = Object.entries(cats).sort((a, b) => b[1] - a[1]);
+  if (catRows.length) { p.appendChild(title("Expenses by category")).style.cssText = "font-size:17px;margin:18px 0 8px"; const cr = catRows.map(([k, v]) => ({ cells: [k, money(v, cur)] })); cr.foot = ["Total", money(T.expensesTotal, cur)]; p.appendChild(table(["Category", "Amount"], cr)); }
+  p.appendChild(el("p", "help", "Figures come from your Airbnb report and what you entered. Airbnb's own tax forms can differ (for example, they may include taxes or fees counted differently), so check tax figures with your accountant."));
+  root.appendChild(p);
+}
+function yearCsv(listing) {
+  const { hist, T, cats, cur } = yearData(listing, yearSel), own = settingsFor(listing).reportType === "own";
+  const head = ["Month", "Stays", "Nights", "Gross", "Airbnb fees", "Cleaning fees", "Payout", ...(own ? [] : ["Commission", "Cleaning to host"]), "Expenses", own ? "Net earnings" : "Net to owner", "Currency"];
+  const line = (label, t) => [label, t.reservations, t.nights, t.grossRevenue, t.airbnbFees, t.cleaning, t.payout, ...(own ? [] : [t.commission, t.cleaningToCohost]), t.expensesTotal, t.ownerNet, cur];
+  const out = [[`${listing} ${yearSel} summary`], head, ...hist.map(({ m, st }) => line(m, st.totals)), line("Total", T)];
+  const cr = Object.entries(cats); if (cr.length) out.push([], ["Expenses by category", "Amount"], ...cr, ["Total", T.expensesTotal]);
+  const blob = new Blob(["\ufeff" + out.map(r => r.map(csvCell).join(",")).join("\r\n")], { type: "text/csv;charset=utf-8" });
+  const a = Object.assign(el("a"), { href: URL.createObjectURL(blob), download: `${listing.replace(/[^\w\- ]+/g, "").trim() || "property"} ${yearSel} summary.csv` });
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
 function renderAudit() {
   const root = $("audit"); root.innerHTML = ""; if (!parsed || !current) return; const A = parsed.audit, cur = current.currency, s = current.settings;

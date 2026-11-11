@@ -95,6 +95,28 @@ try {
   ok("Save keeps a copy; the Saved tab lists it under 'Harbor Flat' and shows it at $1,361.00");
   await page.screenshot({ path: OUT + "/saved.png", fullPage: false });
 
+  // 7b. year summary: every month of 2026 for this property, totals = sum of the months; CSV download
+  await page.click(".tabs button[data-tab=year]"); await page.waitForSelector("#year .panel table");
+  assert.ok((await page.textContent("#year h3")).includes("Harbor Flat · 2026 summary"));
+  const money = s => Number(s.replace(/[^0-9.-]/g, "").replace(/^-?$/, "0")) * (s.includes("−") || s.trim().startsWith("-") ? -1 : 1);
+  const yr = await page.$eval("#year table", t => [...t.tBodies[0].rows].map(x => [...x.cells].map(c => c.textContent)));
+  const foot = await page.$eval("#year table", t => [...t.tFoot.rows[0].cells].map(x => x.textContent));
+  assert.deepEqual(yr.map(r => r[0]), ["October 2026", "November 2026", "December 2026"]);
+  const netSum = Math.round(yr.reduce((a, r) => a + money(r[r.length - 1]), 0) * 100) / 100;
+  assert.equal(money(foot[foot.length - 1]), netSum);
+  assert.equal(money(yr.find(r => r[0] === "November 2026")[yr[0].length - 1]), 1361);
+  assert.ok((await page.textContent("#year")).includes("Expenses by category"));
+  assert.ok((await page.textContent("#year")).includes("Months not in your file aren't included"));
+  const [ydl] = await Promise.all([page.waitForEvent("download"), page.click("#year .year-bar button:has-text('CSV')")]);
+  const ycsv = (await import("node:fs")).readFileSync(await ydl.path(), "utf8"); assert.ok(ycsv.includes("Harbor Flat 2026 summary") && ycsv.includes("Total"));
+  ok(`Year tab: 3 months of 2026, total net ${netSum} = sum of the months (November $1,361.00), expenses by category, CSV download`);
+  await page.click(".tabs button[data-tab=statement]");
+
+  // 7c. host contact shown on the statement
+  await page.fill("#contact", "hello@lakeside.example"); await page.waitForTimeout(250);
+  assert.ok((await page.textContent("#view .st-foot")).includes("Contact") && (await page.textContent("#view .st-foot")).includes("hello@lakeside.example"));
+  ok("your contact appears at the bottom of the statement");
+
   // 8. calmer cursor on statement pages, playful cursor still on the homepage
   assert.ok(await page.evaluate(() => document.body.classList.contains("cursor-subtle") && !document.body.classList.contains("has-cursor")));
   ok("statement pages use the calm cursor (normal pointer + small ring)");
