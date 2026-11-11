@@ -428,3 +428,6 @@ html { scroll-behavior: smooth; }
 .side-legal a { color: var(--ink-2); }
 /* keep screen-reader-only text inside sideways-scrolling tables from widening the page */
 .tbl-wrap, .scroll-x { position: relative; }
+.compare tbody th { font-weight: 650; font-size: 15px; text-transform: none; letter-spacing: 0; color: var(--ink); white-space: normal; min-width: 170px; }
+.compare td { vertical-align: top; } .compare { min-width: 760px; }
+.compare tbody th { vertical-align: top; }
