@@ -37,7 +37,7 @@ try {
     const r = await post("/api/billing/checkout", { plan: "pro", interval: "year", price: "price_attacker" }, as(A)); assert.equal(r.status, 200);
     assert.match((await r.json()).url, /^https:\/\/checkout\.stripe\.com\//);
     const f = state.lastCheckout;
-    assert.equal(f["line_items[0][price]"], "price_test_pro_year"); assert.equal(f["managed_payments[enabled]"], "true");
+    assert.equal(f["line_items[0][price]"], "price_test_pro_year"); assert.equal(f["managed_payments[enabled]"], "true"); assert.equal(f["branding_settings[display_name]"], "Mint Statements");
     assert.equal(f["subscription_data[billing_mode][type]"], "flexible"); assert.equal(f.mode, "subscription");
     assert.deepEqual([f.client_reference_id, f.customer_email], [aId, A.email]);
     assert.equal(f["subscription_data[trial_period_days]"], "7"); assert.equal((await me(A)).trialAvailable, true);

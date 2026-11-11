@@ -22,6 +22,7 @@ export async function onRequestPost({ request, env }) {
       mode: "subscription",
       line_items: [{ price, quantity: 1 }],
       managed_payments: { enabled: true },
+      branding_settings: { display_name: "Mint Statements" }, // the name shown at the top of the checkout page
       client_reference_id: user.id,
       customer_email: user.email,
       subscription_data: { billing_mode: { type: "flexible" }, metadata: { app: "ownermint", plan, user_id: user.id }, ...(before ? {} : { trial_period_days: TRIAL_DAYS }) },

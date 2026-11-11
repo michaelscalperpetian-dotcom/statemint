@@ -3,10 +3,11 @@ import { getUser } from "./_auth.js";
 const PROTECTED = new Set(["/app", "/app.html", "/dashboard", "/dashboard.html"]);
 // The site's real address. Pages opened on the old pages.dev address are sent here (same path and query).
 // /api/ is left alone so Stripe's webhook, which is registered on the old address, keeps working.
-const MAIN_HOST = "mintstatements.com", OLD_HOST = "statemint-994.pages.dev";
+// The www address goes to the same place, so there is one address for sign-in, cookies and links.
+const MAIN_HOST = "mintstatements.com", OTHER_HOSTS = new Set(["statemint-994.pages.dev", "www.mintstatements.com"]);
 export async function onRequest({ request, env, next }) {
   const url = new URL(request.url);
-  if (url.hostname === OLD_HOST && !url.pathname.startsWith("/api/") && (request.method === "GET" || request.method === "HEAD"))
+  if (OTHER_HOSTS.has(url.hostname) && !url.pathname.startsWith("/api/") && (request.method === "GET" || request.method === "HEAD"))
     return new Response(null, { status: 301, headers: { location: `https://${MAIN_HOST}${url.pathname}${url.search}` } });
   if (!PROTECTED.has(url.pathname)) return next();
   if (await getUser(request, env)) return next();
