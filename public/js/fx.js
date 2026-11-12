@@ -7,11 +7,13 @@ export function cursor({ subtle = false } = {}) {
   const dot = Object.assign(document.createElement("div"), { className: "c-dot" });
   const ring = Object.assign(document.createElement("div"), { className: "c-ring" });
   document.body.append(dot, ring);
-  let x = -100, y = -100, rx = x, ry = y;
-  addEventListener("pointermove", e => { x = e.clientX; y = e.clientY; dot.style.transform = `translate(${x}px,${y}px)`; }, { passive: true });
-  document.addEventListener("pointerover", e => ring.classList.toggle("hover", !!e.target.closest?.("a,button,input,select,label,.drop,[data-hover]")));
+  let x = -100, y = -100, rx = x, ry = y, running = false;
   const k = subtle ? .45 : .17;
-  (function loop() { rx += (x - rx) * k; ry += (y - ry) * k; ring.style.transform = `translate(${rx}px,${ry}px)`; requestAnimationFrame(loop); })();
+  function loop() { rx += (x - rx) * k; ry += (y - ry) * k; ring.style.transform = `translate(${rx}px,${ry}px)`;
+    if (Math.abs(x - rx) + Math.abs(y - ry) > 0.3) requestAnimationFrame(loop); else running = false; }
+  addEventListener("pointermove", e => { x = e.clientX; y = e.clientY; dot.style.transform = `translate(${x}px,${y}px)`; if (!running) { running = true; requestAnimationFrame(loop); } }, { passive: true });
+  document.addEventListener("pointerover", e => ring.classList.toggle("hover", !!e.target.closest?.("a,button,input,select,label,.drop,[data-hover]")));
+
 }
 export function magnetic(root = document) {
   if (!fine || reduce) return;
@@ -25,10 +27,12 @@ export function magnetic(root = document) {
 }
 export function tilt(el, target = el, max = 10) {
   if (reduce) return;
-  let tx = 0, ty = 0, cx = 0, cy = 0;
-  target.addEventListener("pointermove", e => { const r = target.getBoundingClientRect(); tx = ((e.clientX - r.left) / r.width - .5) * 2 * max; ty = -((e.clientY - r.top) / r.height - .5) * 2 * max; });
-  target.addEventListener("pointerleave", () => { tx = 0; ty = 0; });
-  (function loop() { cx += (tx - cx) * .07; cy += (ty - cy) * .07; el.style.transform = `rotateY(${cx}deg) rotateX(${cy}deg)`; requestAnimationFrame(loop); })();
+  let tx = 0, ty = 0, cx = 0, cy = 0, running = false;
+  function loop() { cx += (tx - cx) * .07; cy += (ty - cy) * .07; el.style.transform = `rotateY(${cx}deg) rotateX(${cy}deg)`;
+    if (Math.abs(tx - cx) + Math.abs(ty - cy) > 0.02) requestAnimationFrame(loop); else running = false; }
+  const kick = () => { if (!running) { running = true; requestAnimationFrame(loop); } };
+  target.addEventListener("pointermove", e => { const r = target.getBoundingClientRect(); tx = ((e.clientX - r.left) / r.width - .5) * 2 * max; ty = -((e.clientY - r.top) / r.height - .5) * 2 * max; kick(); });
+  target.addEventListener("pointerleave", () => { tx = 0; ty = 0; kick(); });
 }
 export function reveals() {
   const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } }), { threshold: .15 });
@@ -57,3 +61,21 @@ export const store = {
   set(k, v) { let ok = false; try { localStorage.setItem("ownermint:" + k, JSON.stringify(v)); ok = true; } catch {} storeListeners.forEach(f => f(k, v)); return ok; },
   onChange(f) { storeListeners.push(f); },
 };
+// A small "done" moment for Save / CSV / Print buttons: the button presses in, a mint coin pops out of it with a few
+// sparkles, and the label briefly confirms. With reduced motion, only the label changes.
+export function celebrate(btn, doneText) {
+  if (!btn) return;
+  const label = btn.querySelector("span") || btn;
+  if (!btn.dataset.label) btn.dataset.label = label.textContent;
+  label.textContent = doneText; clearTimeout(btn._done);
+  btn._done = setTimeout(() => { label.textContent = btn.dataset.label; delete btn.dataset.label; }, 1500);
+  if (reduce) return;
+  btn.classList.remove("pop"); void btn.offsetWidth; btn.classList.add("pop");
+  const r = btn.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top + r.height / 2;
+  const fx = Object.assign(document.createElement("div"), { className: "celebrate" }); fx.setAttribute("aria-hidden", "true");
+  fx.style.left = x + "px"; fx.style.top = y + "px";
+  const coin = Object.assign(document.createElement("i"), { className: "cel-coin", textContent: "$" }); fx.appendChild(coin);
+  for (let i = 0; i < 7; i++) { const a = -Math.PI / 2 + (i - 3) * 0.48, d = 30 + (i % 3) * 9, s = document.createElement("b");
+    s.className = "cel-spark"; s.style.setProperty("--dx", Math.cos(a) * d + "px"); s.style.setProperty("--dy", Math.sin(a) * d - 10 + "px"); s.style.animationDelay = 60 + i * 15 + "ms"; fx.appendChild(s); }
+  document.body.appendChild(fx); setTimeout(() => fx.remove(), 1100);
+}

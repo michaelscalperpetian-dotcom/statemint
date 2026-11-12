@@ -123,7 +123,7 @@
 <script type="module">
 import { parseCSV, toTransactions, detectColumns, listings, months, buildStatement, monthLabel, DEFAULT_SETTINGS, SAMPLE_CSV, money, parseMoney, allocateShared, occupiedNights, guestIndex } from "/js/engine.js";
 import { renderStatement } from "/js/view.js";
-import { cursor, magnetic, toast, copy, store } from "/js/fx.js";
+import { cursor, magnetic, toast, copy, store, celebrate } from "/js/fx.js";
 import { PLANS, limitLabel, billingConfig, startCheckout, openPortal, renewalNote } from "/js/plans.js";
 import { ensureSession, fetchMe, signOut, deleteAllData } from "/js/account.js";
 // signed in, and this browser's data is in step with the account (must come before anything reads the store)
@@ -627,8 +627,8 @@ function renderYear() {
   const bar = el("div", "year-bar");
   const sel = el("select", "input"); sel.setAttribute("aria-label", "Year"); years.forEach(y => sel.appendChild(Object.assign(el("option", "", y), { value: y, selected: y === yearSel })));
   sel.onchange = () => { yearSel = sel.value; renderYear(); };
-  const csvB = Object.assign(el("button", "btn btn-ghost btn-sm"), { type: "button" }); csvB.appendChild(el("span", "", "⤓ CSV")); csvB.onclick = () => yearCsv(listing);
-  const prB = Object.assign(el("button", "btn btn-ghost btn-sm"), { type: "button" }); prB.appendChild(el("span", "", "⤓ PDF / Print")); prB.onclick = () => print();
+  const csvB = Object.assign(el("button", "btn btn-ghost btn-sm"), { type: "button" }); csvB.appendChild(el("span", "", "⤓ CSV")); csvB.onclick = () => { yearCsv(listing); celebrate(csvB, "✓ Downloaded"); };
+  const prB = Object.assign(el("button", "btn btn-ghost btn-sm"), { type: "button" }); prB.appendChild(el("span", "", "⤓ PDF / Print")); prB.onclick = () => { celebrate(prB, "✓ Opening…"); setTimeout(() => print(), 550); };
   bar.append(sel, csvB, prB); p.appendChild(bar);
   const first = hist[0]?.m, last = hist[hist.length - 1]?.m;
   p.appendChild(el("p", "help", `Covers ${hist.length} month${hist.length === 1 ? "" : "s"} of your file (${monthLabel(first)}${first !== last ? " to " + monthLabel(last) : ""}), counted by ${s.monthBy === "checkin" ? "check-in date" : "payout date"} with this property's settings and each month's expenses.` + (hist.length < 12 ? " Months not in your file aren't included: upload a full-year Airbnb export for a complete year." : "")));
@@ -705,6 +705,7 @@ $("month").onchange = () => { loadSettingsUI(); renderExpenses(); loadNote(); fi
 const csvCell = v => { let s = v == null ? "" : String(v); if (typeof v === "string" && /^[=+\-@\t\r]/.test(s)) s = "'" + s; return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
 $("exportCsv").onclick = () => {
   if (!current || isLocked(current.listing)) return; const st = presentable(current), T = st.totals;
+  celebrate($("exportCsv"), "✓ Downloaded");
   const out = [["Source row", "Type", "Confirmation code", "Guest", "Check-in", "Nights", "Payout date", "Gross", "Airbnb fee", "Cleaning fee", "Payout", "Commission base", "Commission", "Currency"]];
   st.lines.forEach(l => out.push([l.row ?? "", l.type, l.code, l.guest, l.start, l.nights || "", l.date, l.gross, l.serviceFee, l.cleaningFee, l.payout, l.commissionBase, l.commission, l.currency]));
   out.push([], ["Summary"], ["Airbnb payout", T.payout], ["Commission", T.commission], ["Cleaning fees kept by host", T.cleaningToCohost]);
@@ -715,7 +716,8 @@ $("exportCsv").onclick = () => {
   const a = Object.assign(el("a"), { href: URL.createObjectURL(blob), download: `${st.listing.replace(/[^\w\- ]+/g, "").trim() || "statement"} ${st.month}.csv` });
   document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 };
-$("print").onclick = () => { if (tab !== "statement") setTab("statement"); setTimeout(() => print(), 50); };
+// the print dialog freezes the page, so the little animation plays first
+$("print").onclick = () => { if (tab !== "statement") setTab("statement"); celebrate($("print"), "✓ Opening…"); setTimeout(() => print(), 550); };
 $("share").onclick = async () => {
   if (!current || isLocked(current.listing)) return; const btn = $("share"), label = btn.querySelector("span"), was = label.textContent;
   const ownerEmail = (settingsFor(current.listing).ownerEmail || "").trim().toLowerCase();
@@ -846,7 +848,7 @@ $("saveSnap").onclick = () => {
   snaps.push({ id: newId(), listing: current.listing, month: current.month, at: Date.now(), ownerNet: current.totals.ownerNet, currency: current.currency, own: current.settlement.direction === "none",
     data: { statement: presentable(current), brand: getBrand(), note: $("note").value, previous: currentPrev } });
   if (!store.set("saved", snaps)) { toast("Couldn't save: this browser's storage is full. Delete some saved copies or remove the logo."); return; }
-  toast("Saved ✦ It's in the Saved tab");
+  celebrate($("saveSnap"), "✓ Saved"); toast("Saved ✦ It's in the Saved tab");
   if (tab === "saved") renderSaved();
 };
 async function deleteLink(l) {

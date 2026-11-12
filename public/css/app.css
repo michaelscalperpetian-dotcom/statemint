@@ -429,3 +429,14 @@ html { scroll-behavior: smooth; }
 .compare tbody th { vertical-align: top; }
 .year-bar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 4px 0 10px; } .year-bar select.input { width: auto; min-width: 110px; }
 .st-foot .st-contact { flex-basis: 100%; color: var(--ink-2); font-size: 13px; }
+/* Save / CSV / Print: little "done" animation */
+.btn.pop { animation: btnPop .45s cubic-bezier(.3,1.6,.5,1); }
+@keyframes btnPop { 0% { transform: scale(1); } 30% { transform: scale(.9); } 65% { transform: scale(1.06); } 100% { transform: scale(1); } }
+.celebrate { position: fixed; z-index: 200; width: 0; height: 0; pointer-events: none; }
+.cel-coin { position: absolute; left: -13px; top: -13px; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font: 800 14px/1 var(--display); font-style: normal; color: #0b5c43;
+  background: radial-gradient(circle at 32% 30%, #c9fbe8, #2fd3a0 55%, #138a64); box-shadow: 0 4px 14px rgba(47,211,160,.55); animation: celCoin .95s cubic-bezier(.2,.8,.3,1) forwards; }
+@keyframes celCoin { 0% { transform: translateY(0) scale(.4) rotateY(0); opacity: 0; } 15% { opacity: 1; } 50% { transform: translateY(-40px) scale(1.15) rotateY(540deg); opacity: 1; } 100% { transform: translateY(-52px) scale(.85) rotateY(900deg); opacity: 0; } }
+.cel-spark { position: absolute; left: -4px; top: -4px; width: 8px; height: 8px; border-radius: 50%; background: #8ff5d1; box-shadow: 0 0 8px #2fd3a0; opacity: 0; animation: celSpark .6s ease-out forwards; }
+.cel-spark:nth-child(odd) { background: #f2d05a; box-shadow: 0 0 8px #f2d05a; }
+@keyframes celSpark { 0% { transform: translate(0, 0) scale(.6); opacity: 0; } 20% { opacity: 1; } 100% { transform: translate(var(--dx), var(--dy)) scale(0); opacity: 0; } }
+@media print { .celebrate { display: none !important; } }

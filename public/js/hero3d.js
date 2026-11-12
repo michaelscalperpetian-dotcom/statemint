@@ -13,8 +13,10 @@ export function startHero(canvas, opts = {}) {
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
   const finePointer = matchMedia("(hover: hover) and (pointer: fine)").matches;
   const small = () => canvas.clientWidth < 720;
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: "high-performance" });
-  renderer.setPixelRatio(Math.min(devicePixelRatio, small() ? 1.5 : 1.75));
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, alpha: true, powerPreference: "high-performance" });
+  // Resolution starts modest and drops further on slower devices (see the frame-time check in the loop).
+  const maxRatio = Math.min(devicePixelRatio, small() ? 1.25 : 1.5); let ratio = maxRatio;
+  renderer.setPixelRatio(ratio);
   renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   // Dusk look: filmic tone mapping with a lower exposure so nothing glares.
   renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 0.78;
@@ -37,7 +39,7 @@ export function startHero(canvas, opts = {}) {
   scene.add(new THREE.HemisphereLight(0xbfe6ff, 0x1a3a30, 0.75));
   const sun = new THREE.DirectionalLight(0xffd6a3, 1.55);
   sun.position.set(9, 9, 5); sun.castShadow = true;
-  sun.shadow.mapSize.set(2048, 2048); sun.shadow.radius = 5; sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.02;
+  sun.shadow.mapSize.set(1024, 1024); sun.shadow.radius = 5; sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.02;
   Object.assign(sun.shadow.camera, { left: -7.5, right: 7.5, top: 7.5, bottom: -7.5, near: 2, far: 34 }); sun.shadow.camera.updateProjectionMatrix();
   scene.add(sun);
   const rim = new THREE.PointLight(0x2fd3a0, 18, 22, 1.8); rim.position.set(-7, 3, -5); scene.add(rim);
@@ -292,7 +294,7 @@ export function startHero(canvas, opts = {}) {
 
   // ---------- sizing / camera ----------
   const camBase = new THREE.Vector3(12.5, 10.5, 15.5);
-  function resize() { const w = canvas.clientWidth, h = canvas.clientHeight; renderer.setSize(w, h, false); composer.setSize(w, h); bloom.resolution.set(w / 2, h / 2); camera.aspect = w / h; camera.updateProjectionMatrix(); }
+  function resize() { const w = canvas.clientWidth, h = canvas.clientHeight; renderer.setPixelRatio(ratio); composer.setPixelRatio(ratio); renderer.setSize(w, h, false); composer.setSize(w, h); bloom.resolution.set(w / 3, h / 3); camera.aspect = w / h; camera.updateProjectionMatrix(); }
   addEventListener("resize", resize); resize();
   const offset = () => (canvas.clientWidth >= 900 ? new THREE.Vector3(3.1, -0.3, -2.4) : new THREE.Vector3(0, -1.6, 0));
 
@@ -332,10 +334,17 @@ export function startHero(canvas, opts = {}) {
   else { for (let i = 0; i < 20; i++) { const c = spawn(new THREE.Vector3(rnd(-3, 3), CT / 2, rnd(-3, 3)), null, false); c.body.quaternion.set(0, 0, 0, 1); if (!clearOf(c.body.position.x, c.body.position.z, 0.3)) c.body.position.set(rnd(1.8, 3), CT / 2, rnd(1, 2.5)); c.body.sleep(); } sync(); }
   const clock = new THREE.Clock(); const camPos = camBase.clone().multiplyScalar(small() ? 1.5 : 1); const look = new THREE.Vector3(); camera.position.copy(camPos);
   if (opts.debug) window.__hero = { world, coins, spawn, CANNON, root, camera, get grabbed() { return grabbed; } };
+  let slow = 0, quality = 3; // 3 = full; each step down trades a little sharpness for smoothness
+  function lowerQuality() {
+    if (quality === 3) { ratio = Math.max(1, ratio - 0.25); if (ratio <= 1) quality = 2; resize(); }
+    else if (quality === 2) { bloom.enabled = false; quality = 1; }
+    else if (quality === 1) { sun.castShadow = false; renderer.shadowMap.enabled = false; scene.traverse(o => { if (o.material) o.material.needsUpdate = true; }); quality = 0; }
+  }
   function frame() {
     requestAnimationFrame(frame);
-    const dt = Math.min(0.05, clock.getDelta());
+    const raw = clock.getDelta(), dt = Math.min(0.05, raw);
     if (!visible || document.hidden) return;
+    if (quality > 0 && t > 2.5) { slow = raw > 1 / 40 ? slow + 1 : Math.max(0, slow - 2); if (slow > 45) { slow = 0; lowerQuality(); } }
     t += dt; intro = reduce ? 1 : Math.min(1, intro + dt / 1.8);
     const e = 1 - Math.pow(1 - intro, 4), off = offset();
     root.position.set(off.x, off.y + (1 - e) * -3 + Math.sin(t * 0.8) * 0.08, off.z);
