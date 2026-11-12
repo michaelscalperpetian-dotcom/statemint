@@ -217,3 +217,6 @@ pages["cookies"] = ("Cookie policy", "The cookies and browser storage Mint State
 for slug, (title, desc, body) in pages.items():
     open(f"{out}/{slug}.html", "w").write(page(slug, title, desc, body))
 print("wrote", ", ".join(pages))
+# keep the version tags on script/style links current (see scripts/stamp.py)
+import subprocess, pathlib as _p
+subprocess.run([sys.executable, str(_p.Path(__file__).with_name("stamp.py"))], check=True)

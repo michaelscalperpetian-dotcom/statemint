@@ -14,8 +14,8 @@
 <meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="Mint Statements: Airbnb statements, minted from your CSV.">
 <meta name="twitter:card" content="summary_large_image">
-<link rel="stylesheet" href="/fonts/fonts.css">
-<link rel="stylesheet" href="/css/app.css">
+<link rel="stylesheet" href="/fonts/fonts.css?v=3d755da3">
+<link rel="stylesheet" href="/css/app.css?v=c29ea31b">
 <script type="importmap">{"imports":{"three":"/vendor/three.module.min.js","three/addons/":"/vendor/addons/","cannon-es":"/vendor/cannon-es.min.js"}}</script>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='44' fill='%232fd3a0'/></svg>">
 </head>
@@ -129,11 +129,11 @@
 </div></footer>
 
 <script type="module">
-import { cursor, magnetic, reveals, splitWords, tilt, toast } from "/js/fx.js";
-import { parseCSV, toTransactions, buildStatement, SAMPLE_CSV } from "/js/engine.js";
-import { renderStatement } from "/js/view.js";
-import { PLANS, billingConfig, startCheckout } from "/js/plans.js";
-import { fetchMe } from "/js/account.js";
+import { cursor, magnetic, reveals, splitWords, tilt, toast } from "/js/fx.js?v=23bc8adf";
+import { parseCSV, toTransactions, buildStatement, SAMPLE_CSV } from "/js/engine.js?v=a224f7b6";
+import { renderStatement } from "/js/view.js?v=856a0486";
+import { PLANS, billingConfig, startCheckout } from "/js/plans.js?v=3444df30";
+import { fetchMe } from "/js/account.js?v=55ae10f5";
 // signed in? the nav offers the dashboard instead of "Sign in"
 const meReady = fetchMe().catch(() => null);
 meReady.then(m => { if (m) { const a = document.getElementById("navAcct"); a.textContent = "Dashboard"; a.href = "/dashboard"; if (!m.trialAvailable) { trialOK = false; document.querySelectorAll(".trial-tag").forEach(t => t.hidden = true); if (typeof drawPrices === "function") drawPrices(); } } });
@@ -185,7 +185,7 @@ document.querySelectorAll("[data-buy]").forEach(a => a.addEventListener("click",
 drawPrices();
 // coming back from Stripe with the Back button restores the page from cache: reset the buttons
 addEventListener("pageshow", e => { if (e.persisted) { document.querySelectorAll("[data-buy]").forEach(x => delete x.dataset.busy); drawPrices(); } });
-try { const { startHero } = await import("/js/hero3d.js"); startHero(document.getElementById("scene"), { debug: new URLSearchParams(location.search).has("debug3d") }); } catch (e) { console.warn("3D scene unavailable", e); }
+try { const { startHero } = await import("/js/hero3d.js?v=e852ce15"); startHero(document.getElementById("scene"), { debug: new URLSearchParams(location.search).has("debug3d") }); } catch (e) { console.warn("3D scene unavailable", e); }
 </script>
 </body>
 </html>

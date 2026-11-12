@@ -4,8 +4,8 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Owner statement · Mint Statements</title>
 <meta name="robots" content="noindex">
-<link rel="stylesheet" href="/fonts/fonts.css">
-<link rel="stylesheet" href="/css/app.css">
+<link rel="stylesheet" href="/fonts/fonts.css?v=3d755da3">
+<link rel="stylesheet" href="/css/app.css?v=c29ea31b">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='44' fill='%232fd3a0'/></svg>">
 <style>.page { min-height: 100vh; padding: 40px 0 80px; background: radial-gradient(900px 500px at 50% -10%, #cdf5e6, transparent), var(--bg); } .page .wrap { max-width: 920px; perspective: 1600px; } #view { transform-style: preserve-3d; }</style>
 </head>
@@ -21,10 +21,10 @@
   <footer class="no-print st-legal"><a href="/terms">Terms</a> · <a href="/privacy">Privacy</a> · <a href="/cookies">Cookies</a></footer>
 </div></div>
 <script type="module">
-import { renderStatement } from "/js/view.js";
-import { cursor, tilt, celebrate } from "/js/fx.js";
+import { renderStatement } from "/js/view.js?v=856a0486";
+import { cursor, tilt, celebrate } from "/js/fx.js?v=23bc8adf";
 cursor({ subtle: true });
-document.getElementById("printBtn").addEventListener("click", e => { celebrate(e.currentTarget, "✓ Opening…"); setTimeout(() => print(), 550); });
+document.getElementById("printBtn").addEventListener("click", e => { celebrate(e.currentTarget, "✓ Opening…", { gold: true }); setTimeout(() => print(), 550); });
 const view = document.getElementById("view");
 const message = (title, text, action) => { view.innerHTML = ""; const box = document.createElement("div"); box.className = "st st-msg"; const h = document.createElement("h2"); h.textContent = title; const p = document.createElement("p"); p.textContent = text; box.append(h, p); if (action) box.appendChild(action); view.appendChild(box); return box; };
 const signInBtn = (label = "Sign in with Google") => { const a = document.createElement("a"); a.className = "btn btn-mint"; a.href = "/login?next=" + encodeURIComponent(location.pathname); const s = document.createElement("span"); s.textContent = label; a.appendChild(s); return a; };

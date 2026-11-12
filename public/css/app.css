@@ -440,3 +440,4 @@ html { scroll-behavior: smooth; }
 .cel-spark:nth-child(odd) { background: #f2d05a; box-shadow: 0 0 8px #f2d05a; }
 @keyframes celSpark { 0% { transform: translate(0, 0) scale(.6); opacity: 0; } 20% { opacity: 1; } 100% { transform: translate(var(--dx), var(--dy)) scale(0); opacity: 0; } }
 @media print { .celebrate { display: none !important; } }
+.cel-coin.gold { color: #7a5200; background: radial-gradient(circle at 32% 30%, #fff3c4, #f2c43d 55%, #b9851a); box-shadow: 0 4px 14px rgba(242,196,61,.6); }

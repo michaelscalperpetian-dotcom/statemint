@@ -4,8 +4,8 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Dashboard · Mint Statements</title>
 <meta name="robots" content="noindex">
-<link rel="stylesheet" href="/fonts/fonts.css">
-<link rel="stylesheet" href="/css/app.css">
+<link rel="stylesheet" href="/fonts/fonts.css?v=3d755da3">
+<link rel="stylesheet" href="/css/app.css?v=c29ea31b">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='44' fill='%232fd3a0'/></svg>">
 </head>
 <body class="dash-page">
@@ -26,10 +26,10 @@
   <p class="help" style="text-align:center"><a href="/terms">Terms</a> · <a href="/privacy">Privacy</a> · <a href="/refunds">Refunds</a> · <a href="/cookies">Cookies</a> · <a href="mailto:support@mintstatements.com">support@mintstatements.com</a></p>
 </main>
 <script type="module">
-import { parseCSV, toTransactions, listings, months, monthLabel, money, SAMPLE_CSV } from "/js/engine.js";
-import { toast, copy, store } from "/js/fx.js";
-import { PLANS, limitLabel, billingConfig, startCheckout, openPortal, renewalNote } from "/js/plans.js";
-import { ensureSession, fetchMe, signOut, deleteAllData } from "/js/account.js";
+import { parseCSV, toTransactions, listings, months, monthLabel, money, SAMPLE_CSV } from "/js/engine.js?v=a224f7b6";
+import { toast, copy, store } from "/js/fx.js?v=23bc8adf";
+import { PLANS, limitLabel, billingConfig, startCheckout, openPortal, renewalNote } from "/js/plans.js?v=3444df30";
+import { ensureSession, fetchMe, signOut, deleteAllData } from "/js/account.js?v=55ae10f5";
 let me = await ensureSession();
 const $ = s => document.getElementById(s);
 const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };

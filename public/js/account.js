@@ -1,5 +1,5 @@
 // Accounts in the browser: who is signed in, and keeping this browser's app data in sync with the account.
-import { store } from "/js/fx.js";
+import { store } from "/js/fx.js?v=23bc8adf";
 const PREFIX = "ownermint:", OWNER_KEY = PREFIX + "__account", PENDING_KEY = PREFIX + "__pending";
 const LOCAL_ONLY = new Set(["license", "__account", "__pending"]); // never sent to the server
 // Keys changed in this browser but not yet confirmed saved to the account. Kept in localStorage so a change made

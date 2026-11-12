@@ -63,7 +63,7 @@ export const store = {
 };
 // A small "done" moment for Save / CSV / Print buttons: the button presses in, a mint coin pops out of it with a few
 // sparkles, and the label briefly confirms. With reduced motion, only the label changes.
-export function celebrate(btn, doneText) {
+export function celebrate(btn, doneText, { gold = false } = {}) {
   if (!btn) return;
   const label = btn.querySelector("span") || btn;
   if (!btn.dataset.label) btn.dataset.label = label.textContent;
@@ -74,7 +74,7 @@ export function celebrate(btn, doneText) {
   const r = btn.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top + r.height / 2;
   const fx = Object.assign(document.createElement("div"), { className: "celebrate" }); fx.setAttribute("aria-hidden", "true");
   fx.style.left = x + "px"; fx.style.top = y + "px";
-  const coin = Object.assign(document.createElement("i"), { className: "cel-coin", textContent: "$" }); fx.appendChild(coin);
+  const coin = Object.assign(document.createElement("i"), { className: "cel-coin" + (gold ? " gold" : ""), textContent: "$" }); fx.appendChild(coin);
   for (let i = 0; i < 7; i++) { const a = -Math.PI / 2 + (i - 3) * 0.48, d = 30 + (i % 3) * 9, s = document.createElement("b");
     s.className = "cel-spark"; s.style.setProperty("--dx", Math.cos(a) * d + "px"); s.style.setProperty("--dy", Math.sin(a) * d - 10 + "px"); s.style.animationDelay = 60 + i * 15 + "ms"; fx.appendChild(s); }
   document.body.appendChild(fx); setTimeout(() => fx.remove(), 1100);
