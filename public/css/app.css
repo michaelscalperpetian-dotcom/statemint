@@ -49,16 +49,12 @@ h1, h2, h3 { font-family: var(--display); letter-spacing: -.035em; line-height: 
 @media (max-width: 900px) { .hero::after { background: linear-gradient(180deg, rgba(7,19,15,.75) 0%, rgba(7,19,15,.55) 55%, rgba(7,19,15,.85) 100%); } }
 .hero-copy { position: absolute; inset: 0; display: flex; align-items: center; padding-top: 76px; z-index: 3; pointer-events: none; }
 .hero-copy .wrap > * { pointer-events: auto; }
-.kicker { display: inline-flex; gap: 10px; align-items: center; padding: 8px 14px 8px 8px; border-radius: 999px; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.12); font-size: 14px; font-weight: 500; backdrop-filter: blur(8px); }
-.kicker b { background: var(--mint); color: var(--ink); border-radius: 999px; padding: 3px 9px; font-size: 12px; }
 .h-hero { font-size: clamp(44px, 6.4vw, 92px); font-weight: 800; margin: 22px 0 0; max-width: 11ch; }
 .h-hero .grad { background: linear-gradient(100deg, #8ff5d1, var(--mint) 40%, #f5c451); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .hero-lede { font-size: clamp(18px, 1.9vw, 21px); line-height: 1.5; color: rgba(255,255,255,.72); max-width: 40ch; margin: 22px 0 32px; }
 .hero-cta { display: flex; gap: 12px; flex-wrap: wrap; }
 .hero-meta { margin-top: 18px; font-size: 14px; color: rgba(255,255,255,.5); }
 .hero-hint { position: absolute; z-index: 3; right: 26px; bottom: 26px; font-size: 13px; color: rgba(255,255,255,.5); letter-spacing: .04em; pointer-events: none; }
-.scroll-cue { position: absolute; z-index: 3; left: 50%; bottom: 22px; width: 24px; height: 40px; margin-left: -12px; border: 1.5px solid rgba(255,255,255,.35); border-radius: 12px; }
-.scroll-cue::after { content: ""; position: absolute; left: 50%; top: 8px; width: 4px; height: 8px; margin-left: -2px; border-radius: 2px; background: #fff; animation: cue 1.6s infinite; }
 @keyframes cue { 60% { transform: translateY(12px); opacity: 0; } 100% { opacity: 0; } }
 .word { display: inline-block; overflow: hidden; vertical-align: top; padding-bottom: .1em; }
 .word > span { display: inline-block; transform: translateY(105%); animation: up 1s cubic-bezier(.2,.8,.2,1) forwards; }
