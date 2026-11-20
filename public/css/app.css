@@ -397,8 +397,9 @@ html { scroll-behavior: smooth; }
 .faq-item { background: #fff; border-radius: 16px; box-shadow: var(--shadow); }
 .faq-item summary { cursor: pointer; list-style: none; padding: 18px 52px 18px 20px; font-weight: 650; font-size: 17px; position: relative; border-radius: 16px; }
 .faq-item summary::-webkit-details-marker { display: none; }
-.faq-item summary::after { content: "+"; position: absolute; right: 20px; top: 50%; transform: translateY(-50%); font-size: 22px; font-weight: 500; color: var(--ink-2); transition: transform .2s; }
-.faq-item[open] summary::after { transform: translateY(-50%) rotate(45deg); }
+.faq-item summary::after { content: "+"; position: absolute; right: 20px; top: 50%; transform: translateY(-50%); font-size: 22px; font-weight: 500; color: var(--ink-2); transition: transform .35s cubic-bezier(.2,.8,.2,1), color .2s; }
+.faq-item[open] summary::after { transform: translateY(-50%) rotate(45deg); color: #0b8f68; }
+.faq-item[open][data-closing] summary::after { transform: translateY(-50%); color: var(--ink-2); }
 .faq-item summary:focus-visible { outline: 3px solid #0b8f68; outline-offset: 2px; }
 .faq-item p { margin: 0; padding: 0 20px 18px; color: var(--ink-2); line-height: 1.6; }
 .faq-item p a { color: inherit; }

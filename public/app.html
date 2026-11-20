@@ -4,7 +4,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Make a statement · Mint Statements</title>
 <link rel="stylesheet" href="/fonts/fonts.css?v=3d755da3">
-<link rel="stylesheet" href="/css/app.css?v=c29ea31b">
+<link rel="stylesheet" href="/css/app.css?v=6cf1a64a">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='44' fill='%232fd3a0'/></svg>">
 </head>
 <body>
@@ -123,9 +123,9 @@
 <script type="module">
 import { parseCSV, toTransactions, detectColumns, listings, months, buildStatement, monthLabel, DEFAULT_SETTINGS, SAMPLE_CSV, money, parseMoney, allocateShared, occupiedNights, guestIndex } from "/js/engine.js?v=a224f7b6";
 import { renderStatement } from "/js/view.js?v=856a0486";
-import { cursor, magnetic, toast, copy, store, celebrate } from "/js/fx.js?v=23bc8adf";
+import { cursor, magnetic, toast, copy, store, celebrate } from "/js/fx.js?v=08d84acb";
 import { PLANS, limitLabel, billingConfig, startCheckout, openPortal, renewalNote } from "/js/plans.js?v=3444df30";
-import { ensureSession, fetchMe, signOut, deleteAllData } from "/js/account.js?v=55ae10f5";
+import { ensureSession, fetchMe, signOut, deleteAllData } from "/js/account.js?v=e664cb33";
 // signed in, and this browser's data is in step with the account (must come before anything reads the store)
 let me = await ensureSession();
 document.getElementById("acctWho").textContent = me.user.email;

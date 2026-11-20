@@ -61,6 +61,24 @@ export const store = {
   set(k, v) { let ok = false; try { localStorage.setItem("ownermint:" + k, JSON.stringify(v)); ok = true; } catch {} storeListeners.forEach(f => f(k, v)); return ok; },
   onChange(f) { storeListeners.push(f); },
 };
+// Smooth open/close for <details> dropdowns (FAQ). The height slides and the answer fades in; clicking again
+// mid-animation reverses from where it is. Keyboard and screen readers keep the native <details> behaviour.
+export function accordion(items) {
+  items.forEach(d => {
+    const s = d.querySelector("summary"), body = [...d.children].filter(c => c !== s); let anim = null;
+    s.addEventListener("click", e => {
+      if (reduce) return;
+      e.preventDefault();
+      const from = d.offsetHeight, opening = !d.open || "closing" in d.dataset;
+      anim?.cancel(); d.style.overflow = "hidden";
+      if (opening) { d.open = true; delete d.dataset.closing; } else d.dataset.closing = "";
+      const to = opening ? d.scrollHeight : s.offsetHeight, opt = { duration: opening ? 380 : 280, easing: "cubic-bezier(.2,.8,.2,1)" };
+      anim = d.animate({ height: [from + "px", to + "px"] }, { ...opt, fill: "forwards" });
+      body.forEach(b => b.animate({ opacity: opening ? [0, 1] : [1, 0], transform: opening ? ["translateY(-8px)", "none"] : ["none", "translateY(-4px)"] }, opt));
+      anim.onfinish = () => { if (!opening) { d.open = false; delete d.dataset.closing; } anim.cancel(); anim = null; d.style.overflow = ""; };
+    });
+  });
+}
 // A small "done" moment for Save / CSV / Print buttons: the button presses in, a mint coin pops out of it with a few
 // sparkles, and the label briefly confirms. With reduced motion, only the label changes.
 export function celebrate(btn, doneText, { gold = false } = {}) {

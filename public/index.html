@@ -15,7 +15,7 @@
 <meta property="og:image:alt" content="Mint Statements: Airbnb statements, minted from your CSV.">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="stylesheet" href="/fonts/fonts.css?v=3d755da3">
-<link rel="stylesheet" href="/css/app.css?v=c29ea31b">
+<link rel="stylesheet" href="/css/app.css?v=6cf1a64a">
 <script type="importmap">{"imports":{"three":"/vendor/three.module.min.js","three/addons/":"/vendor/addons/","cannon-es":"/vendor/cannon-es.min.js"}}</script>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='44' fill='%232fd3a0'/></svg>">
 </head>
@@ -129,16 +129,16 @@
 </div></footer>
 
 <script type="module">
-import { cursor, magnetic, reveals, splitWords, tilt, toast } from "/js/fx.js?v=23bc8adf";
+import { cursor, magnetic, reveals, splitWords, tilt, toast, accordion } from "/js/fx.js?v=08d84acb";
 import { parseCSV, toTransactions, buildStatement, SAMPLE_CSV } from "/js/engine.js?v=a224f7b6";
 import { renderStatement } from "/js/view.js?v=856a0486";
 import { PLANS, billingConfig, startCheckout } from "/js/plans.js?v=3444df30";
-import { fetchMe } from "/js/account.js?v=55ae10f5";
+import { fetchMe } from "/js/account.js?v=e664cb33";
 // signed in? the nav offers the dashboard instead of "Sign in"
 const meReady = fetchMe().catch(() => null);
 meReady.then(m => { if (m) { const a = document.getElementById("navAcct"); a.textContent = "Dashboard"; a.href = "/dashboard"; if (!m.trialAvailable) { trialOK = false; document.querySelectorAll(".trial-tag").forEach(t => t.hidden = true); if (typeof drawPrices === "function") drawPrices(); } } });
 document.getElementById("yr").textContent = new Date().getFullYear();
-cursor(); magnetic(); splitWords(document.getElementById("title")); reveals();
+cursor(); magnetic(); splitWords(document.getElementById("title")); reveals(); accordion(document.querySelectorAll("#faq .faq-item"));
 const nav = document.querySelector(".nav"); const onScroll = () => nav.classList.toggle("solid", scrollY > innerHeight - 90); onScroll(); addEventListener("scroll", onScroll, { passive: true });
 const { transactions } = toTransactions(parseCSV(SAMPLE_CSV));
 const demo = document.getElementById("demoView");
