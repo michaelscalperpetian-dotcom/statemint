@@ -28,7 +28,7 @@ h1, h2, h3 { font-family: var(--display); letter-spacing: -.035em; line-height: 
 .nav.solid .c-ring { color: var(--ink); }
 .nav .wrap { display: flex; align-items: center; justify-content: space-between; height: 76px; }
 .logo { display: inline-flex; align-items: center; gap: 10px; font-family: var(--display); font-weight: 800; font-size: 23px; letter-spacing: -.04em; text-decoration: none; }
-.logo i { width: 30px; height: 30px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, #8ff5d1, var(--mint) 45%, var(--deep)); box-shadow: inset 0 -3px 6px rgba(0,0,0,.25), 0 6px 16px rgba(47,211,160,.4); display: inline-block; }
+.logo i { width: 30px; height: 30px; border-radius: 25%; background: url(/logo.svg) center / contain no-repeat; box-shadow: 0 6px 16px rgba(11,93,75,.28); display: inline-block; flex: none; }
 .nav-links { display: flex; gap: 4px; align-items: center; }
 .nav-links a.txt { padding: 9px 13px; border-radius: 10px; text-decoration: none; font-weight: 500; font-size: 15px; opacity: .8; }
 .nav-links a.txt:hover { opacity: 1; background: rgba(255,255,255,.08); }

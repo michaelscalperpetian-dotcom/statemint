@@ -15,7 +15,7 @@ def page(slug, title, desc, body):
 <link rel="canonical" href="https://mintstatements.com/{slug}">
 <link rel="stylesheet" href="/fonts/fonts.css">
 <link rel="stylesheet" href="/css/app.css">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='44' fill='%232fd3a0'/></svg>">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/apple-touch-icon.png">
 </head>
 <body class="dash-page">
 <a class="skip" href="#main">Skip to content</a>
